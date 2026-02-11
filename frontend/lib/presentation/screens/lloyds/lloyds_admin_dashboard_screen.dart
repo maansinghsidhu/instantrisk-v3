@@ -75,7 +75,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
 
   Future<List<Map<String, dynamic>>> _loadSyndicates() async {
     try {
-      final response = await authService.get('/syndicates?limit=100');
+      final response = await authService.get('/syndicates/?limit=100');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final syndicates = (data['syndicates'] as List).map((s) {

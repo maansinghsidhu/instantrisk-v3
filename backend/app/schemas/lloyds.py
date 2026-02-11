@@ -22,6 +22,7 @@ Key Lloyd's Terminology:
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
+from uuid import UUID
 from pydantic import BaseModel, Field, validator
 
 
@@ -441,7 +442,7 @@ class DataQualityIssue(BaseModel):
 
 class DataQualityReport(BaseModel):
     """Complete data quality report."""
-    assessment_id: str
+    assessment_id: UUID
     scores: DataQualityScore
     issues: List[DataQualityIssue]
     suggestions: List[str]
@@ -523,7 +524,7 @@ class IngestResponse(BaseModel):
 
 class PricingRequest(BaseModel):
     """Request for technical pricing."""
-    assessment_id: str
+    assessment_id: UUID
     class_of_business: str
     limit_of_liability: Decimal
     currency: str = "GBP"
@@ -533,7 +534,7 @@ class PricingRequest(BaseModel):
 
 class PricingResponse(BaseModel):
     """Technical pricing result."""
-    assessment_id: str
+    assessment_id: UUID
     technical_premium: Decimal
     currency: str
     risk_score: float = Field(..., description="Risk score 0-100")
@@ -567,7 +568,7 @@ class QuoteResponse(BaseModel):
     """Generated quote details."""
     id: int
     quote_reference: str
-    assessment_id: str
+    assessment_id: UUID
     quoted_premium: Decimal
     quoted_line: Optional[Decimal]
     currency: str

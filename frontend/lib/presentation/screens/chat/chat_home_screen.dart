@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/chat_service.dart';
-import '../../../core/services/subscription_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../widgets/feature_gate_widget.dart';
 
 /// Chat Home Screen - List of chat conversations with AI assistant
 class ChatHomeScreen extends StatefulWidget {
@@ -57,24 +55,6 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-
-    // Check if user has access to ClaimSense chat
-    if (!subscriptionService.hasFeature('claimsense_chat')) {
-      return Scaffold(
-        backgroundColor: AppTheme.background,
-        body: SafeArea(
-          child: Center(
-            child: PremiumLockedBanner(
-              featureName: 'claimsense_chat',
-              onUpgrade: () => showDialog(
-                context: context,
-                builder: (context) => const UpgradeDialog(featureName: 'claimsense_chat'),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -310,23 +290,6 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-              // Knowledge Base Stats
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Row(
-                    children: [
-                      _buildStatCard('34K+', 'Clauses', Icons.description_outlined),
-                      const SizedBox(width: 12),
-                      _buildStatCard('20GB', 'Knowledge', Icons.storage_outlined),
-                      const SizedBox(width: 12),
-                      _buildStatCard('10', 'Languages', Icons.translate),
-                    ],
-                  ),
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
               // Quick Questions
               if (_suggestions.isNotEmpty) ...[
                 SliverToBoxAdapter(
@@ -411,40 +374,6 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                         ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String value, String label, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: AppTheme.accent, size: 20),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppTheme.textSecondary,
-              ),
-            ),
-          ],
         ),
       ),
     );

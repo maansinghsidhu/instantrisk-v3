@@ -329,7 +329,7 @@ Use the Q&A examples above to match the expected response style. Reference the c
 
             query = select(Assessment).where(Assessment.id == assessment_id)
             if user_id:
-                query = query.where(Assessment.user_id == user_id)
+                query = query.where(Assessment.created_by == user_id)
 
             result = await self.db.execute(query)
             assessment = result.scalar_one_or_none()
@@ -337,12 +337,21 @@ Use the Q&A examples above to match the expected response style. Reference the c
             if assessment:
                 # Build context from assessment data
                 context_parts = []
-                if assessment.risk_type:
-                    context_parts.append(f"Risk Type: {assessment.risk_type}")
-                if assessment.extracted_data:
-                    context_parts.append(f"Extracted Data: {json.dumps(assessment.extracted_data)}")
-                if assessment.ai_analysis:
-                    context_parts.append(f"AI Analysis: {assessment.ai_analysis}")
+                try:
+                    if assessment.risk_category:
+                        context_parts.append(f"Risk Category: {assessment.risk_category}")
+                except Exception:
+                    pass
+                try:
+                    if assessment.ai_analysis:
+                        context_parts.append(f"AI Analysis: {json.dumps(assessment.ai_analysis) if isinstance(assessment.ai_analysis, dict) else assessment.ai_analysis}")
+                except Exception:
+                    pass
+                try:
+                    if assessment.title:
+                        context_parts.append(f"Title: {assessment.title}")
+                except Exception:
+                    pass
                 return "\n".join(context_parts)
         except Exception as e:
             logger.error(f"Error getting assessment context: {e}")

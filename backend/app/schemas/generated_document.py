@@ -37,7 +37,7 @@ class LMAClauseSuggestion(BaseModel):
 
 class DocumentSuggestionResponse(BaseModel):
     """Schema for document suggestions from AI."""
-    assessment_id: str
+    assessment_id: UUID
     risk_category: Optional[str] = None
     decision: Optional[str] = None
     suggested_documents: List[DocumentSuggestion]
@@ -86,7 +86,7 @@ class GenerationJobResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
-    assessment_id: str
+    assessment_id: UUID
     status: str
     total_documents: Optional[int] = None
     completed_documents: int = 0
@@ -96,7 +96,6 @@ class GenerationJobResponse(BaseModel):
     agent_outputs: Optional[Dict[str, Any]] = None
     document_suggestions: Optional[List[Dict[str, Any]]] = None
     error_message: Optional[str] = None
-    warnings: Optional[List[str]] = None
     created_at: datetime
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
@@ -128,7 +127,7 @@ class GeneratedDocumentResponse(GeneratedDocumentBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    assessment_id: str
+    assessment_id: UUID
     generation_job_id: Optional[str] = None
     template_id: Optional[int] = None
     version: int = 1

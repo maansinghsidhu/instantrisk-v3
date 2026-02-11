@@ -50,9 +50,9 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
     try {
       // Load teams, roles, and users in parallel
       final results = await Future.wait([
-        authService.get('/teams?limit=100'),
+        authService.get('/teams/?limit=100'),
         authService.get('/teams/roles'),
-        authService.get('/auth/users?limit=100'),
+        authService.get('/auth/users/?limit=100'),
       ]);
 
       final teamsResponse = results[0];

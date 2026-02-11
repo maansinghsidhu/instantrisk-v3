@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
-from sqlalchemy import select, func
+from sqlalchemy import select, func, cast, Float
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -277,7 +277,7 @@ async def get_assessment_summary(
     refer_result = await db.execute(refer_query)
 
     # Average risk score
-    avg_query = select(func.avg(Assessment.risk_score)).where(Assessment.risk_score.isnot(None))
+    avg_query = select(func.avg(cast(Assessment.risk_score, Float))).where(Assessment.risk_score.isnot(None))
     if base_filter:
         avg_query = avg_query.where(*base_filter)
     avg_result = await db.execute(avg_query)
@@ -290,7 +290,7 @@ async def get_assessment_summary(
         "go_decisions": go_result.scalar() or 0,
         "no_go_decisions": no_go_result.scalar() or 0,
         "refer_decisions": refer_result.scalar() or 0,
-        "average_risk_score": round(avg_risk, 2) if avg_risk else None
+        "average_risk_score": round(avg_risk, 2) if avg_risk else 0.0
     }
 
 

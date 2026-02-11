@@ -142,7 +142,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
             _result = {
               'decision': analysis['decision'] ??
                          agentResults['underwriter']?['decision'] ??
-                         'REFER',
+                         'NO_GO',
               'confidence': analysis['confidence_score'] ?? 0.7,
               'agent_results': agentResults,
             };
@@ -272,7 +272,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
           _isComplete = true;
           _progressPercent = 100;
           _result = {
-            'decision': message['decision'] ?? 'REFER',
+            'decision': message['decision'] ?? 'NO_GO',
             'confidence': message['confidence'] ?? 0.7,
             'risk_score': message['risk_score'] ?? 50,
             'processing_time': message['processing_time'] ?? _elapsedSeconds,
@@ -992,7 +992,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
   }
 
   Widget _buildCompleteState(AppLocalizations l10n) {
-    final decision = _result?['decision'] ?? 'REFER';
+    final decision = _result?['decision'] ?? 'NO_GO';
     final confidence = (_result?['confidence'] ?? 0.5) * 100;
 
     Color decisionColor;
@@ -1011,9 +1011,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
         decisionText = 'Declined';
         break;
       default:
-        decisionColor = const Color(0xFFF59E0B);
-        decisionIcon = Icons.pending;
-        decisionText = 'Refer';
+        decisionColor = const Color(0xFFDC2626);
+        decisionIcon = Icons.cancel;
+        decisionText = 'Declined';
     }
 
     return Center(

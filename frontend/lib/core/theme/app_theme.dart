@@ -16,7 +16,7 @@ class AppTheme {
   static const Color danger = Color(0xFFE74C3C);   // Red for NO-GO
   static const Color error = Color(0xFFE74C3C);    // Alias for danger
   static const Color errorLight = Color(0xFFFDEDED);
-  static const Color warning = Color(0xFFF39C12);  // Orange for REFER
+  static const Color warning = Color(0xFFF39C12);  // Orange for pending
   static const Color warningLight = Color(0xFFFEF5E7);
   static const Color info = Color(0xFF3498DB);
   static const Color infoLight = Color(0xFFEBF5FB);

@@ -321,11 +321,9 @@ class _Sidebar extends StatelessWidget {
                       activeIcon: Icons.chat_bubble,
                       label: l10n.chat,
                       isSelected: selectedIndex == 2,
-                      onTap: subscriptionService.hasFeature('claimsense_chat')
-                          ? () => _onItemTapped(context, 2)
-                          : () => _showSidebarUpgradeDialog(context, 'AI Chat'),
-                      showBadge: true,
-                      isPremium: !subscriptionService.hasFeature('claimsense_chat'),
+                      onTap: () => _onItemTapped(context, 2),
+                      showBadge: false,
+                      isPremium: false,
                     ),
 
                     const SizedBox(height: 24),
@@ -637,18 +635,16 @@ class _BottomNavBar extends StatelessWidget {
                     : () => _showUpgradeDialog(context, 'Documents'),
                 isPremium: !subscriptionService.isPremium,
               ),
-              // Chat - Premium only
+              // Chat
               _NavItem(
                 key: const Key('navTab_3'),
                 icon: Icons.chat_bubble_outline,
                 activeIcon: Icons.chat_bubble,
                 label: AppLocalizations.of(context)?.chat ?? 'Chat',
                 isSelected: selectedIndex == 3,
-                onTap: subscriptionService.hasFeature('claimsense_chat')
-                    ? () => _onItemTapped(context, 3)
-                    : () => _showUpgradeDialog(context, 'AI Chat'),
-                showBadge: !subscriptionService.hasFeature('claimsense_chat'),
-                isPremium: !subscriptionService.hasFeature('claimsense_chat'),
+                onTap: () => _onItemTapped(context, 3),
+                showBadge: false,
+                isPremium: false,
               ),
               _NavItem(
                 key: const Key('navTab_4'),

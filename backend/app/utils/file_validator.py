@@ -76,8 +76,8 @@ DANGEROUS_EXTENSIONS: Set[str] = {
 }
 
 # Maximum file sizes
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB per file
-MAX_TOTAL_SIZE = 50 * 1024 * 1024  # 50MB total per upload session
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB per file
+MAX_TOTAL_SIZE = 200 * 1024 * 1024  # 200MB total per upload session
 
 # Magic bytes for common file types
 MAGIC_BYTES = {
@@ -108,21 +108,24 @@ def _check_pdf_for_scripts(content: bytes) -> bool:
     Returns:
         True if dangerous content found
     """
+    # Only block truly dangerous patterns that can execute system commands.
+    # /JavaScript, /JS, /AA, /OpenAction, /URI are common in fillable ACORD
+    # forms and insurance PDFs — these are safe for form field calculations.
     dangerous_patterns = [
-        b"/JavaScript",
-        b"/JS",
-        b"/AA",  # Additional Actions
-        b"/OpenAction",
-        b"/Launch",
-        b"/URI",
-        b"/SubmitForm",
-        b"/ImportData",
+        b"/Launch",       # Can execute system commands
+        b"/ImportData",   # Can import external data
     ]
 
     for pattern in dangerous_patterns:
         if pattern in content:
-            logger.warning(f"PDF contains suspicious pattern: {pattern}")
+            logger.warning(f"PDF contains dangerous pattern: {pattern}")
             return True
+
+    # Log but allow standard PDF features used in insurance forms
+    info_patterns = [b"/JavaScript", b"/JS", b"/AA", b"/OpenAction"]
+    for pattern in info_patterns:
+        if pattern in content:
+            logger.info(f"PDF contains standard form feature: {pattern}")
 
     return False
 
@@ -276,11 +279,12 @@ async def validate_upload_batch(
     Returns:
         Tuple of (is_valid, message)
     """
-    if len(files) > max_files:
-        raise FileValidationError(
-            f"Too many files: {len(files)} exceeds limit of {max_files}",
-            code="TOO_MANY_FILES"
-        )
+    # File count limit disabled - allow unlimited files per batch
+    # if len(files) > max_files:
+    #     raise FileValidationError(
+    #         f"Too many files: {len(files)} exceeds limit of {max_files}",
+    #         code="TOO_MANY_FILES"
+    #     )
 
     total_size = sum(len(content) for content, _ in files)
     if total_size > max_total_size:

@@ -22,10 +22,10 @@ from app.middleware import log_file_blocked, log_malware_detected
 
 router = APIRouter()
 
-# Use settings for upload directory (works on Fargate)
+# Use settings for upload directory (works on both EC2 and Fargate)
 from app.config import settings
 UPLOAD_DIR = settings.upload_dir
-BASE_URL = "https://d2f065h47nuk0c.cloudfront.net"  # CloudFront URL
+BASE_URL = "https://d2f065h47nuk0c.cloudfront.net"
 
 def is_expired(expires_at):
     """Check if session is expired (handles both naive and aware datetimes)."""
@@ -87,7 +87,7 @@ async def get_optional_user_id(authorization: Optional[str] = Header(None)) -> O
 @router.post("/demo")
 async def create_demo_session(
     db: AsyncSession = Depends(get_db),
-    user_id: Optional[str] = Depends(get_optional_user_id)
+    user_id: Optional[int] = Depends(get_optional_user_id)
 ):
     """Create upload session - uses authenticated user if available, else defaults to user 1"""
     token = UploadSession.generate_token()
@@ -197,7 +197,7 @@ async def validate_session(token: str, db: AsyncSession = Depends(get_db), curre
         raise HTTPException(403, "Access denied to this session")
     if is_expired(session.expires_at): raise HTTPException(410, "Session expired")
     if session.status == "complete": raise HTTPException(410, "Session completed")
-    return {"valid": True, "user_id": session.user_id}
+    return {"valid": True, "user_id": str(session.user_id)}
 
 @router.post("/{token}/upload")
 async def upload_doc(token: str, request: Request, file: UploadFile = File(...), db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -436,16 +436,12 @@ async def process_documents(
 
     if ai_decision == "GO":
         decision = AssessmentDecision.GO
-    elif ai_decision == "NO_GO":
+    elif ai_decision in ("NO_GO", "REFER"):
         decision = AssessmentDecision.NO_GO
-    elif ai_decision == "REFER":
-        decision = AssessmentDecision.REFER
-    elif not is_valid_doc or confidence < 0.2:
-        decision = AssessmentDecision.REFER
+    elif not is_valid_doc or confidence < 0.3:
+        decision = AssessmentDecision.NO_GO
     elif confidence > 0.5:
         decision = AssessmentDecision.GO
-    elif confidence > 0.3:
-        decision = AssessmentDecision.REFER
     else:
         decision = AssessmentDecision.NO_GO
 
@@ -486,12 +482,6 @@ async def process_documents(
         go_info = underwriter_result["if_go"]
         if go_info.get("special_instructions"):
             rationale_parts.append(f"**Instructions:** {go_info['special_instructions']}")
-    elif decision == AssessmentDecision.REFER and underwriter_result.get("if_refer"):
-        refer_info = underwriter_result["if_refer"]
-        if refer_info.get("refer_to"):
-            rationale_parts.append(f"**Refer To:** {refer_info['refer_to']}")
-        if refer_info.get("information_needed"):
-            rationale_parts.append(f"**Information Needed:** {', '.join(refer_info['information_needed'][:3])}")
     elif decision == AssessmentDecision.NO_GO and underwriter_result.get("if_no_go"):
         no_go_info = underwriter_result["if_no_go"]
         if no_go_info.get("decline_reason"):
@@ -510,7 +500,7 @@ async def process_documents(
 
     # Fallback if no detailed rationale available
     if not rationale_parts:
-        decision_text = "Approved" if decision == AssessmentDecision.GO else "Referred for review" if decision == AssessmentDecision.REFER else "Declined"
+        decision_text = "Approved" if decision == AssessmentDecision.GO else "Declined"
         rationale_parts.append(f"AI Confidence: {confidence:.0%}. {decision_text} based on automated analysis.")
         if not is_valid_doc:
             rationale_parts.append("Note: Document may not be a standard insurance document - manual review recommended.")
@@ -631,7 +621,7 @@ async def _run_analysis_in_background(
     file_paths: list,
     mode: str,
     session_id: str,
-    user_id: str
+    user_id: int
 ):
     """Run document analysis in background with WebSocket progress updates."""
     from app.routers.analysis import send_progress_update, create_progress_callback, AnalysisMode
@@ -668,7 +658,7 @@ async def _run_analysis_in_background(
                             mode=mode,
                             progress_callback=progress_callback
                         ),
-                        timeout=300.0  # 5 minute timeout
+                        timeout=600.0  # 10 minute timeout
                     )
                 else:
                     analysis = await asyncio.wait_for(
@@ -677,7 +667,7 @@ async def _run_analysis_in_background(
                             mode=mode,
                             progress_callback=progress_callback
                         ),
-                        timeout=300.0  # 5 minute timeout
+                        timeout=600.0  # 10 minute timeout
                     )
             except Exception as e:
                 # On error, reset session status and mark assessment as failed
@@ -787,16 +777,12 @@ async def _run_analysis_in_background(
 
             if ai_decision == "GO":
                 decision = AssessmentDecision.GO
-            elif ai_decision == "NO_GO":
+            elif ai_decision in ("NO_GO", "REFER"):
                 decision = AssessmentDecision.NO_GO
-            elif ai_decision == "REFER":
-                decision = AssessmentDecision.REFER
-            elif not is_valid_doc or confidence < 0.2:
-                decision = AssessmentDecision.REFER
+            elif not is_valid_doc or confidence < 0.3:
+                decision = AssessmentDecision.NO_GO
             elif confidence > 0.5:
                 decision = AssessmentDecision.GO
-            elif confidence > 0.3:
-                decision = AssessmentDecision.REFER
             else:
                 decision = AssessmentDecision.NO_GO
 
@@ -808,7 +794,7 @@ async def _run_analysis_in_background(
             if appetite.get("appetite_notes"):
                 rationale_parts.append(f"**Appetite Assessment:** {appetite['appetite_notes']}")
             if not rationale_parts:
-                decision_text = "Approved" if decision == AssessmentDecision.GO else "Referred for review" if decision == AssessmentDecision.REFER else "Declined"
+                decision_text = "Approved" if decision == AssessmentDecision.GO else "Declined"
                 rationale_parts.append(f"AI Confidence: {confidence:.0%}. {decision_text} based on automated analysis.")
             decision_rationale = "\n\n".join(rationale_parts)
 
@@ -920,10 +906,6 @@ async def process_documents_async(
     ref_number = f"IR-{datetime.now().strftime('%Y%m%d')}-{token[:8].upper()}"
     first_doc_name = docs[0].get("name", "Document") if docs else "Document"
 
-    # Ensure we have a valid user_id (must be UUID, not integer fallback)
-    if not session.user_id:
-        raise HTTPException(400, "Session has no associated user")
-
     assessment = Assessment(
         reference_number=ref_number,
         title=f"Processing: {first_doc_name[:80]}",
@@ -931,7 +913,7 @@ async def process_documents_async(
         risk_category=RiskCategory.PROPERTY,
         status=AssessmentStatus.IN_PROGRESS,
         decision=AssessmentDecision.PENDING,
-        created_by=session.user_id,
+        created_by=session.user_id or 1,
     )
     db.add(assessment)
     await db.commit()

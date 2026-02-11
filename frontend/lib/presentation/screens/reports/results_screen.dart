@@ -8,7 +8,6 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/subscription_service.dart';
-import '../../widgets/rapidrate_section.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 /// Results Screen - Displays GO/NO-GO decision with real AI analysis
@@ -87,15 +86,6 @@ class _ResultsScreenState extends State<ResultsScreen>
   bool get _isBasicOrHigher => _subscriptionService.isBasic || _subscriptionService.isPremium;
   bool get _isTrial => _subscriptionService.isTrial;
   bool get _canSeeDecision => _subscriptionService.hasFeature('go_no_go_decision');
-
-  // RapidRate pricing data from assessment (auto-populated during analysis)
-  Map<String, dynamic>? get _rapidRateData {
-    final data = _assessment?['rapidrate_results'] ??
-                 _analysis?['agent_results']?['rapidrate_pricing'];
-    if (data is Map<String, dynamic> && data.isNotEmpty) return data;
-    if (_pricingResult != null) return _pricingResult;
-    return null;
-  }
 
   // Dynamic label for casualty vs property
   String get limitLabel {
@@ -228,7 +218,8 @@ class _ResultsScreenState extends State<ResultsScreen>
           _agentIndex = message['agent_index'] ?? 0;
           _totalAgents = message['total_agents'] ?? _totalAgents;
           _currentDescription = message['description'] ?? 'Processing...';
-          _progressPercent = (message['progress_percent'] is num) ? (message['progress_percent'] as num).toDouble() : 0.0;
+          final progressVal = message['progress_percent'];
+          _progressPercent = (progressVal is num) ? progressVal.toDouble() : 0.0;
           _estimatedRemaining = message['estimated_remaining'] ?? 0;
           _currentDocument = message['current_document'] ?? 0;
           _totalDocuments = message['total_documents'] ?? widget.documentCount;
@@ -343,8 +334,8 @@ class _ResultsScreenState extends State<ResultsScreen>
           setState(() {
             _currentAgent = data['current_agent'] ?? _currentAgent;
             _currentDescription = data['description'] ?? _currentDescription;
-            if (data['progress'] != null) {
-              _progressPercent = (data['progress'] is num) ? (data['progress'] as num).toDouble() : 0.0;
+            if (data['progress'] != null && data['progress'] is num) {
+              _progressPercent = (data['progress'] as num).toDouble();
             }
           });
         }
@@ -532,37 +523,40 @@ class _ResultsScreenState extends State<ResultsScreen>
       return analysisDecision;
     }
     // Fallback based on confidence
-    return confidence > 0.5 ? 'GO' : confidence > 0.3 ? 'REFER' : 'NO_GO';
+    return confidence > 0.5 ? 'GO' : 'NO_GO';
   }
   bool get isApproved => decision == 'GO';
-  bool get isReferred => decision == 'REFER';
-  // Safe conversion to double from any type
-  double _toDouble(dynamic value, [double fallback = 0.0]) {
-    if (value == null) return fallback;
-    if (value is num) return value.toDouble();
-    if (value is String) return double.tryParse(value) ?? fallback;
-    return fallback;
-  }
-
+  bool get isReferred => false;
   // Confidence from underwriter agent or assessment confidence_score
   double get confidence {
+    // Helper to safely convert to double
+    double? toSafeDouble(dynamic value) {
+      if (value == null) return null;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value);
+      return null;
+    }
     // First try underwriter agent confidence (0-1 scale)
-    final underwriterConf = _analysis?['agent_results']?['underwriter']?['confidence'];
-    if (underwriterConf != null && underwriterConf is num) {
-      final conf = underwriterConf.toDouble();
-      return conf > 1 ? conf / 100 : conf;  // Normalize to 0-1
+    final underwriterConf = toSafeDouble(_analysis?['agent_results']?['underwriter']?['confidence']);
+    if (underwriterConf != null) {
+      return underwriterConf > 1 ? underwriterConf / 100 : underwriterConf;  // Normalize to 0-1
     }
     // Then try assessment confidence_score
-    final assessmentConf = _assessment?['confidence_score'];
-    if (assessmentConf != null && assessmentConf is num) {
-      final conf = assessmentConf.toDouble();
-      return conf > 1 ? conf / 100 : conf;  // Normalize to 0-1
+    final assessmentConf = toSafeDouble(_assessment?['confidence_score']);
+    if (assessmentConf != null) {
+      return assessmentConf > 1 ? assessmentConf / 100 : assessmentConf;  // Normalize to 0-1
     }
     return 0.5;  // Default
   }
   int get confidencePercent => (confidence * 100).toInt();
   int get riskScore => _assessment?['risk_score'] ?? 50;
-  double get premiumEstimate => _toDouble(_assessment?['premium'] ?? _analysis?['premium']);
+  double get premiumEstimate {
+    final value = _assessment?['premium'] ?? _analysis?['premium'];
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
   String get companyName => _assessment?['insured_name'] ?? _analysis?['company_name'] ?? 'Document Analysis';
   String get riskType => _assessment?['risk_category'] ?? _analysis?['risk_type'] ?? _analysis?['document_type'] ?? 'Pending Review';
   String get coverageDetails => _assessment?['description'] ?? _analysis?['coverage_details'] ?? '';
@@ -613,8 +607,20 @@ class _ResultsScreenState extends State<ResultsScreen>
     // Default empty
     return [];
   }
-  double get deductible => _toDouble(_assessment?['deductible'] ?? _analysis?['deductible']);
-  double get sumInsured => _toDouble(_assessment?['sum_insured'] ?? _analysis?['sum_insured']);
+  double get deductible {
+    final value = _assessment?['deductible'] ?? _analysis?['deductible'];
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+  double get sumInsured {
+    final value = _assessment?['sum_insured'] ?? _analysis?['sum_insured'];
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
 
   // Useful metrics for document analysis
   int get documentsAnalyzed {
@@ -1590,9 +1596,9 @@ Generated by InstantRisk
       );
     }
 
-    final decisionColor = isApproved ? AppTheme.success : isReferred ? AppTheme.warning : AppTheme.danger;
-    final decisionText = isApproved ? 'GO' : isReferred ? 'REFER' : 'NO-GO';
-    final decisionIcon = isApproved ? Icons.check : isReferred ? Icons.pending_outlined : Icons.close;
+    final decisionColor = isApproved ? AppTheme.success : AppTheme.danger;
+    final decisionText = isApproved ? 'GO' : 'NO-GO';
+    final decisionIcon = isApproved ? Icons.check : Icons.close;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -2002,48 +2008,6 @@ Generated by InstantRisk
               const SizedBox(height: 24),
             ],
 
-            // RapidRate AI Pricing Section (auto-populated during analysis)
-            if (_isPremium && _rapidRateData != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: RapidRateSection(
-                  pricingData: _rapidRateData!,
-                  onRecalculate: _calculatePricing,
-                ),
-              ),
-            if (_isPremium && _rapidRateData != null)
-              const SizedBox(height: 24),
-
-            // "Ask AI" Button - Opens unified chat with this assessment as context
-            if (_isPremium)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.go(
-                      '/chat/conversation/new',
-                      extra: {
-                        'assessmentId': _effectiveAssessmentId,
-                        'assessmentTitle': referenceNumber,
-                      },
-                    ),
-                    icon: const Icon(Icons.auto_awesome, size: 18),
-                    label: const Text('Ask AI About This Assessment'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.primaryDark,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: BorderSide(color: AppTheme.primaryDark.withValues(alpha: 0.3)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            if (_isPremium)
-              const SizedBox(height: 24),
-
             // Pricing Factors Section - Key data for underwriting decisions (Premium only)
             if (_isPremium && pricingFactors.isNotEmpty)
               Padding(
@@ -2440,14 +2404,12 @@ Generated by InstantRisk
                     const SizedBox(height: 12),
                   ],
 
-                  // AI Generate Documents Button (Premium only, enabled for GO and REFER)
+                  // AI Generate Documents Button (Premium only, enabled for GO and NO_GO)
                   if (_isPremium) ...[
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: (isApproved || isReferred)
-                            ? () => context.go('/documents/ai-advisor/${widget.assessmentId}')
-                            : null,
+                        onPressed: () => context.go('/reports/generate/${widget.assessmentId}'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryDark,
                           foregroundColor: Colors.white,

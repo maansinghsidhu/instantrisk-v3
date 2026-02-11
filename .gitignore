@@ -58,6 +58,7 @@ coverage.xml
 credentials.json
 secrets.json
 *.secret
+credentials*
 
 # AWS
 .aws/
@@ -103,11 +104,8 @@ tmp/
 # RAG training data (downloaded at build time via scripts/download_datasets.py)
 backend/app/data/training_data/embeddings/*.jsonl
 
-# Additional ignores
+# Deployment artifacts
 *.zip
 *.tar.gz
 *.bak
-__pycache__/
-*.pyc
-.env
-*.pem
+deploy_*.py

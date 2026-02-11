@@ -458,28 +458,28 @@ async def get_suggestions(
     """Get suggested questions based on context."""
     suggestions = {
         "general": [
-            "What are the key Lloyd's market regulations?",
-            "Explain facultative vs treaty reinsurance",
-            "How does the Lloyd's chain of security work?",
-            "What is a managing agent's role?",
+            "Summarize my latest assessment",
+            "What are the key risks identified?",
+            "Compare loss ratios to industry benchmarks",
+            "What coverage gaps were found?",
         ],
         "assessment": [
-            "What are the main risks in this submission?",
-            "Are there any coverage gaps?",
-            "What additional information should I request?",
-            "How does this compare to similar risks?",
+            "What is the GO/NO-GO recommendation?",
+            "What are the main risk factors?",
+            "What additional information is needed?",
+            "Suggest terms and conditions",
         ],
         "document": [
-            "Summarize the key terms of this policy",
-            "Are there any unusual exclusions?",
+            "Summarize the key terms",
+            "What exclusions apply?",
             "What are the coverage limits?",
-            "Explain the claims notification requirements",
+            "Extract the key data points",
         ],
         "pricing": [
-            "What factors affect this premium?",
-            "How does the market typically price this?",
-            "What loss ratio should I target?",
-            "Are there rate changes in this segment?",
+            "What is the suggested premium?",
+            "How does this compare to market rates?",
+            "What loss ratio should we target?",
+            "Break down the pricing factors",
         ],
     }
     return {"suggestions": suggestions.get(context, suggestions["general"])}

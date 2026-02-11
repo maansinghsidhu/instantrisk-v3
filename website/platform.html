@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Platform - InstantRisk | Lloyd's Underwriting Dashboard</title>
+  <meta name="description" content="Explore the InstantRisk platform: dashboard, assessment workflow, document management, AI chat, and more. Built for Lloyd's underwriters.">
+  <link rel="icon" type="image/png" href="assets/images/logo-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .platform-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+    }
+    .platform-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: var(--transition);
+    }
+    .platform-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--teal-500);
+      box-shadow: var(--shadow-glow);
+    }
+    .platform-card-preview {
+      height: 220px;
+      background: linear-gradient(135deg, var(--navy-700), var(--navy-800));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .platform-card-preview::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(0deg, var(--card-bg) 0%, transparent 50%);
+    }
+    .platform-card-body {
+      padding: 2rem;
+    }
+    .platform-card-body h3 {
+      color: var(--text-white);
+      font-size: 1.3rem;
+      margin-bottom: 0.5rem;
+    }
+    .platform-card-body p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .platform-card-tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+    .platform-card-tags span {
+      padding: 4px 12px;
+      background: rgba(0,184,148,0.1);
+      color: var(--teal-400);
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .workflow-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      margin-top: 3rem;
+    }
+    .workflow-step {
+      text-align: center;
+      padding: 2rem 1.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-lg);
+      transition: var(--transition);
+      position: relative;
+    }
+    .workflow-step:hover {
+      border-color: var(--teal-500);
+      transform: translateY(-3px);
+    }
+    .workflow-step .step-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--gradient-primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.1rem;
+      margin: 0 auto 1rem;
+    }
+    .workflow-step .step-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+    }
+    .workflow-step h4 {
+      color: var(--text-white);
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .workflow-step p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+    .role-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+    .role-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      text-align: center;
+      transition: var(--transition);
+    }
+    .role-card:hover {
+      border-color: var(--teal-500);
+      transform: translateY(-3px);
+    }
+    .role-card .role-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    .role-card h3 {
+      color: var(--text-white);
+      margin-bottom: 0.75rem;
+    }
+    .role-card p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    .role-card ul {
+      list-style: none;
+      margin-top: 1.5rem;
+      text-align: left;
+    }
+    .role-card ul li {
+      color: var(--text-light);
+      font-size: 0.85rem;
+      padding: 0.3rem 0;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .role-card ul li .check {
+      color: var(--teal-400);
+      font-size: 0.8rem;
+    }
+    @media (max-width: 768px) {
+      .platform-grid { grid-template-columns: 1fr; }
+      .workflow-steps { grid-template-columns: repeat(2, 1fr); }
+      .role-cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <img src="assets/images/logo-icon.png" alt="InstantRisk">
+      <span>InstantRisk</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="features.html">Features</a></li>
+      <li><a href="technology.html">Technology</a></li>
+      <li><a href="platform.html" class="active">Platform</a></li>
+      <li><a href="https://d2f065h47nuk0c.cloudfront.net" class="nav-cta">Launch App</a></li>
+    </ul>
+    <button class="nav-mobile-toggle">&#9776;</button>
+  </div>
+</nav>
+
+<!-- PAGE HEADER -->
+<section class="page-header">
+  <div class="hero-grid"></div>
+  <div class="hero-glow hero-glow-1"></div>
+  <div class="particles"></div>
+  <h1>The Underwriter's <span class="gradient-text">Command Center</span></h1>
+  <p>A unified platform for risk assessment, document management, and decision intelligence.</p>
+</section>
+
+<!-- ==================== WORKFLOW ==================== -->
+<section class="section section-dark">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-label">Workflow</div>
+      <h2 class="section-title">Your Assessment Pipeline</h2>
+      <p class="section-subtitle">From document upload to decision output, every step is streamlined.</p>
+    </div>
+
+    <div class="workflow-steps">
+      <div class="workflow-step reveal">
+        <div class="step-number">1</div>
+        <div class="step-icon">&#128196;</div>
+        <h4>Upload Documents</h4>
+        <p>Drop ACORD forms, slips, loss runs, schedules. Drag-and-drop or QR scan from mobile.</p>
+      </div>
+      <div class="workflow-step reveal reveal-delay-1">
+        <div class="step-number">2</div>
+        <div class="step-icon">&#9889;</div>
+        <h4>Zeus Analysis</h4>
+        <p>AI agents extract, score, match clauses, benchmark, and price &mdash; all in parallel.</p>
+      </div>
+      <div class="workflow-step reveal reveal-delay-2">
+        <div class="step-number">3</div>
+        <div class="step-icon">&#128202;</div>
+        <h4>Review Results</h4>
+        <p>Interactive results dashboard with risk score, key findings, gaps, and recommendations.</p>
+      </div>
+      <div class="workflow-step reveal reveal-delay-3">
+        <div class="step-number">4</div>
+        <div class="step-icon">&#128203;</div>
+        <h4>Generate Docs</h4>
+        <p>Auto-generate risk reports, quote letters, and compliance summaries in one click.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PLATFORM SCREENS ==================== -->
+<section class="section section-gradient">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-label">Platform</div>
+      <h2 class="section-title">Every Screen, Designed for Speed</h2>
+      <p class="section-subtitle">Purpose-built interfaces for each stage of the underwriting process.</p>
+    </div>
+
+    <div class="platform-grid">
+      <div class="platform-card reveal">
+        <div class="platform-card-preview">&#128200;</div>
+        <div class="platform-card-body">
+          <h3>Dashboard</h3>
+          <p>At-a-glance view of total assessments, approval rates, pending reviews, and recent activity. Quick-action buttons for starting new assessments.</p>
+          <div class="platform-card-tags">
+            <span>Real-time Stats</span>
+            <span>Quick Actions</span>
+            <span>Recent Activity</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="platform-card reveal reveal-delay-1">
+        <div class="platform-card-preview">&#128196;</div>
+        <div class="platform-card-body">
+          <h3>Document Intake</h3>
+          <p>Drag-and-drop file upload with real-time progress. Supports PDF, DOCX, images, and Excel. QR code scanning for mobile document capture.</p>
+          <div class="platform-card-tags">
+            <span>Drag &amp; Drop</span>
+            <span>QR Upload</span>
+            <span>14+ Formats</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="platform-card reveal">
+        <div class="platform-card-preview">&#127919;</div>
+        <div class="platform-card-body">
+          <h3>Analysis Results</h3>
+          <p>Comprehensive risk assessment with GO/NO-GO decision, risk score breakdown, key findings, coverage gaps, and AI-generated recommendations.</p>
+          <div class="platform-card-tags">
+            <span>Risk Score</span>
+            <span>Coverage Gaps</span>
+            <span>AI Rationale</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="platform-card reveal reveal-delay-1">
+        <div class="platform-card-preview">&#128172;</div>
+        <div class="platform-card-body">
+          <h3>AI Chat</h3>
+          <p>Natural language conversation with full assessment context. Ask about risk details, request benchmarks from ClaimSense, or generate summaries.</p>
+          <div class="platform-card-tags">
+            <span>Context-Aware</span>
+            <span>ClaimSense</span>
+            <span>Summaries</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="platform-card reveal">
+        <div class="platform-card-preview">&#128218;</div>
+        <div class="platform-card-body">
+          <h3>Document Center</h3>
+          <p>Central hub for all assessment documents. View uploaded files, generated reports, and download individual or bundled documents.</p>
+          <div class="platform-card-tags">
+            <span>All Documents</span>
+            <span>Generated Reports</span>
+            <span>Download</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="platform-card reveal reveal-delay-1">
+        <div class="platform-card-preview">&#127891;</div>
+        <div class="platform-card-body">
+          <h3>Training Center</h3>
+          <p>Upload your own reference documents to expand Zeus Engine's knowledge. Market wordings, syndicate guidelines, and historical decisions.</p>
+          <div class="platform-card-tags">
+            <span>Custom Knowledge</span>
+            <span>Vector Search</span>
+            <span>RAG</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== ROLES ==================== -->
+<section class="section section-dark">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-label">Roles</div>
+      <h2 class="section-title">Built for Your Team</h2>
+      <p class="section-subtitle">Role-based access ensures everyone sees what they need.</p>
+    </div>
+
+    <div class="role-cards">
+      <div class="role-card reveal">
+        <div class="role-icon">&#128100;</div>
+        <h3>Underwriter</h3>
+        <p>Full access to create assessments, review results, and make GO/NO-GO decisions.</p>
+        <ul>
+          <li><span class="check">&#x2713;</span> Create &amp; manage assessments</li>
+          <li><span class="check">&#x2713;</span> Upload documents</li>
+          <li><span class="check">&#x2713;</span> AI chat with context</li>
+          <li><span class="check">&#x2713;</span> Generate reports</li>
+          <li><span class="check">&#x2713;</span> ClaimSense benchmarks</li>
+        </ul>
+      </div>
+
+      <div class="role-card reveal reveal-delay-1">
+        <div class="role-icon">&#128202;</div>
+        <h3>Analyst</h3>
+        <p>View assessments, access benchmarks, and prepare supporting analysis for underwriters.</p>
+        <ul>
+          <li><span class="check">&#x2713;</span> View all assessments</li>
+          <li><span class="check">&#x2713;</span> Access ClaimSense</li>
+          <li><span class="check">&#x2713;</span> RapidRate pricing</li>
+          <li><span class="check">&#x2713;</span> Export data</li>
+          <li><span class="check">&#x2713;</span> Training center</li>
+        </ul>
+      </div>
+
+      <div class="role-card reveal reveal-delay-2">
+        <div class="role-icon">&#128736;</div>
+        <h3>Admin</h3>
+        <p>Full platform administration: user management, syndicate config, and system settings.</p>
+        <ul>
+          <li><span class="check">&#x2713;</span> User management</li>
+          <li><span class="check">&#x2713;</span> Syndicate configuration</li>
+          <li><span class="check">&#x2713;</span> Risk appetite settings</li>
+          <li><span class="check">&#x2713;</span> Audit trail access</li>
+          <li><span class="check">&#x2713;</span> All underwriter features</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== CTA ==================== -->
+<section class="cta-section">
+  <div class="particles"></div>
+  <div class="cta-content">
+    <h2 class="reveal">See It In Action</h2>
+    <p class="reveal reveal-delay-1">Log in and run your first AI-powered assessment today.</p>
+    <div class="hero-actions reveal reveal-delay-2">
+      <a href="https://d2f065h47nuk0c.cloudfront.net" class="btn btn-primary btn-lg">
+        Launch Platform
+        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+      </a>
+      <a href="features.html" class="btn btn-secondary btn-lg">
+        Explore Features
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <img src="assets/images/logo-full.png" alt="InstantRisk">
+      <p>AI-powered underwriting intelligence for Lloyd's of London syndicates. Built by underwriters, for underwriters.</p>
+    </div>
+    <div>
+      <h4>Platform</h4>
+      <ul>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="features.html#zeus">Zeus Engine</a></li>
+        <li><a href="features.html#claimsense">ClaimSense</a></li>
+        <li><a href="features.html#rapidrate">RapidRate</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Technology</h4>
+      <ul>
+        <li><a href="technology.html">Architecture</a></li>
+        <li><a href="technology.html#security">Security</a></li>
+        <li><a href="technology.html#ai">AI &amp; ML</a></li>
+        <li><a href="technology.html#infrastructure">Infrastructure</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <ul>
+        <li><a href="platform.html">Platform Demo</a></li>
+        <li><a href="mailto:info@instantrisk.com">Contact</a></li>
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Terms of Service</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; 2026 InstantRisk. All rights reserved.</span>
+    <div class="social">
+      <a href="#">LinkedIn</a>
+      <a href="#">Twitter</a>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

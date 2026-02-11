@@ -152,7 +152,9 @@ async def log_security_event(
 
     # Also log to standard logger for file output
     standard_logger = logging.getLogger("security")
-    log_message = json.dumps(event_data)
+    # Convert UUID/non-serializable values to strings for JSON
+    safe_data = {k: (str(v) if not isinstance(v, (str, int, float, bool, list, dict, type(None))) else v) for k, v in event_data.items()}
+    log_message = json.dumps(safe_data)
 
     if severity == "critical":
         standard_logger.critical(log_message)

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InstantRisk - AI-Powered Lloyd's Underwriting Platform</title>
+  <meta name="description" content="InstantRisk uses the Zeus Engine to deliver instant GO/NO-GO underwriting decisions. AI-powered risk assessment, document analysis, and benchmark intelligence for Lloyd's of London syndicates.">
+  <link rel="icon" type="image/png" href="assets/images/logo-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ==================== NAVIGATION ==================== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <img src="assets/images/logo-icon.png" alt="InstantRisk">
+      <span>InstantRisk</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html" class="active">Home</a></li>
+      <li><a href="features.html">Features</a></li>
+      <li><a href="technology.html">Technology</a></li>
+      <li><a href="platform.html">Platform</a></li>
+      <li><a href="https://d2f065h47nuk0c.cloudfront.net" class="nav-cta">Launch App</a></li>
+    </ul>
+    <button class="nav-mobile-toggle">&#9776;</button>
+  </div>
+</nav>
+
+<!-- ==================== HERO ==================== -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-glow hero-glow-1"></div>
+  <div class="hero-glow hero-glow-2"></div>
+  <div class="hero-glow hero-glow-3"></div>
+  <div class="particles"></div>
+
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      Zeus Engine v2 Now Live
+    </div>
+    <h1>
+      Underwriting Intelligence,<br>
+      <span class="gradient-text">Delivered Instantly</span>
+    </h1>
+    <p class="subtitle">
+      InstantRisk transforms complex insurance documents into precise GO/NO-GO decisions in under 10 minutes. Built for Lloyd's syndicates by underwriters who understand the market.
+    </p>
+    <div class="hero-actions">
+      <a href="https://d2f065h47nuk0c.cloudfront.net" class="btn btn-primary btn-lg">
+        Start Assessment
+        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+      </a>
+      <a href="features.html" class="btn btn-secondary btn-lg">
+        Explore Features
+      </a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="number">&lt;<span class="accent">10</span>min</div>
+        <div class="label">Assessment Time</div>
+      </div>
+      <div class="hero-stat">
+        <div class="number"><span class="accent">14</span>+</div>
+        <div class="label">Document Types</div>
+      </div>
+      <div class="hero-stat">
+        <div class="number"><span class="accent">97</span>%</div>
+        <div class="label">Extraction Accuracy</div>
+      </div>
+      <div class="hero-stat">
+        <div class="number"><span class="accent">8</span></div>
+        <div class="label">Risk Categories</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== ZEUS ENGINE ==================== -->
+<section class="section section-dark" id="zeus">
+  <div class="container">
+    <div class="engine-showcase">
+      <div class="engine-visual reveal">
+        <div class="engine-terminal">
+          <div class="terminal-header">
+            <span class="terminal-dot red"></span>
+            <span class="terminal-dot yellow"></span>
+            <span class="terminal-dot green"></span>
+            <span class="terminal-title">zeus-engine v2.0 &mdash; analysis</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="t-prompt">&gt;</span> <span class="t-function">zeus.analyze</span>(<span class="t-string">"ACORD_125_Commercial.pdf"</span>)</div>
+            <div class="line"><span class="t-comment">// Ingesting 14 documents &bull; 487,291 characters</span></div>
+            <div class="line"><span class="t-comment">// OCR extraction: 13 sections identified</span></div>
+            <div class="line">&nbsp;</div>
+            <div class="line"><span class="t-keyword">RISK PROFILE</span> <span class="t-operator">{</span></div>
+            <div class="line">&nbsp;&nbsp;<span class="t-string">"category"</span>: <span class="t-string">"Property"</span>,</div>
+            <div class="line">&nbsp;&nbsp;<span class="t-string">"risk_score"</span>: <span class="t-number">34</span><span class="t-operator">/100</span>,</div>
+            <div class="line">&nbsp;&nbsp;<span class="t-string">"confidence"</span>: <span class="t-number">0.89</span>,</div>
+            <div class="line">&nbsp;&nbsp;<span class="t-string">"premium"</span>: <span class="t-string">"&pound;2,450,000"</span>,</div>
+            <div class="line">&nbsp;&nbsp;<span class="t-string">"sum_insured"</span>: <span class="t-string">"&pound;125,000,000"</span></div>
+            <div class="line"><span class="t-operator">}</span></div>
+            <div class="line">&nbsp;</div>
+            <div class="line"><span class="t-success">&#x2713; DECISION: GO</span> &mdash; <span class="t-comment">Within appetite, strong loss record</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="engine-info reveal reveal-delay-2">
+        <div class="section-label">The Zeus Engine</div>
+        <h2>AI That Thinks Like an <span class="accent">Underwriter</span></h2>
+        <p>
+          Zeus Engine is our proprietary multi-agent AI system. It doesn't just read documents &mdash; it understands coverage structures, identifies exclusion gaps, cross-references loss histories, and validates premium adequacy against market benchmarks.
+        </p>
+        <ul class="engine-features">
+          <li>
+            <span class="check">&#x2713;</span>
+            <span><strong>Multi-agent orchestration</strong> &mdash; Specialist AI agents for OCR, risk scoring, clause analysis, and compliance checks working in parallel</span>
+          </li>
+          <li>
+            <span class="check">&#x2713;</span>
+            <span><strong>RAG-powered knowledge</strong> &mdash; Vector search across 50,000+ insurance clauses, market wordings, and Lloyd's guidelines</span>
+          </li>
+          <li>
+            <span class="check">&#x2713;</span>
+            <span><strong>Contextual reasoning</strong> &mdash; Understands relationships between ACORD forms, slip documents, loss runs, and policy schedules</span>
+          </li>
+          <li>
+            <span class="check">&#x2713;</span>
+            <span><strong>Instant decisions</strong> &mdash; GO or NO-GO with detailed rationale, confidence scores, and recommended terms</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== FEATURES OVERVIEW ==================== -->
+<section class="section section-gradient" id="features">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-label">Core Capabilities</div>
+      <h2 class="section-title">Everything You Need to Underwrite Faster</h2>
+      <p class="section-subtitle">From document intake to decision output, InstantRisk handles the entire assessment pipeline.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon teal">&#9889;</div>
+        <h3>Instant Document Analysis</h3>
+        <p>Upload ACORD forms, slips, loss runs, and schedules. Zeus Engine extracts every data point, identifies coverage gaps, and flags anomalies automatically.</p>
+        <span class="feature-tag">14+ Document Types</span>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon blue">&#128202;</div>
+        <h3>ClaimSense Intelligence</h3>
+        <p>Benchmark any risk against industry loss ratios, peer comparisons, and historical claims data. Get instant market context for smarter decisions.</p>
+        <span class="feature-tag">Real-time Benchmarks</span>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon purple">&#128176;</div>
+        <h3>RapidRate Pricing</h3>
+        <p>AI-driven technical pricing in seconds. Factor in territory, exposure, loss history, and market conditions to generate rate indications instantly.</p>
+        <span class="feature-tag">ML-Powered Pricing</span>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon gold">&#128196;</div>
+        <h3>Smart Document Generation</h3>
+        <p>Auto-generate risk reports, endorsements, quote letters, and compliance summaries. Every document is formatted to Lloyd's standards.</p>
+        <span class="feature-tag">Lloyd's Compliant</span>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon teal">&#128218;</div>
+        <h3>Clause Library</h3>
+        <p>50,000+ vetted insurance clauses searchable by context. Zeus Engine recommends the right clause for every coverage scenario with confidence scoring.</p>
+        <span class="feature-tag">Vector Search</span>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon blue">&#128172;</div>
+        <h3>Assessment Chat</h3>
+        <p>Ask questions about any assessment in natural language. "What's the loss ratio trend?" or "Compare this to industry benchmarks." Instant answers.</p>
+        <span class="feature-tag">Context-Aware AI</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== CLAUSE SHOWCASE ==================== -->
+<section class="section section-dark" id="clauses">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-label">Clause Intelligence</div>
+      <h2 class="section-title">Insurance Knowledge, Vectorized</h2>
+      <p class="section-subtitle">Our clause library uses RAG vector search to find the most relevant clauses for any coverage scenario.</p>
+    </div>
+
+    <div class="clause-grid">
+      <div class="clause-card reveal">
+        <div class="clause-type">Property &bull; Exclusion</div>
+        <h4>War & Terrorism Exclusion</h4>
+        <p>"This insurance does not cover loss, damage, cost or expense of whatsoever nature directly or indirectly caused by..."</p>
+        <div class="clause-confidence">
+          <div class="bar"><div class="bar-fill" data-width="96%"></div></div>
+          <span class="pct">96%</span>
+        </div>
+      </div>
+
+      <div class="clause-card reveal reveal-delay-1">
+        <div class="clause-type">Casualty &bull; Condition</div>
+        <h4>Subrogation Rights</h4>
+        <p>"The Insured shall take all reasonable steps to preserve any rights of recovery against third parties..."</p>
+        <div class="clause-confidence">
+          <div class="bar"><div class="bar-fill" data-width="92%"></div></div>
+          <span class="pct">92%</span>
+        </div>
+      </div>
+
+      <div class="clause-card reveal reveal-delay-2">
+        <div class="clause-type">Marine &bull; Coverage</div>
+        <h4>Institute Cargo Clause A</h4>
+        <p>"This insurance covers all risks of loss of or damage to the subject-matter insured except as excluded..."</p>
+        <div class="clause-confidence">
+          <div class="bar"><div class="bar-fill" data-width="89%"></div></div>
+          <span class="pct">89%</span>
+        </div>
+      </div>
+
+      <div class="clause-card reveal reveal-delay-1">
+        <div class="clause-type">Cyber &bull; Definition</div>
+        <h4>Network Security Event</h4>
+        <p>"Unauthorized access to or use of computer systems, including the introduction of malicious code..."</p>
+        <div class="clause-confidence">
+          <div class="bar"><div class="bar-fill" data-width="94%"></div></div>
+          <span class="pct">94%</span>
+        </div>
+      </div>
+
+      <div class="clause-card reveal reveal-delay-2">
+        <div class="clause-type">Financial Lines &bull; Exclusion</div>
+        <h4>Prior Knowledge Exclusion</h4>
+        <p>"The Insurer shall not be liable for any claim arising from circumstances known to the insured prior to..."</p>
+        <div class="clause-confidence">
+          <div class="bar"><div class="bar-fill" data-width="91%"></div></div>
+          <span class="pct">91%</span>
+        </div>
+      </div>
+
+      <div class="clause-card reveal reveal-delay-3">
+        <div class="clause-type">Aviation &bull; Condition</div>
+        <h4>Airworthiness Warranty</h4>
+        <p>"It is warranted that the aircraft shall be maintained in an airworthy condition at all times..."</p>
+        <div class="clause-confidence">
+          <div class="bar"><div class="bar-fill" data-width="88%"></div></div>
+          <span class="pct">88%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== STATS BANNER ==================== -->
+<section class="section section-darker">
+  <div class="container">
+    <div class="stats-banner">
+      <div class="stat-item reveal">
+        <div class="stat-number" data-target="50000" data-suffix="+">0</div>
+        <div class="stat-label">Insurance Clauses</div>
+      </div>
+      <div class="stat-item reveal reveal-delay-1">
+        <div class="stat-number" data-target="8" data-suffix="">0</div>
+        <div class="stat-label">Risk Categories</div>
+      </div>
+      <div class="stat-item reveal reveal-delay-2">
+        <div class="stat-number" data-target="97" data-suffix="%">0</div>
+        <div class="stat-label">Extraction Accuracy</div>
+      </div>
+      <div class="stat-item reveal reveal-delay-3">
+        <div class="stat-number" data-target="600" data-suffix="s">0</div>
+        <div class="stat-label">Max Analysis Time</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== HOW IT WORKS ==================== -->
+<section class="section section-dark" id="how-it-works">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-label">Workflow</div>
+      <h2 class="section-title">From Upload to Decision in Minutes</h2>
+      <p class="section-subtitle">Three steps. No manual data entry. No spreadsheets. Just decisions.</p>
+    </div>
+
+    <div class="timeline reveal">
+      <div class="timeline-item">
+        <span class="time">Step 1</span>
+        <h4>Upload Documents</h4>
+        <p>Drop your ACORD forms, slips, loss runs, policy schedules, and supporting documents. Zeus Engine ingests everything simultaneously &mdash; PDF, DOCX, images with OCR.</p>
+      </div>
+      <div class="timeline-item">
+        <span class="time">Step 2</span>
+        <h4>AI Analysis &amp; Scoring</h4>
+        <p>Zeus Engine deploys multiple AI agents in parallel: OCR extraction, risk scoring, clause matching, benchmark comparison via ClaimSense, and technical pricing via RapidRate. Each agent specializes in one domain.</p>
+      </div>
+      <div class="timeline-item">
+        <span class="time">Step 3</span>
+        <h4>GO / NO-GO Decision</h4>
+        <p>Receive a definitive decision with full rationale, risk score, confidence level, identified coverage gaps, recommended terms, and auto-generated documentation ready for Lloyd's.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== CTA ==================== -->
+<section class="cta-section">
+  <div class="particles"></div>
+  <div class="cta-content">
+    <h2 class="reveal">Ready to Transform Your <span class="gradient-text">Underwriting?</span></h2>
+    <p class="reveal reveal-delay-1">Join the syndicates already using InstantRisk to make faster, smarter decisions.</p>
+    <div class="reveal reveal-delay-2">
+      <a href="https://d2f065h47nuk0c.cloudfront.net" class="btn btn-primary btn-lg">
+        Launch Platform
+        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <img src="assets/images/logo-full.png" alt="InstantRisk">
+      <p>AI-powered underwriting intelligence for Lloyd's of London syndicates. Built by underwriters, for underwriters.</p>
+    </div>
+    <div>
+      <h4>Platform</h4>
+      <ul>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="features.html#zeus">Zeus Engine</a></li>
+        <li><a href="features.html#claimsense">ClaimSense</a></li>
+        <li><a href="features.html#rapidrate">RapidRate</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Technology</h4>
+      <ul>
+        <li><a href="technology.html">Architecture</a></li>
+        <li><a href="technology.html#security">Security</a></li>
+        <li><a href="technology.html#ai">AI &amp; ML</a></li>
+        <li><a href="technology.html#infrastructure">Infrastructure</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <ul>
+        <li><a href="platform.html">Platform Demo</a></li>
+        <li><a href="mailto:info@instantrisk.com">Contact</a></li>
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Terms of Service</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; 2026 InstantRisk. All rights reserved.</span>
+    <div class="social">
+      <a href="#">LinkedIn</a>
+      <a href="#">Twitter</a>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

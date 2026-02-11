@@ -54,6 +54,28 @@ clause_service = get_clause_service()  # Full 33k+ clause library
 router = APIRouter()
 
 
+def _parse_doc_id(doc_id: str) -> int | None:
+    """Parse a document ID from the frontend.
+
+    The frontend may send string IDs like "gen_1770850906225" or plain
+    integer strings like "42".  This helper strips the "gen_" prefix
+    (if present) and converts the remainder to an integer suitable for
+    the DB lookup.  Returns None when the value cannot be parsed.
+    """
+    if doc_id is None:
+        return None
+    raw = doc_id
+    # Strip known string prefixes produced by the frontend
+    for prefix in ("gen_", "doc_"):
+        if raw.startswith(prefix):
+            raw = raw[len(prefix):]
+            break
+    try:
+        return int(raw)
+    except (ValueError, TypeError):
+        return None
+
+
 @router.post("/assessments/{assessment_id}/suggest-documents", response_model=DocumentSuggestionResponse)
 async def suggest_documents(
     assessment_id: str,
@@ -521,6 +543,25 @@ async def _run_generation_job(
                     await error_db.commit()
 
 
+@router.get("/generation-jobs/")
+async def list_generation_jobs(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """List all generation jobs for the current user."""
+    assessment_query = select(Assessment.id).where(Assessment.created_by == current_user.id)
+    assessment_result = await db.execute(assessment_query)
+    assessment_ids = [a[0] for a in assessment_result.fetchall()]
+    if not assessment_ids:
+        return []
+    query = select(DocumentGenerationJob).where(
+        DocumentGenerationJob.assessment_id.in_(assessment_ids)
+    ).order_by(DocumentGenerationJob.created_at.desc())
+    result = await db.execute(query)
+    jobs = result.scalars().all()
+    return [GenerationJobResponse.model_validate(job) for job in jobs]
+
+
 @router.get("/generation-jobs/{job_id}/status", response_model=GenerationJobProgress)
 async def get_generation_status(
     job_id: str,
@@ -672,17 +713,22 @@ async def list_all_generated_documents(
 
 @router.get("/generated-documents/{doc_id}", response_model=GeneratedDocumentResponse)
 async def get_generated_document(
-    doc_id: int,
+    doc_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Get a single generated document."""
+    # Parse doc_id: frontend may send string IDs like "gen_1770850906225" or plain integers
+    parsed_id = _parse_doc_id(doc_id)
+    if parsed_id is None:
+        raise HTTPException(400, f"Invalid document ID format: {doc_id}")
+
     # Join with Assessment to verify ownership
     query = (
         select(GeneratedDocument)
         .join(Assessment, GeneratedDocument.assessment_id == Assessment.id)
         .where(
-            GeneratedDocument.id == doc_id,
+            GeneratedDocument.id == parsed_id,
             Assessment.created_by == current_user.id
         )
     )
@@ -697,18 +743,23 @@ async def get_generated_document(
 
 @router.put("/generated-documents/{doc_id}", response_model=GeneratedDocumentResponse)
 async def update_generated_document(
-    doc_id: int,
+    doc_id: str,
     update_data: GeneratedDocumentUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Update a generated document (e.g., edit content)."""
+    # Parse doc_id: frontend may send string IDs like "gen_1770850906225" or plain integers
+    parsed_id = _parse_doc_id(doc_id)
+    if parsed_id is None:
+        raise HTTPException(400, f"Invalid document ID format: {doc_id}")
+
     # Join with Assessment to verify ownership
     query = (
         select(GeneratedDocument)
         .join(Assessment, GeneratedDocument.assessment_id == Assessment.id)
         .where(
-            GeneratedDocument.id == doc_id,
+            GeneratedDocument.id == parsed_id,
             Assessment.created_by == current_user.id
         )
     )
@@ -832,7 +883,7 @@ async def prefill_template(
 
 @router.post("/generated-documents/{doc_id}/finalize", response_model=FinalizeResponse)
 async def finalize_document(
-    doc_id: int,
+    doc_id: str,
     request: FinalizeRequest = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -840,12 +891,17 @@ async def finalize_document(
     """
     Finalize a document and generate PDF.
     """
+    # Parse doc_id: frontend may send string IDs like "gen_1770850906225" or plain integers
+    parsed_id = _parse_doc_id(doc_id)
+    if parsed_id is None:
+        raise HTTPException(400, f"Invalid document ID format: {doc_id}")
+
     # Join with Assessment to verify ownership
     query = (
         select(GeneratedDocument)
         .join(Assessment, GeneratedDocument.assessment_id == Assessment.id)
         .where(
-            GeneratedDocument.id == doc_id,
+            GeneratedDocument.id == parsed_id,
             Assessment.created_by == current_user.id
         )
     )
@@ -1081,17 +1137,22 @@ async def finalize_document(
 
 @router.get("/generated-documents/{doc_id}/download")
 async def download_document(
-    doc_id: int,
+    doc_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Download a finalized document PDF."""
+    # Parse doc_id: frontend may send string IDs like "gen_1770850906225" or plain integers
+    parsed_id = _parse_doc_id(doc_id)
+    if parsed_id is None:
+        raise HTTPException(400, f"Invalid document ID format: {doc_id}")
+
     # Join with Assessment to verify ownership
     query = (
         select(GeneratedDocument)
         .join(Assessment, GeneratedDocument.assessment_id == Assessment.id)
         .where(
-            GeneratedDocument.id == doc_id,
+            GeneratedDocument.id == parsed_id,
             Assessment.created_by == current_user.id
         )
     )

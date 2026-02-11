@@ -29,7 +29,6 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
   List<Map<String, dynamic>> _uploadedDocs = [];
   List<Map<String, dynamic>> _generatedDocs = [];
   List<Map<String, dynamic>> _pendingJobs = [];
-  List<Map<String, dynamic>> _sanctionsReports = [];
   bool _isLoading = true;
   Timer? _refreshTimer;
   int _previousUploadedCount = 0;
@@ -142,9 +141,6 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
       // Load pending generation jobs
       await _loadPendingJobs();
 
-      // Load sanctions reports
-      await _loadSanctionsReports();
-
       // Track counts for auto-refresh comparison
       _previousUploadedCount = _uploadedDocs.length;
       _previousGeneratedCount = _generatedDocs.length;
@@ -213,34 +209,6 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     } catch (e) {
       // Continue even if this fails
       _pendingJobs = [];
-    }
-  }
-
-  Future<void> _loadSanctionsReports() async {
-    try {
-      // Get sanctions summary which includes screening history
-      final sanctionsRes = await authService.get(
-          '/sanctions/assessments/${widget.assessmentId}/summary');
-      if (sanctionsRes.statusCode == 200) {
-        final data = jsonDecode(sanctionsRes.body);
-        final screenings = List<Map<String, dynamic>>.from(data['screenings'] ?? []);
-        // Add completed screenings as downloadable reports
-        _sanctionsReports = screenings.where((s) {
-          final status = s['status'] as String?;
-          return status == 'clear' || status == 'match' || status == 'review';
-        }).map((s) => {
-          'id': s['id'],
-          'name': 'Sanctions Report - ${(s['level'] as String).toUpperCase()}',
-          'type': 'sanctions_report',
-          'status': s['status'],
-          'score': s['score'],
-          'completed': s['completed'],
-          'matches': s['matches'],
-        }).toList();
-      }
-    } catch (e) {
-      // Continue even if this fails
-      _sanctionsReports = [];
     }
   }
 
@@ -442,7 +410,6 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     final allItems = [
       ..._pendingJobs.map((j) => {'...data': j, '_type': 'pending'}),
       ..._generatedDocs.map((d) => {'...data': d, '_type': 'generated'}),
-      ..._sanctionsReports.map((r) => {'...data': r, '_type': 'sanctions'}),
     ];
 
     if (allItems.isEmpty) {
@@ -507,22 +474,6 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
             const SizedBox(height: 16),
           ],
 
-          // Sanctions reports
-          if (_sanctionsReports.isNotEmpty) ...[
-            const Padding(
-              padding: EdgeInsets.only(bottom: 8),
-              child: Text(
-                'SANCTIONS REPORTS',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textHint,
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
-            ..._sanctionsReports.map((report) => _buildSanctionsReportCard(report)),
-          ],
         ],
       ),
     );
@@ -618,144 +569,6 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
         ),
       ),
     );
-  }
-
-  Widget _buildSanctionsReportCard(Map<String, dynamic> report) {
-    final status = report['status'] ?? 'clear';
-    final score = (report['score'] ?? 0.0);
-    final matches = report['matches'] ?? 0;
-    final completed = report['completed']?.toString().split('T')[0] ?? '';
-
-    Color statusColor;
-    switch (status) {
-      case 'match':
-        statusColor = const Color(0xFFDC2626);
-        break;
-      case 'review':
-        statusColor = const Color(0xFFF59E0B);
-        break;
-      default:
-        statusColor = const Color(0xFF059669);
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.security,
-                color: statusColor,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    report['name'] ?? 'Sanctions Report',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          status.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: statusColor,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$matches matches · ${score.toStringAsFixed(0)}% score',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                IconButton(
-                  onPressed: () => _downloadSanctionsReport(report),
-                  icon: Icon(Icons.download, color: AppTheme.primaryDark),
-                  tooltip: 'Download Report',
-                ),
-                Text(
-                  completed,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: AppTheme.textHint,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _downloadSanctionsReport(Map<String, dynamic> report) async {
-    try {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Preparing sanctions report download...')),
-        );
-      }
-
-      // Use the correct endpoint: /sanctions/assessments/{assessment_id}/report
-      final assessmentId = widget.assessmentId;
-      final downloadUrl = '${authService.baseUrl}/sanctions/assessments/$assessmentId/report?format=pdf';
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-
-      // Use authenticated download
-      await authService.downloadFile(downloadUrl, 'sanctions_report_$timestamp.pdf');
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sanctions report downloaded successfully')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Download failed: $e')),
-        );
-      }
-    }
   }
 
   Widget _buildEmptyState({

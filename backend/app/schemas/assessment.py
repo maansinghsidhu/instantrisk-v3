@@ -8,7 +8,7 @@ CRUD operations and API responses.
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from uuid import UUID
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 from app.models.assessment import AssessmentStatus, AssessmentDecision, RiskCategory
 
@@ -121,15 +121,15 @@ class AssessmentResponse(AssessmentBase):
     syndicate_id: Optional[int] = None
     insured_name: Optional[str] = None
     broker_reference: Optional[str] = None
-    premium: Optional[float] = None
-    sum_insured: Optional[float] = None
-    deductible: Optional[float] = None
+    premium: Optional[float] = 0.0
+    sum_insured: Optional[float] = 0.0
+    deductible: Optional[float] = 0.0
     inception_date: Optional[datetime] = None
     expiry_date: Optional[datetime] = None
     territory: Optional[str] = None
     exposure_details: Optional[Dict[str, Any]] = None
-    risk_score: Optional[int] = None
-    confidence_score: Optional[int] = None
+    risk_score: Optional[int] = 0
+    confidence_score: Optional[int] = 0
     ai_analysis: Optional[Dict[str, Any]] = None
     ai_recommendations: Optional[List[Any]] = None  # Can be List[str] or List[Dict]
     underwriter_notes: Optional[str] = None
@@ -140,6 +140,16 @@ class AssessmentResponse(AssessmentBase):
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime] = None
+
+    @field_validator('premium', 'sum_insured', 'deductible', mode='before')
+    @classmethod
+    def coerce_float_none(cls, v):
+        return v if v is not None else 0.0
+
+    @field_validator('risk_score', 'confidence_score', mode='before')
+    @classmethod
+    def coerce_int_none(cls, v):
+        return v if v is not None else 0
 
     # Computed fields
     risk_rating: Optional[str] = None
@@ -182,4 +192,4 @@ class AssessmentSummary(BaseModel):
     go_decisions: int
     no_go_decisions: int
     refer_decisions: int
-    average_risk_score: Optional[float] = None
+    average_risk_score: Optional[float] = 0.0

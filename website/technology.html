@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Technology - InstantRisk | AI, RAG, Vector Search, AWS</title>
+  <meta name="description" content="Built on AWS with RAG vector search, multi-agent AI, Qdrant vector database, and enterprise-grade security. Explore the technology behind InstantRisk.">
+  <link rel="icon" type="image/png" href="assets/images/logo-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <img src="assets/images/logo-icon.png" alt="InstantRisk">
+      <span>InstantRisk</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="features.html">Features</a></li>
+      <li><a href="technology.html" class="active">Technology</a></li>
+      <li><a href="platform.html">Platform</a></li>
+      <li><a href="https://d2f065h47nuk0c.cloudfront.net" class="nav-cta">Launch App</a></li>
+    </ul>
+    <button class="nav-mobile-toggle">&#9776;</button>
+  </div>
+</nav>
+
+<!-- PAGE HEADER -->
+<section class="page-header">
+  <div class="hero-grid"></div>
+  <div class="hero-glow hero-glow-2"></div>
+  <div class="particles"></div>
+  <h1>Enterprise-Grade <span class="gradient-text">Technology</span></h1>
+  <p>Built on AWS with multi-agent AI, vector databases, and military-grade security.</p>
+</section>
+
+<!-- ==================== ARCHITECTURE OVERVIEW ==================== -->
+<section class="section section-dark" id="architecture">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-label">Architecture</div>
+      <h2 class="section-title">Cloud-Native Infrastructure</h2>
+      <p class="section-subtitle">Every component is containerized, auto-scaling, and deployed across AWS for maximum reliability.</p>
+    </div>
+
+    <div class="arch-flow reveal">
+      <div class="arch-node primary">
+        <div class="node-icon">&#127760;</div>
+        <div class="node-label">CloudFront CDN</div>
+        <div class="node-sub">Global Edge + WAF</div>
+      </div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-node secondary">
+        <div class="node-icon">&#9878;</div>
+        <div class="node-label">ALB</div>
+        <div class="node-sub">Load Balancer</div>
+      </div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-node primary">
+        <div class="node-icon">&#128187;</div>
+        <div class="node-label">ECS Fargate</div>
+        <div class="node-sub">Serverless Containers</div>
+      </div>
+      <div class="arch-arrow">&rarr;</div>
+      <div class="arch-node tertiary">
+        <div class="node-icon">&#128024;</div>
+        <div class="node-label">FastAPI</div>
+        <div class="node-sub">Python Backend</div>
+      </div>
+    </div>
+
+    <div class="arch-flow reveal reveal-delay-2" style="margin-top: 1rem;">
+      <div class="arch-node secondary">
+        <div class="node-icon">&#128451;</div>
+        <div class="node-label">RDS PostgreSQL</div>
+        <div class="node-sub">Primary Database</div>
+      </div>
+      <div class="arch-node primary">
+        <div class="node-icon">&#9889;</div>
+        <div class="node-label">ElastiCache Redis</div>
+        <div class="node-sub">Sessions &amp; Cache</div>
+      </div>
+      <div class="arch-node tertiary">
+        <div class="node-icon">&#128270;</div>
+        <div class="node-label">Qdrant</div>
+        <div class="node-sub">Vector Database</div>
+      </div>
+      <div class="arch-node secondary">
+        <div class="node-icon">&#128190;</div>
+        <div class="node-label">S3 + EFS</div>
+        <div class="node-sub">Object &amp; File Storage</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== AI & ML ==================== -->
+<section class="section section-gradient" id="ai">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-label">AI &amp; Machine Learning</div>
+      <h2 class="section-title">The Intelligence Behind Zeus</h2>
+      <p class="section-subtitle">Multiple AI techniques combined into a unified analysis pipeline.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon purple">&#129302;</div>
+        <h3>Multi-Agent Orchestration</h3>
+        <p>Zeus Engine deploys specialized AI agents in parallel: OCR, risk scoring, clause matching, compliance, pricing, and decision synthesis. Each agent is optimized for its domain.</p>
+        <span class="feature-tag">5+ Specialized Agents</span>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon teal">&#128270;</div>
+        <h3>RAG Vector Search</h3>
+        <p>Retrieval-Augmented Generation using Qdrant vector database. Documents are chunked, embedded into high-dimensional vectors, and retrieved semantically for context-aware AI responses.</p>
+        <span class="feature-tag">Qdrant + Embeddings</span>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon blue">&#128065;</div>
+        <h3>Advanced OCR Pipeline</h3>
+        <p>Multi-stage OCR with layout detection, table extraction, and character recognition. Handles scanned PDFs, photos, handwritten notes, stamps, and multi-column documents.</p>
+        <span class="feature-tag">97% Accuracy</span>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-1">
+        <div class="feature-icon gold">&#128200;</div>
+        <h3>ML Pricing Models</h3>
+        <p>RapidRate uses gradient-boosted models trained on historical premium and loss data. Territory factors, construction types, occupancy classes, and market cycle are all factored in.</p>
+        <span class="feature-tag">Lambda-Powered</span>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-2">
+        <div class="feature-icon teal">&#128172;</div>
+        <h3>Natural Language Chat</h3>
+        <p>Full conversational AI with assessment context. Ask questions about any assessment, request benchmark data from ClaimSense, or generate reports through natural language commands.</p>
+        <span class="feature-tag">Context-Aware</span>
+      </div>
+
+      <div class="feature-card reveal reveal-delay-3">
+        <div class="feature-icon purple">&#127891;</div>
+        <h3>Continuous Training</h3>
+        <p>Upload reference documents to the Training Center. Zeus embeds them into the vector database for future RAG retrieval, continuously expanding its knowledge base.</p>
+        <span class="feature-tag">Custom Knowledge</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SECURITY ==================== -->
+<section class="section section-dark" id="security">
+  <div class="container">
+    <div class="engine-showcase">
+      <div class="engine-info reveal">
+        <div class="section-label">Security</div>
+        <h2>Enterprise-Grade <span class="accent">Protection</span></h2>
+        <p>
+          Insurance data demands the highest security standards. InstantRisk is built with defense-in-depth across every layer, from network perimeter to application logic.
+        </p>
+        <ul class="engine-features">
+          <li>
+            <span class="check">&#x2713;</span>
+            <span><strong>AWS WAF</strong> &mdash; Web Application Firewall with managed rule sets for OWASP Top 10, SQL injection, XSS, and custom rate limiting.</span>
+          </li>
+          <li>
+            <span class="check">&#x2713;</span>
+            <span><strong>End-to-End Encryption</strong> &mdash; TLS 1.3 in transit, AES-256 at rest. All data encrypted in RDS, S3, EFS, and ElastiCache.</span>
+          </li>
+          <li>
+            <span class="check">&#x2713;</span>
+            <span><strong>VPC Isolation</strong> &mdash; Private subnets for backend services, database, and vector search. No direct internet access to sensitive components.</span>
+          </li>
+          <li>
+            <span class="check">&#x2713;</span>
+            <span><strong>IAM &amp; JWT Auth</strong> &mdash; Role-based access control with JWT tokens. Underwriter, analyst, and admin roles with granular permissions.</span>
+          </li>
+          <li>
+            <span class="check">&#x2713;</span>
+            <span><strong>CloudWatch &amp; Alarms</strong> &mdash; Full audit logging, security event monitoring, CPU/memory alerts, and automated incident response.</span>
+          </li>
+          <li>
+            <span class="check">&#x2713;</span>
+            <span><strong>Automated Backups</strong> &mdash; Daily database snapshots, S3 versioning, and EFS backups with 30-day retention. RPO under 1 hour.</span>
+          </li>
+        </ul>
+      </div>
+      <div class="engine-visual reveal reveal-delay-2">
+        <div class="engine-terminal">
+          <div class="terminal-header">
+            <span class="terminal-dot red"></span>
+            <span class="terminal-dot yellow"></span>
+            <span class="terminal-dot green"></span>
+            <span class="terminal-title">security &mdash; audit log</span>
+          </div>
+          <div class="terminal-body">
+            <div class="line"><span class="t-comment">// Security audit trail</span></div>
+            <div class="line"><span class="t-number">09:14:23</span> <span class="t-success">&#x2713;</span> WAF: 247 requests screened</div>
+            <div class="line"><span class="t-number">09:14:23</span> <span class="t-success">&#x2713;</span> TLS 1.3 handshake OK</div>
+            <div class="line"><span class="t-number">09:14:24</span> <span class="t-success">&#x2713;</span> JWT validated: exp 2026-02-12</div>
+            <div class="line"><span class="t-number">09:14:24</span> <span class="t-success">&#x2713;</span> RBAC: underwriter role confirmed</div>
+            <div class="line"><span class="t-number">09:14:25</span> <span class="t-success">&#x2713;</span> File scan: no malware detected</div>
+            <div class="line"><span class="t-number">09:14:25</span> <span class="t-success">&#x2713;</span> Upload encrypted (AES-256)</div>
+            <div class="line"><span class="t-number">09:14:26</span> <span class="t-success">&#x2713;</span> Audit log: event recorded</div>
+            <div class="line">&nbsp;</div>
+            <div class="line"><span class="t-keyword">SECURITY STATUS:</span> <span class="t-success">ALL CLEAR</span></div>
+            <div class="line"><span class="t-comment">// 0 threats detected in last 24h</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== INFRASTRUCTURE ==================== -->
+<section class="section section-gradient" id="infrastructure">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-label">Infrastructure</div>
+      <h2 class="section-title">AWS-Powered Stack</h2>
+      <p class="section-subtitle">Every component runs on managed AWS services for reliability, scalability, and compliance.</p>
+    </div>
+
+    <div class="tech-grid">
+      <div class="tech-card reveal">
+        <div class="icon">&#128187;</div>
+        <h4>ECS Fargate</h4>
+        <p>Serverless container orchestration. No servers to manage, auto-scaling, pay only for compute used.</p>
+      </div>
+      <div class="tech-card reveal reveal-delay-1">
+        <div class="icon">&#128024;</div>
+        <h4>FastAPI + Python</h4>
+        <p>High-performance async Python backend with automatic API documentation and type validation.</p>
+      </div>
+      <div class="tech-card reveal reveal-delay-2">
+        <div class="icon">&#128451;</div>
+        <h4>RDS PostgreSQL</h4>
+        <p>Managed relational database with automated backups, multi-AZ deployment, and encryption at rest.</p>
+      </div>
+      <div class="tech-card reveal reveal-delay-1">
+        <div class="icon">&#9889;</div>
+        <h4>ElastiCache Redis</h4>
+        <p>In-memory caching for sessions, rate limiting, and query acceleration. Sub-millisecond response times.</p>
+      </div>
+      <div class="tech-card reveal reveal-delay-2">
+        <div class="icon">&#128270;</div>
+        <h4>Qdrant Vector DB</h4>
+        <p>Purpose-built vector database on EFS-backed persistent storage. Semantic search across 50K+ clauses.</p>
+      </div>
+      <div class="tech-card reveal reveal-delay-3">
+        <div class="icon">&#127760;</div>
+        <h4>CloudFront CDN</h4>
+        <p>Global edge network with WAF protection. Flutter web app delivered from 400+ locations worldwide.</p>
+      </div>
+      <div class="tech-card reveal reveal-delay-1">
+        <div class="icon">&#128190;</div>
+        <h4>S3 Object Storage</h4>
+        <p>Document storage with versioning, lifecycle policies, and cross-region replication for disaster recovery.</p>
+      </div>
+      <div class="tech-card reveal reveal-delay-2">
+        <div class="icon">&#128295;</div>
+        <h4>CodeBuild CI/CD</h4>
+        <p>Automated build and deployment pipeline. Push to GitHub triggers build, test, and deploy in under 10 minutes.</p>
+      </div>
+      <div class="tech-card reveal reveal-delay-3">
+        <div class="icon">&#128225;</div>
+        <h4>Lambda Functions</h4>
+        <p>Serverless compute for RapidRate pricing engine and async processing jobs. Pay-per-invocation pricing.</p>
+      </div>
+      <div class="tech-card reveal reveal-delay-1">
+        <div class="icon">&#128202;</div>
+        <h4>CloudWatch</h4>
+        <p>Full observability: logs, metrics, alarms, and dashboards. CPU, memory, error rate, and latency monitoring.</p>
+      </div>
+      <div class="tech-card reveal reveal-delay-2">
+        <div class="icon">&#128737;</div>
+        <h4>AWS WAF</h4>
+        <p>Web Application Firewall with OWASP managed rules, rate limiting, geo-blocking, and bot protection.</p>
+      </div>
+      <div class="tech-card reveal reveal-delay-3">
+        <div class="icon">&#128274;</div>
+        <h4>IAM + SSO</h4>
+        <p>AWS IAM roles and policies. Single Sign-On for admin access. No long-lived credentials anywhere.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== COMPARISON ==================== -->
+<section class="section section-dark">
+  <div class="container">
+    <div class="section-header reveal">
+      <div class="section-label">Comparison</div>
+      <h2 class="section-title">Traditional vs InstantRisk</h2>
+      <p class="section-subtitle">See how AI-powered underwriting compares to manual processes.</p>
+    </div>
+
+    <div class="reveal">
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Traditional</th>
+            <th>InstantRisk</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Assessment Time</td>
+            <td>2-5 days</td>
+            <td class="highlight">&lt; 10 minutes</td>
+          </tr>
+          <tr>
+            <td>Data Extraction</td>
+            <td>Manual entry</td>
+            <td class="highlight">Automated OCR (97%)</td>
+          </tr>
+          <tr>
+            <td>Benchmark Access</td>
+            <td>Separate tools</td>
+            <td class="highlight">Integrated (ClaimSense)</td>
+          </tr>
+          <tr>
+            <td>Pricing</td>
+            <td>Spreadsheet models</td>
+            <td class="highlight">ML-powered (RapidRate)</td>
+          </tr>
+          <tr>
+            <td>Clause Matching</td>
+            <td>Manual search</td>
+            <td class="highlight">Vector search (50K+)</td>
+          </tr>
+          <tr>
+            <td>Document Generation</td>
+            <td>Word templates</td>
+            <td class="highlight">Auto-generated</td>
+          </tr>
+          <tr>
+            <td>Compliance Check</td>
+            <td>Checklist-based</td>
+            <td class="highlight">AI-automated</td>
+          </tr>
+          <tr>
+            <td>Scalability</td>
+            <td>Linear (headcount)</td>
+            <td class="highlight">Elastic (serverless)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== CTA ==================== -->
+<section class="cta-section">
+  <div class="particles"></div>
+  <div class="cta-content">
+    <h2 class="reveal">Built for <span class="gradient-text">Enterprise Scale</span></h2>
+    <p class="reveal reveal-delay-1">The same infrastructure that powers the largest financial institutions, now built for underwriting.</p>
+    <div class="reveal reveal-delay-2">
+      <a href="https://d2f065h47nuk0c.cloudfront.net" class="btn btn-primary btn-lg">
+        Try the Platform
+        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <img src="assets/images/logo-full.png" alt="InstantRisk">
+      <p>AI-powered underwriting intelligence for Lloyd's of London syndicates. Built by underwriters, for underwriters.</p>
+    </div>
+    <div>
+      <h4>Platform</h4>
+      <ul>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="features.html#zeus">Zeus Engine</a></li>
+        <li><a href="features.html#claimsense">ClaimSense</a></li>
+        <li><a href="features.html#rapidrate">RapidRate</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Technology</h4>
+      <ul>
+        <li><a href="technology.html">Architecture</a></li>
+        <li><a href="technology.html#security">Security</a></li>
+        <li><a href="technology.html#ai">AI &amp; ML</a></li>
+        <li><a href="technology.html#infrastructure">Infrastructure</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Company</h4>
+      <ul>
+        <li><a href="platform.html">Platform Demo</a></li>
+        <li><a href="mailto:info@instantrisk.com">Contact</a></li>
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Terms of Service</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; 2026 InstantRisk. All rights reserved.</span>
+    <div class="social">
+      <a href="#">LinkedIn</a>
+      <a href="#">Twitter</a>
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>
