@@ -5,6 +5,7 @@ Indexes insurance datasets (ACORD, CUAD, JeTech) into PostgreSQL with
 pgvector embeddings for semantic search.
 
 Uses sentence-transformers with llmware/industry-bert-insurance-v0.1 (768-dim).
+Supports pre-computed embeddings from S3 for fast indexing on Fargate.
 """
 
 import json
@@ -27,7 +28,11 @@ EMBEDDING_MODEL = "llmware/industry-bert-insurance-v0.1"
 EMBEDDING_DIM = 768
 BATCH_SIZE = 100
 
-# All 7 real datasets
+# S3 settings for pre-computed embeddings
+S3_TRAINING_BUCKET = "instantrisk-pipeline-artifacts-995306061991"
+S3_TRAINING_PREFIX = "training-data/"
+
+# All 6 real datasets
 RAG_SOURCES = [
     {
         "path": TRAINING_DATA_DIR / "embeddings/acord_clauses.jsonl",
@@ -69,6 +74,7 @@ class RAGIndexer:
         self.embedding_model = None
         self._model_loaded = False
         self._sync_engine = None
+        self._s3_checked = False
 
     def _load_model(self) -> bool:
         """Load the embedding model."""
@@ -95,6 +101,44 @@ class RAGIndexer:
             from sqlalchemy import create_engine
             self._sync_engine = create_engine(sync_url, pool_pre_ping=True)
         return self._sync_engine
+
+    def _download_from_s3(self) -> Dict[str, bool]:
+        """Download pre-embedded JSONL files from S3 if available and larger than local."""
+        if self._s3_checked:
+            return {}
+        self._s3_checked = True
+        results = {}
+        try:
+            import boto3
+            s3 = boto3.client("s3", region_name="us-east-1")
+            for source in RAG_SOURCES:
+                filename = source["path"].name
+                s3_key = f"{S3_TRAINING_PREFIX}{filename}"
+                local_path = source["path"]
+                local_path.parent.mkdir(parents=True, exist_ok=True)
+                try:
+                    s3_obj = s3.head_object(Bucket=S3_TRAINING_BUCKET, Key=s3_key)
+                    s3_size = s3_obj["ContentLength"]
+                    local_size = local_path.stat().st_size if local_path.exists() else 0
+                    # S3 version with embeddings is ~16x larger than text-only
+                    if s3_size > local_size * 2:
+                        s3_mb = s3_size / 1024 / 1024
+                        logger.info(f"Downloading {filename} from S3 ({s3_mb:.0f} MB)...")
+                        s3.download_file(S3_TRAINING_BUCKET, s3_key, str(local_path))
+                        logger.info(f"Downloaded {filename}")
+                        results[filename] = True
+                    else:
+                        logger.info(f"Local {filename} already up to date")
+                        results[filename] = False
+                except s3.exceptions.ClientError:
+                    logger.debug(f"S3 file not found: {s3_key}")
+                    results[filename] = False
+                except Exception as e:
+                    logger.warning(f"Error checking S3 for {filename}: {e}")
+                    results[filename] = False
+        except Exception as e:
+            logger.warning(f"S3 client init failed (using local files): {e}")
+        return results
 
     def _embed_texts(self, texts: List[str]) -> List[List[float]]:
         """Generate embeddings for a list of texts."""
@@ -129,12 +173,12 @@ class RAGIndexer:
         """
         Index all insurance datasets into PostgreSQL via pgvector.
 
+        Downloads pre-embedded files from S3 if available (fast path).
+        Falls back to local model embedding if no pre-computed embeddings.
+
         Args:
             force: If True, delete existing data and re-index.
         """
-        if not self._load_model():
-            return {"error": "Failed to load embedding model"}
-
         engine = self._get_sync_engine()
         from sqlalchemy import text
 
@@ -147,6 +191,33 @@ class RAGIndexer:
             count = self.get_collection_count()
             logger.info(f"Already indexed with {count} vectors. Use force=True to re-index.")
             return {"status": "already_indexed", "points": count}
+
+        # Try to download pre-embedded files from S3
+        logger.info("Checking S3 for pre-computed embeddings...")
+        s3_results = self._download_from_s3()
+        if s3_results:
+            downloaded = sum(1 for v in s3_results.values() if v)
+            logger.info(f"S3 check complete: {downloaded} files downloaded")
+
+        # Check if we need the model (scan first record of each file)
+        needs_model = False
+        for source in RAG_SOURCES:
+            if source["path"].exists():
+                with open(source["path"], "r", encoding="utf-8") as f:
+                    first_line = f.readline()
+                    if first_line:
+                        try:
+                            rec = json.loads(first_line)
+                            if not rec.get("embedding"):
+                                needs_model = True
+                                break
+                        except json.JSONDecodeError:
+                            needs_model = True
+                            break
+
+        if needs_model:
+            if not self._load_model():
+                return {"error": "Failed to load embedding model and no pre-computed embeddings available"}
 
         stats = {"total_indexed": 0, "errors": 0, "sources": {}}
 
@@ -201,10 +272,11 @@ class RAGIndexer:
         """Index a batch of records into rag_vectors."""
         from sqlalchemy import text as sql_text
 
-        texts = []
+        texts_to_embed = []
+        embed_indices = []
         records_to_insert = []
 
-        for record, source_type in batch_records:
+        for i, (record, source_type) in enumerate(batch_records):
             raw_text = record.get("text", "")
             embed_text = raw_text[:512]
             full_text = raw_text[:2000]
@@ -215,7 +287,15 @@ class RAGIndexer:
             source = record.get("source", "")
             name = metadata.get("name", "") if isinstance(metadata, dict) else ""
 
-            texts.append(embed_text)
+            # Use pre-computed embedding if available
+            pre_emb = record.get("embedding")
+            if pre_emb and isinstance(pre_emb, list):
+                embedding_str = str(pre_emb)
+            else:
+                embedding_str = None
+                texts_to_embed.append(embed_text)
+                embed_indices.append(i)
+
             records_to_insert.append({
                 "text_hash": text_hash,
                 "text_preview": embed_text,
@@ -224,14 +304,18 @@ class RAGIndexer:
                 "category": category,
                 "source": source,
                 "name": name,
-                "embedding": None,  # filled below
+                "embedding": embedding_str,
                 "created_at": datetime.now(timezone.utc),
             })
 
         try:
-            embeddings = self._embed_texts(texts)
-            for i, emb in enumerate(embeddings):
-                records_to_insert[i]["embedding"] = str(emb)
+            # Only compute embeddings for records without pre-computed ones
+            if texts_to_embed:
+                if not self._model_loaded:
+                    self._load_model()
+                embeddings = self._embed_texts(texts_to_embed)
+                for idx, emb in zip(embed_indices, embeddings):
+                    records_to_insert[idx]["embedding"] = str(emb)
 
             with engine.begin() as conn:
                 for rec in records_to_insert:
