@@ -1,0 +1,11 @@
+__pycache__
+*.pyc
+.git
+.env
+*.md
+tests/
+.pytest_cache
+*.zip
+*.tar.gz
+.coverage
+htmlcov/

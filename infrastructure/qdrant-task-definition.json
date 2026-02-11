@@ -1,0 +1,54 @@
+{
+  "family": "instantrisk-qdrant",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::995306061991:role/instantrisk-ecs-execution-role",
+  "containerDefinitions": [
+    {
+      "name": "qdrant",
+      "image": "qdrant/qdrant:v1.7.4",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 6334,
+          "hostPort": 6334,
+          "protocol": "tcp"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "qdrant-storage",
+          "containerPath": "/qdrant/storage",
+          "readOnly": false
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/instantrisk-qdrant",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "qdrant"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:6334/readyz || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ],
+  "volumes": [
+    {
+      "name": "qdrant-storage",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-090ad3238b9702fb0",
+        "rootDirectory": "/",
+        "transitEncryption": "ENABLED"
+      }
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+# InstantRisk V2 - Fastlane Configuration
+# Automated build and deployment for iOS and Android
+
+default_platform(:ios)
+
+# ============================================
+# ANDROID LANES
+# ============================================
+platform :android do
+  desc "Build Android App Bundle (AAB) for Play Store"
+  lane :build_release do
+    # Clean build
+    sh "cd .. && flutter clean"
+    sh "cd .. && flutter pub get"
+
+    # Build AAB for Play Store
+    sh "cd .. && flutter build appbundle --release"
+
+    UI.success "✅ Android AAB built successfully!"
+    UI.message "📦 Output: build/app/outputs/bundle/release/app-release.aab"
+  end
+
+  desc "Build APK for testing"
+  lane :build_apk do
+    sh "cd .. && flutter clean"
+    sh "cd .. && flutter pub get"
+    sh "cd .. && flutter build apk --release"
+
+    UI.success "✅ Android APK built successfully!"
+  end
+
+  desc "Deploy to Google Play Store (Internal Testing)"
+  lane :deploy_internal do
+    build_release
+
+    upload_to_play_store(
+      track: 'internal',
+      aab: '../build/app/outputs/bundle/release/app-release.aab',
+      json_key: 'fastlane/play-store-credentials.json',
+      package_name: 'com.alexandratechlab.instantrisk'
+    )
+
+    UI.success "✅ Deployed to Play Store Internal Testing!"
+  end
+
+  desc "Deploy to Google Play Store (Production)"
+  lane :deploy_production do
+    build_release
+
+    upload_to_play_store(
+      track: 'production',
+      aab: '../build/app/outputs/bundle/release/app-release.aab',
+      json_key: 'fastlane/play-store-credentials.json',
+      package_name: 'com.alexandratechlab.instantrisk'
+    )
+
+    UI.success "✅ Deployed to Play Store Production!"
+  end
+end
+
+# ============================================
+# iOS LANES
+# ============================================
+platform :ios do
+  desc "Build iOS app for App Store"
+  lane :build_release do
+    # Clean build
+    sh "cd .. && flutter clean"
+    sh "cd .. && flutter pub get"
+
+    # Build iOS
+    sh "cd .. && flutter build ios --release --no-codesign"
+
+    # Build IPA with signing
+    build_app(
+      workspace: "../ios/Runner.xcworkspace",
+      scheme: "Runner",
+      export_method: "app-store",
+      output_directory: "../build/ios/ipa",
+      output_name: "InstantRisk.ipa"
+    )
+
+    UI.success "✅ iOS IPA built successfully!"
+  end
+
+  desc "Deploy to TestFlight"
+  lane :deploy_testflight do
+    build_release
+
+    upload_to_testflight(
+      api_key_path: "fastlane/app-store-connect-api-key.json",
+      ipa: "../build/ios/ipa/InstantRisk.ipa",
+      skip_waiting_for_build_processing: true
+    )
+
+    UI.success "✅ Deployed to TestFlight!"
+  end
+
+  desc "Deploy to App Store"
+  lane :deploy_appstore do
+    build_release
+
+    deliver(
+      api_key_path: "fastlane/app-store-connect-api-key.json",
+      ipa: "../build/ios/ipa/InstantRisk.ipa",
+      submit_for_review: false,
+      automatic_release: false,
+      force: true
+    )
+
+    UI.success "✅ Uploaded to App Store Connect!"
+  end
+
+  desc "Sync code signing certificates"
+  lane :sync_certificates do
+    match(
+      type: "appstore",
+      app_identifier: "com.alexandratechlab.instantrisk",
+      readonly: true
+    )
+  end
+end
+
+# ============================================
+# CROSS-PLATFORM LANES
+# ============================================
+desc "Build both platforms"
+lane :build_all do
+  Fastlane::LaneManager.cruise_lane('android', 'build_release')
+  Fastlane::LaneManager.cruise_lane('ios', 'build_release')
+end
+
+desc "Deploy to both stores (internal/testflight)"
+lane :deploy_beta do
+  Fastlane::LaneManager.cruise_lane('android', 'deploy_internal')
+  Fastlane::LaneManager.cruise_lane('ios', 'deploy_testflight')
+end

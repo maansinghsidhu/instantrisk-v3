@@ -1,0 +1,120 @@
+{
+  "metadata": {
+    "source": "Lloyd's Market Association (LMA) - Model Clauses",
+    "version": "2024",
+    "total_clauses": 10,
+    "last_updated": "2024-01-01"
+  },
+  "clauses": [
+    {
+      "id": "LMA5021",
+      "name": "War and Civil War Exclusion Clause",
+      "category": "War & Terrorism",
+      "text": "Notwithstanding anything to the contrary contained herein this policy does not cover loss damage liability or expense directly or indirectly caused by or contributed to by or arising from war, invasion, acts of foreign enemies, hostilities or warlike operations (whether war be declared or not), civil war, rebellion, revolution, insurrection, civil commotion assuming the proportions of or amounting to an uprising, military or usurped power.",
+      "source": "LMA",
+      "clause_type": "exclusion",
+      "line_of_business": "all",
+      "is_exclusion": true,
+      "is_mandatory": true
+    },
+    {
+      "id": "LMA5390",
+      "name": "Sanction Limitation and Exclusion Clause",
+      "category": "Sanctions",
+      "text": "No (re)insurer shall be deemed to provide cover and no (re)insurer shall be liable to pay any claim or provide any benefit hereunder to the extent that the provision of such cover, payment of such claim or provision of such benefit would expose that (re)insurer to any sanction, prohibition or restriction under United Nations resolutions or the trade or economic sanctions, laws or regulations of the European Union, United Kingdom or United States of America.",
+      "source": "LMA",
+      "clause_type": "exclusion",
+      "line_of_business": "all",
+      "is_exclusion": true,
+      "is_mandatory": true
+    },
+    {
+      "id": "LMA5400",
+      "name": "Several Liability Clause",
+      "category": "Liability",
+      "text": "The liability of an insurer under this contract is several and not joint with other insurers party to this contract. An insurer is liable only for the proportion of liability it has underwritten. An insurer is not jointly liable for the proportion of liability underwritten by any other insurer.",
+      "source": "LMA",
+      "clause_type": "liability",
+      "line_of_business": "all",
+      "is_exclusion": false,
+      "is_mandatory": true
+    },
+    {
+      "id": "LMA5218",
+      "name": "Cyber Attack Exclusion Clause",
+      "category": "Cyber",
+      "text": "This insurance does not cover any loss, damage, liability, claim, cost, expense of whatsoever nature directly or indirectly caused by, contributed to by, resulting from, arising out of or in connection with any Cyber Act including any action taken in controlling, preventing, suppressing or remediating any Cyber Act.",
+      "source": "LMA",
+      "clause_type": "exclusion",
+      "line_of_business": "property",
+      "is_exclusion": true,
+      "is_mandatory": false
+    },
+    {
+      "id": "LMA9102",
+      "name": "Institute Marine Cargo Clauses (A)",
+      "category": "Marine",
+      "text": "This insurance covers all risks of loss of or damage to the subject-matter insured except as excluded by the provisions of Clauses 4, 5, 6 and 7 below. This insurance covers general average and salvage charges, adjusted or determined according to the contract of carriage and/or the governing law and practice.",
+      "source": "LMA",
+      "clause_type": "coverage",
+      "line_of_business": "marine",
+      "is_exclusion": false,
+      "is_mandatory": false
+    },
+    {
+      "id": "LMA5027",
+      "name": "Market Reform Contract (MRC) Clause",
+      "category": "Market Practice",
+      "text": "This contract is subject to the Market Reform Contract (MRC) requirements. All parties agree to process this contract through the London Market in accordance with the Lloyd's and IUA Market Reform Contract standards.",
+      "source": "LMA",
+      "clause_type": "administrative",
+      "line_of_business": "all",
+      "is_exclusion": false,
+      "is_mandatory": true
+    },
+    {
+      "id": "LMA5020",
+      "name": "Communicable Disease Exclusion",
+      "category": "Health & Safety",
+      "text": "This policy does not insure any loss, damage, claim, cost, expense or other sum, directly or indirectly arising out of, attributable to, or occurring concurrently or in any sequence with a Communicable Disease or the fear or threat (whether actual or perceived) of a Communicable Disease.",
+      "source": "LMA",
+      "clause_type": "exclusion",
+      "line_of_business": "all",
+      "is_exclusion": true,
+      "is_mandatory": false
+    },
+    {
+      "id": "LMA5515",
+      "name": "Law and Jurisdiction Clause (English Law)",
+      "category": "Jurisdiction",
+      "text": "This insurance shall be governed by and construed in accordance with the law of England and Wales. Each party agrees to submit to the exclusive jurisdiction of the courts of England and Wales.",
+      "source": "LMA",
+      "clause_type": "jurisdiction",
+      "line_of_business": "all",
+      "is_exclusion": false,
+      "is_mandatory": true
+    },
+    {
+      "id": "LMA5406",
+      "name": "Claims Cooperation Clause",
+      "category": "Claims",
+      "text": "The Insured shall give to the Insurers as soon as possible notice in writing of any loss or damage, and in any event within 30 days of its discovery. The Insured shall take and permit to be taken all necessary steps for securing the rights of the Insurers against third parties.",
+      "source": "LMA",
+      "clause_type": "claims",
+      "line_of_business": "all",
+      "is_exclusion": false,
+      "is_mandatory": true
+    },
+    {
+      "id": "LMA5900",
+      "name": "Property All Risks Clause",
+      "category": "Property",
+      "text": "This insurance covers physical loss or physical damage to the property described in the Schedule, arising from any cause whatsoever, except as excluded herein, occurring during the policy period. Covered causes of loss include fire, lightning, explosion, storm, flood, theft, impact damage, malicious damage, and accidental damage.",
+      "source": "LMA",
+      "clause_type": "coverage",
+      "line_of_business": "property",
+      "is_exclusion": false,
+      "is_mandatory": false
+    }
+  ]
+}

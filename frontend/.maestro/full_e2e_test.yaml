@@ -1,0 +1,196 @@
+# InstantRisk V2 - Maestro E2E Test
+#
+# Maestro is an open-source mobile UI testing framework
+# that works well with Flutter apps.
+#
+# Installation:
+#   curl -Ls "https://get.maestro.mobile.dev" | bash
+#
+# Run:
+#   maestro test .maestro/full_e2e_test.yaml
+#
+# Documentation: https://maestro.mobile.dev/
+
+appId: com.instantrisk.app
+
+---
+
+# Test credentials defined inline
+
+# ==========================================
+# TEST 1: LOGIN FLOW
+# ==========================================
+- launchApp
+
+- takeScreenshot: "01_welcome_screen"
+
+- tapOn: "Login"
+
+- takeScreenshot: "02_login_form"
+
+- tapOn:
+    id: "email_field"
+- inputText: e2e_test@instantrisk.com
+
+- tapOn:
+    id: "password_field"
+- inputText: TestUser123!!
+
+- takeScreenshot: "03_credentials_filled"
+
+- tapOn: "Sign In"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "04_after_login"
+
+# ==========================================
+# TEST 2: DASHBOARD
+# ==========================================
+- assertVisible: "Dashboard"
+
+- takeScreenshot: "05_dashboard"
+
+# ==========================================
+# TEST 3: NEW ASSESSMENT
+# ==========================================
+- tapOn: "New Assessment"
+
+- takeScreenshot: "06_new_assessment"
+
+- back
+
+# ==========================================
+# TEST 4: VIEW ASSESSMENT RESULTS
+# ==========================================
+- tapOn: "Assessments"
+
+- takeScreenshot: "07_assessments_list"
+
+# Tap on first assessment in list
+- tapOn:
+    index: 0
+    below: "Recent Assessments"
+
+- takeScreenshot: "08_assessment_details"
+
+# ==========================================
+# TEST 5: SANCTIONS SCREENING
+# ==========================================
+- tapOn: "Sanctions"
+
+- takeScreenshot: "09_sanctions_page"
+
+# Run quick screening
+- tapOn: "Quick"
+
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- takeScreenshot: "10_sanctions_result"
+
+- back
+
+# ==========================================
+# TEST 6: DOCUMENT GENERATION
+# ==========================================
+- tapOn: "Generate Documents"
+
+- takeScreenshot: "11_document_generation"
+
+# ==========================================
+# TEST 7: AI CHAT
+# ==========================================
+- tapOn:
+    id: "chat_nav"
+    optional: true
+
+- tapOn: "Chat"
+
+- takeScreenshot: "12_chat_page"
+
+- tapOn:
+    id: "chat_input"
+- inputText: "What is marine cargo insurance?"
+
+- tapOn:
+    id: "send_button"
+
+- waitForAnimationToEnd:
+    timeout: 10000
+
+- takeScreenshot: "13_chat_response"
+
+# ==========================================
+# TEST 8: LANGUAGE CHANGE
+# ==========================================
+- tapOn: "Settings"
+
+- takeScreenshot: "14_settings"
+
+- tapOn: "Language"
+
+- takeScreenshot: "15_language_settings"
+
+# Select German
+- tapOn: "Deutsch"
+
+- takeScreenshot: "16_german_selected"
+
+- tapOn: "Save"
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "17_german_language_applied"
+
+# Go back to dashboard to verify German
+- tapOn: "Dashboard"
+
+- takeScreenshot: "18_dashboard_german"
+
+# ==========================================
+# TEST 9: ARABIC LANGUAGE
+# ==========================================
+- tapOn: "Einstellungen"  # Settings in German
+
+- tapOn: "Sprache"  # Language in German
+
+- tapOn: "العربية"  # Arabic
+
+- tapOn: "Speichern"  # Save in German
+
+- waitForAnimationToEnd
+
+- takeScreenshot: "19_arabic_language_applied"
+
+- tapOn: "لوحة القيادة"  # Dashboard in Arabic
+
+- takeScreenshot: "20_dashboard_arabic"
+
+# ==========================================
+# TEST 10: DOCUMENTS HUB
+# ==========================================
+# Navigate in Arabic
+- tapOn: "المستندات"  # Documents in Arabic
+
+- takeScreenshot: "21_documents_hub_arabic"
+
+# ==========================================
+# FINAL: Return to English
+# ==========================================
+- tapOn: "الإعدادات"  # Settings in Arabic
+
+- tapOn: "اللغة"  # Language in Arabic
+
+- tapOn: "English"
+
+- tapOn:
+    text: "Save"
+    optional: true
+- tapOn:
+    text: "حفظ"  # Save in Arabic
+    optional: true
+
+- takeScreenshot: "22_final_english"
+
+- stopApp

@@ -1,0 +1,130 @@
+# InstantRisk V2 - Drone CI Configuration (Self-Hosted)
+# Install Drone: https://docs.drone.io/server/overview/
+
+kind: pipeline
+type: docker
+name: android-build
+
+# ============================================
+# ANDROID BUILD (Linux - No Mac needed)
+# ============================================
+steps:
+  - name: restore-cache
+    image: drillster/drone-volume-cache
+    volumes:
+      - name: cache
+        path: /cache
+    settings:
+      restore: true
+      mount:
+        - ./build
+        - ./.pub-cache
+
+  - name: build-android
+    image: cirrusci/flutter:stable
+    environment:
+      PUB_CACHE: ./.pub-cache
+    commands:
+      - flutter --version
+      - flutter pub get
+      - flutter build appbundle --release
+      - flutter build apk --release
+      - ls -la build/app/outputs/bundle/release/
+      - ls -la build/app/outputs/flutter-apk/
+
+  - name: upload-artifacts
+    image: plugins/s3
+    settings:
+      bucket: instantrisk-builds
+      access_key:
+        from_secret: aws_access_key
+      secret_key:
+        from_secret: aws_secret_key
+      source: build/app/outputs/**/*
+      target: /android/${DRONE_BUILD_NUMBER}
+    when:
+      branch:
+        - main
+        - release/*
+
+  - name: deploy-play-store
+    image: cirrusci/flutter:stable
+    environment:
+      GOOGLE_PLAY_KEY:
+        from_secret: google_play_json
+    commands:
+      - echo "$GOOGLE_PLAY_KEY" > /tmp/play-store-key.json
+      - gem install fastlane
+      - fastlane android deploy_internal
+    when:
+      event:
+        - tag
+
+  - name: rebuild-cache
+    image: drillster/drone-volume-cache
+    volumes:
+      - name: cache
+        path: /cache
+    settings:
+      rebuild: true
+      mount:
+        - ./build
+        - ./.pub-cache
+
+volumes:
+  - name: cache
+    host:
+      path: /var/cache/drone
+
+trigger:
+  branch:
+    - main
+    - develop
+    - release/*
+  event:
+    - push
+    - pull_request
+    - tag
+
+---
+# ============================================
+# iOS BUILD (Requires macOS runner with Xcode)
+# ============================================
+kind: pipeline
+type: exec
+name: ios-build
+
+platform:
+  os: darwin
+  arch: amd64
+
+steps:
+  - name: build-ios
+    commands:
+      - flutter --version
+      - flutter pub get
+      - flutter build ios --release --no-codesign
+      - xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release -archivePath build/ios/Runner.xcarchive archive
+      - xcodebuild -exportArchive -archivePath build/ios/Runner.xcarchive -exportPath build/ios/ipa -exportOptionsPlist ios/exportOptions.plist
+
+  - name: deploy-testflight
+    commands:
+      - xcrun altool --upload-app --type ios --file build/ios/ipa/Runner.ipa --apiKey $APP_STORE_KEY_ID --apiIssuer $APP_STORE_ISSUER_ID
+    environment:
+      APP_STORE_KEY_ID:
+        from_secret: app_store_key_id
+      APP_STORE_ISSUER_ID:
+        from_secret: app_store_issuer_id
+    when:
+      event:
+        - tag
+
+trigger:
+  branch:
+    - main
+    - release/*
+  event:
+    - tag
+
+# Note: This pipeline requires a macOS machine registered as Drone runner
+# Install: https://docs.drone.io/runner/exec/overview/

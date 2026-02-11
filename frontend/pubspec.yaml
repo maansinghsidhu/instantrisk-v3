@@ -1,0 +1,113 @@
+name: instantrisk_app
+description: InstantRisk V2 - AI-Powered Lloyd's Underwriting Platform
+publish_to: 'none'
+version: 3.2.0+34
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Navigation
+  go_router: ^14.0.0
+
+  # Networking
+  dio: ^5.4.0
+  retrofit: ^4.1.0
+  json_annotation: ^4.8.1
+
+  # Local Storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  flutter_secure_storage: ^9.0.0
+
+  # UI Components
+  cupertino_icons: ^1.0.8
+  flutter_svg: ^2.0.10
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  lottie: ^3.1.0
+  flutter_animate: ^4.5.0
+
+  # Charts
+  fl_chart: ^0.66.2
+  graphview: ^1.2.0
+
+  # PDF
+  syncfusion_flutter_pdfviewer: ^28.2.7
+  share_plus: ^7.2.2
+  path_provider: ^2.1.2
+
+  # Camera & Image
+  camera: ^0.10.5+9
+  image_picker: ^1.0.7
+  permission_handler: ^11.3.0
+
+  # File Handling
+  file_picker: ^8.0.0+1
+  open_file: ^3.3.2
+  universal_html: ^2.2.4
+
+  # Utilities
+  intl: any
+  uuid: ^4.3.3
+  url_launcher: ^6.2.4
+  connectivity_plus: ^6.0.1
+  package_info_plus: any
+  # device_info_plus: resolved by syncfusion
+
+  # Biometrics
+  local_auth: ^2.1.8
+
+  # WebSocket
+  web_socket_channel: any
+
+  # HTTP for direct API calls
+  http: ^1.2.0
+
+  # Deep linking
+  app_links: ^6.1.1
+
+  # QR Code generation
+  qr_flutter: ^4.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  patrol: ^3.9.0
+  build_runner: ^2.4.8
+  riverpod_generator: ^2.4.0
+  retrofit_generator: ^8.1.0
+  json_serializable: ^6.7.1
+  hive_generator: ^2.0.1
+
+flutter:
+  generate: true
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700

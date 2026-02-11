@@ -1,0 +1,112 @@
+[
+    {
+        "name": "backend",
+        "image": "995306061991.dkr.ecr.us-east-1.amazonaws.com/instantrisk-backend:latest",
+        "cpu": 0,
+        "portMappings": [
+            {
+                "containerPort": 8000,
+                "hostPort": 8000,
+                "protocol": "tcp"
+            }
+        ],
+        "essential": true,
+        "environment": [
+            {
+                "name": "POSTGRES_HOST",
+                "value": "instantrisk-db.cyjui2sqceiw.us-east-1.rds.amazonaws.com"
+            },
+            {
+                "name": "POSTGRES_PORT",
+                "value": "5432"
+            },
+            {
+                "name": "POSTGRES_USER",
+                "value": "instantrisk_admin"
+            },
+            {
+                "name": "POSTGRES_DB",
+                "value": "instantrisk"
+            },
+            {
+                "name": "REDIS_HOST",
+                "value": "instantrisk-redis.mudo3b.0001.use1.cache.amazonaws.com"
+            },
+            {
+                "name": "REDIS_PORT",
+                "value": "6379"
+            },
+            {
+                "name": "QDRANT_HOST",
+                "value": "qdrant.instantrisk.local"
+            },
+            {
+                "name": "QDRANT_PORT",
+                "value": "6333"
+            },
+            {
+                "name": "S3_DOCUMENTS_BUCKET",
+                "value": "instantrisk-documents-995306061991"
+            },
+            {
+                "name": "S3_RAPIDRATE_BUCKET",
+                "value": "instantrisk-rapidrate-995306061991"
+            },
+            {
+                "name": "S3_REGION",
+                "value": "us-east-1"
+            },
+            {
+                "name": "AWS_BEDROCK_REGION",
+                "value": "us-east-1"
+            },
+            {
+                "name": "RAPIDRATE_LAMBDA_NAME",
+                "value": "instantrisk-rapidrate"
+            },
+            {
+                "name": "JWT_SECRET_KEY",
+                "value": "42898f5880491f6e9d312070d031db902c8049a1a2b12ddfd89ae00c57dbc815"
+            },
+            {
+                "name": "ENVIRONMENT",
+                "value": "production"
+            },
+            {
+                "name": "API_PORT",
+                "value": "8000"
+            },
+            {
+                "name": "DEBUG",
+                "value": "false"
+            }
+        ],
+        "mountPoints": [],
+        "volumesFrom": [],
+        "secrets": [
+            {
+                "name": "POSTGRES_PASSWORD",
+                "valueFrom": "arn:aws:secretsmanager:us-east-1:995306061991:secret:instantrisk/database-3KNa2l:password::"
+            }
+        ],
+        "logConfiguration": {
+            "logDriver": "awslogs",
+            "options": {
+                "awslogs-group": "/ecs/instantrisk-backend",
+                "awslogs-region": "us-east-1",
+                "awslogs-stream-prefix": "backend"
+            }
+        },
+        "healthCheck": {
+            "command": [
+                "CMD-SHELL",
+                "curl -f http://localhost:8000/api/v1/health/live || exit 1"
+            ],
+            "interval": 30,
+            "timeout": 5,
+            "retries": 3,
+            "startPeriod": 120
+        },
+        "systemControls": []
+    }
+]

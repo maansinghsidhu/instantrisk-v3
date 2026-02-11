@@ -1,0 +1,43 @@
+[
+    {
+        "name": "qdrant",
+        "image": "995306061991.dkr.ecr.us-east-1.amazonaws.com/instantrisk-qdrant:v1.7.4",
+        "cpu": 0,
+        "portMappings": [
+            {
+                "containerPort": 6333,
+                "hostPort": 6333,
+                "protocol": "tcp"
+            }
+        ],
+        "essential": true,
+        "environment": [],
+        "mountPoints": [
+            {
+                "sourceVolume": "qdrant-storage",
+                "containerPath": "/qdrant/storage",
+                "readOnly": false
+            }
+        ],
+        "volumesFrom": [],
+        "logConfiguration": {
+            "logDriver": "awslogs",
+            "options": {
+                "awslogs-group": "/ecs/instantrisk-qdrant",
+                "awslogs-region": "us-east-1",
+                "awslogs-stream-prefix": "qdrant"
+            }
+        },
+        "healthCheck": {
+            "command": [
+                "CMD-SHELL",
+                "curl -f http://localhost:6333/readyz || exit 1"
+            ],
+            "interval": 30,
+            "timeout": 5,
+            "retries": 3,
+            "startPeriod": 60
+        },
+        "systemControls": []
+    }
+]

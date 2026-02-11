@@ -1,0 +1,72 @@
+# InstantRisk V2 - Docker-OSX for iOS Builds
+# Runs macOS Ventura in Docker for iOS compilation
+#
+# REQUIREMENTS:
+# - 50GB+ free disk space
+# - 8GB+ RAM (16GB recommended)
+# - KVM enabled (check: ls /dev/kvm)
+# - Docker with compose
+#
+# FIRST RUN: Takes 30-60 min to download macOS image
+
+version: '3.8'
+
+services:
+  macos-builder:
+    image: sickcodes/docker-osx:ventura
+    container_name: instantrisk-macos-builder
+
+    # Enable KVM for virtualization
+    devices:
+      - /dev/kvm
+
+    # Shared memory for VM
+    shm_size: '4g'
+
+    # Mount project directory
+    volumes:
+      - ../:/home/user/instantrisk-v2
+      - ./output:/output
+      - osx-data:/home/user/OSX-KVM/mac_hdd_ng.img
+
+    # macOS specs
+    environment:
+      - RAM=8
+      - CORES=4
+      - WIDTH=1920
+      - HEIGHT=1080
+      - GENERATE_UNIQUE=true
+      - MASTER_PLIST_URL=https://raw.githubusercontent.com/sickcodes/osx-serial-generator/master/config-custom.plist
+
+    # VNC access (optional)
+    ports:
+      - "5999:5999"
+      - "50922:10022"  # SSH
+
+    # Keep running
+    restart: unless-stopped
+
+volumes:
+  osx-data:
+    driver: local
+
+# USAGE:
+# ======
+# 1. Start macOS VM:
+#    docker-compose up -d
+#
+# 2. Wait for boot (~5 min first time), then SSH in:
+#    ssh user@localhost -p 50922
+#    Password: alpine
+#
+# 3. Inside macOS, install Xcode:
+#    - Open App Store, sign in, download Xcode
+#    OR
+#    - Use xcodes CLI: brew install xcodes && xcodes install 15.0
+#
+# 4. Build iOS:
+#    cd /home/user/instantrisk-v2/mobile
+#    flutter build ios --release
+#
+# 5. Copy IPA out:
+#    cp build/ios/ipa/*.ipa /output/

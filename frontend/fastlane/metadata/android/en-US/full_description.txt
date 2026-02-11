@@ -1,0 +1,48 @@
+InstantRisk V2 - AI-Powered Lloyd's Underwriting Platform
+
+Transform your underwriting workflow with InstantRisk, the intelligent risk assessment platform designed specifically for Lloyd's syndicates and insurance brokers.
+
+KEY FEATURES:
+
+🤖 AI-Powered Risk Assessment
+• Instant GO/NO-GO decisions powered by multi-agent AI
+• Automatic risk scoring and premium calculation
+• Deep document analysis using advanced OCR
+
+📄 Smart Document Processing
+• Upload or photograph insurance documents
+• Multi-language OCR support (80+ languages)
+• Automatic risk type detection
+• Extract key data from policies, claims, and applications
+
+📊 Comprehensive Analytics
+• Real-time portfolio overview
+• Performance metrics and trends
+• Risk distribution analysis
+• 5-year forecasting
+
+💬 AI Chat Assistant
+• Ask questions about your documents
+• Get instant risk insights
+• Interactive refinement of assessments
+
+📋 Contract Generation
+• Auto-generate Lloyd's standard contracts
+• Line slip creation
+• E-signature ready documents
+
+🔒 Enterprise Security
+• Bank-grade encryption
+• Role-based access control
+• Syndicate-specific data isolation
+• Audit trail for compliance
+
+IDEAL FOR:
+• Lloyd's Syndicates
+• Insurance Brokers
+• Underwriters
+• Risk Managers
+
+InstantRisk streamlines the entire underwriting process from document intake to contract generation, reducing assessment time from days to minutes while maintaining the highest standards of accuracy and compliance.
+
+Start your free trial today and experience the future of insurance underwriting.
