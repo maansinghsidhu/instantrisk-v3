@@ -1,89 +1,67 @@
 """
-Qdrant Vector Database Service - For User Training Documents
+User Training Documents Service — pgvector edition.
 
-Stores and retrieves user-uploaded training documents in Qdrant for RAG.
-Uses fastembed with BAAI/bge-small-en-v1.5 (384-dim) for ONNX-based embeddings.
+Stores and retrieves user-uploaded training documents in PostgreSQL with
+pgvector embeddings for semantic search.
+
+Uses sentence-transformers with llmware/industry-bert-insurance-v0.1 (768-dim).
 """
 
-import os
 import io
 import logging
-import hashlib
-from typing import List, Dict, Any, Optional
-from datetime import datetime
 import numpy as np
+from typing import List, Dict, Any, Optional
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
-# Qdrant settings - separate collection for user training docs
-TRAINING_COLLECTION = "user_training_documents"
-EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
-EMBEDDING_DIM = 384
-CHUNK_SIZE = 500  # Characters per chunk
+EMBEDDING_MODEL = "llmware/industry-bert-insurance-v0.1"
+EMBEDDING_DIM = 768
+CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
 
 
 class QdrantService:
-    """Service for managing user training documents with vector embeddings."""
+    """Service for managing user training documents with pgvector embeddings."""
 
     def __init__(self):
-        self.qdrant_client = None
         self.embedding_model = None
-        self._initialized = False
+        self._model_loaded = False
+        self._sync_engine = None
 
-    def _initialize(self) -> bool:
-        """Lazy initialization of Qdrant client and embedding model."""
-        if self._initialized:
+    def _load_model(self) -> bool:
+        """Load the embedding model."""
+        if self._model_loaded:
             return True
-
         try:
-            from qdrant_client import QdrantClient
-
-            host = os.getenv("QDRANT_HOST", "localhost")
-            port = int(os.getenv("QDRANT_PORT", 6333))
-            self.qdrant_client = QdrantClient(host=host, port=port)
-            logger.info(f"Connected to Qdrant at {host}:{port}")
-        except Exception as e:
-            logger.error(f"Failed to connect to Qdrant: {e}")
-            return False
-
-        try:
-            from fastembed import TextEmbedding
-            self.embedding_model = TextEmbedding(model_name=EMBEDDING_MODEL)
-            logger.info(f"Loaded fastembed model: {EMBEDDING_MODEL}")
+            from sentence_transformers import SentenceTransformer
+            self.embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+            self._model_loaded = True
+            logger.info(f"Loaded embedding model: {EMBEDDING_MODEL}")
+            return True
         except Exception as e:
             logger.error(f"Failed to load embedding model: {e}")
             return False
 
-        self._initialized = True
-        return True
-
-    def _ensure_collection(self):
-        """Create Qdrant collection for training docs if it doesn't exist."""
-        from qdrant_client.http import models as qdrant_models
-
-        collections = self.qdrant_client.get_collections().collections
-        if any(c.name == TRAINING_COLLECTION for c in collections):
-            return
-
-        self.qdrant_client.create_collection(
-            collection_name=TRAINING_COLLECTION,
-            vectors_config=qdrant_models.VectorParams(
-                size=EMBEDDING_DIM,
-                distance=qdrant_models.Distance.COSINE,
-            ),
-        )
-        logger.info(f"Created Qdrant collection: {TRAINING_COLLECTION}")
+    def _get_sync_engine(self):
+        """Get a synchronous database engine for operations."""
+        if self._sync_engine is None:
+            from app.config import settings
+            sync_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+            if "postgresql://" in sync_url and "+psycopg2" not in sync_url:
+                sync_url = sync_url.replace("postgresql://", "postgresql+psycopg2://")
+            from sqlalchemy import create_engine
+            self._sync_engine = create_engine(sync_url, pool_pre_ping=True)
+        return self._sync_engine
 
     def _extract_text_from_content(self, content: bytes, content_type: str, filename: str) -> str:
         """Extract text from various document formats."""
         text = ""
 
         try:
-            # PDF extraction
             if content_type == "application/pdf" or filename.lower().endswith(".pdf"):
                 try:
-                    import fitz  # PyMuPDF
+                    import fitz
                     doc = fitz.open(stream=content, filetype="pdf")
                     for page in doc:
                         text += page.get_text()
@@ -100,7 +78,6 @@ class QdrantService:
                     except Exception as e2:
                         logger.error(f"PDF extraction failed: {e2}")
 
-            # Word document extraction
             elif content_type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                                    "application/msword"] or filename.lower().endswith((".docx", ".doc")):
                 try:
@@ -111,7 +88,6 @@ class QdrantService:
                 except Exception as e:
                     logger.error(f"DOCX extraction failed: {e}")
 
-            # Excel extraction
             elif content_type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                    "application/vnd.ms-excel"] or filename.lower().endswith((".xlsx", ".xls")):
                 try:
@@ -121,14 +97,12 @@ class QdrantService:
                 except Exception as e:
                     logger.error(f"Excel extraction failed: {e}")
 
-            # Plain text
             elif content_type in ["text/plain", "text/csv"] or filename.lower().endswith((".txt", ".csv")):
                 try:
                     text = content.decode("utf-8")
                 except UnicodeDecodeError:
                     text = content.decode("latin-1", errors="ignore")
 
-            # Fallback: try to decode as text
             else:
                 try:
                     text = content.decode("utf-8")
@@ -151,15 +125,12 @@ class QdrantService:
             end = start + CHUNK_SIZE
             chunk = text[start:end]
 
-            # Try to break at sentence/paragraph boundary
             if end < len(text):
-                # Look for paragraph break
                 newline_pos = chunk.rfind("\n\n")
                 if newline_pos > CHUNK_SIZE // 2:
                     end = start + newline_pos + 2
                     chunk = text[start:end]
                 else:
-                    # Look for sentence break
                     for sep in [". ", "! ", "? ", "\n"]:
                         sep_pos = chunk.rfind(sep)
                         if sep_pos > CHUNK_SIZE // 2:
@@ -175,63 +146,60 @@ class QdrantService:
         return chunks
 
     def _embed_texts(self, texts: List[str]) -> List[List[float]]:
-        """Generate embeddings for a list of texts using fastembed."""
-        embeddings = list(self.embedding_model.embed(texts))
+        """Generate embeddings for a list of texts."""
+        embeddings = self.embedding_model.encode(texts, show_progress_bar=False)
         return [emb.tolist() if isinstance(emb, np.ndarray) else list(emb) for emb in embeddings]
 
     def _embed_query(self, query: str) -> List[float]:
         """Generate embedding for a single query."""
-        embeddings = list(self.embedding_model.query_embed(query))
-        emb = embeddings[0]
+        emb = self.embedding_model.encode(query, show_progress_bar=False)
         return emb.tolist() if isinstance(emb, np.ndarray) else list(emb)
-
-    def _generate_point_id(self, text: str, doc_id: str, chunk_idx: int) -> int:
-        """Generate a deterministic point ID from doc and chunk."""
-        hash_input = f"{doc_id}:{chunk_idx}:{text[:100]}"
-        return int(hashlib.md5(hash_input.encode()).hexdigest()[:15], 16)
 
     async def get_training_documents(self, user_id: str) -> List[Dict]:
         """Get list of training documents for a user (metadata only)."""
-        if not self._initialize():
+        if not self._load_model():
             return []
 
         try:
-            from qdrant_client.http import models as qdrant_models
+            engine = self._get_sync_engine()
+            from sqlalchemy import text as sql_text
 
-            # Get unique doc_ids for this user
-            results = self.qdrant_client.scroll(
-                collection_name=TRAINING_COLLECTION,
-                scroll_filter=qdrant_models.Filter(
-                    must=[
-                        qdrant_models.FieldCondition(
-                            key="user_id",
-                            match=qdrant_models.MatchValue(value=user_id),
-                        )
-                    ]
-                ),
-                limit=1000,
-                with_payload=True,
-                with_vectors=False,
-            )
+            with engine.connect() as conn:
+                result = conn.execute(sql_text("""
+                    SELECT DISTINCT ON (doc_id)
+                        doc_id, filename, category, uploaded_at, size_bytes, chunk_count
+                    FROM user_doc_vectors
+                    WHERE user_id = :user_id
+                    ORDER BY doc_id, uploaded_at DESC
+                """), {"user_id": user_id})
+                rows = result.fetchall()
 
-            # Group by doc_id to get unique documents
-            docs_map = {}
-            for point in results[0]:
-                doc_id = point.payload.get("doc_id")
-                if doc_id and doc_id not in docs_map:
-                    docs_map[doc_id] = {
-                        "id": doc_id,
-                        "filename": point.payload.get("filename"),
-                        "category": point.payload.get("category"),
-                        "uploaded_at": point.payload.get("uploaded_at"),
-                        "processed": True,
-                        "size_bytes": point.payload.get("size_bytes", 0),
-                        "chunk_count": 0,
-                    }
-                if doc_id:
-                    docs_map[doc_id]["chunk_count"] += 1
+            # Also get actual chunk counts per doc
+            chunk_counts = {}
+            with engine.connect() as conn:
+                result = conn.execute(sql_text("""
+                    SELECT doc_id, COUNT(*) as cnt
+                    FROM user_doc_vectors
+                    WHERE user_id = :user_id
+                    GROUP BY doc_id
+                """), {"user_id": user_id})
+                for row in result.fetchall():
+                    chunk_counts[row[0]] = row[1]
 
-            return list(docs_map.values())
+            docs = []
+            for row in rows:
+                doc_id = row[0]
+                docs.append({
+                    "id": doc_id,
+                    "filename": row[1],
+                    "category": row[2],
+                    "uploaded_at": row[3].isoformat() if row[3] else None,
+                    "processed": True,
+                    "size_bytes": row[4] or 0,
+                    "chunk_count": chunk_counts.get(doc_id, 0),
+                })
+
+            return docs
 
         except Exception as e:
             logger.error(f"Failed to get training documents: {e}")
@@ -251,64 +219,51 @@ class QdrantService:
         user_id: str,
         content_type: str = None
     ) -> Dict:
-        """
-        Add a training document for AI improvement.
-
-        Extracts text, creates chunks, generates embeddings, and stores in Qdrant.
-        """
-        if not self._initialize():
-            return {"processed": False, "error": "Qdrant not available"}
-
-        from qdrant_client.http import models as qdrant_models
+        """Add a training document: extract text, chunk, embed, store in pgvector."""
+        if not self._load_model():
+            return {"processed": False, "error": "Embedding model not available"}
 
         try:
-            self._ensure_collection()
-
-            # Extract text from document
             text = self._extract_text_from_content(content, content_type or "", filename)
             if not text:
                 return {"processed": False, "error": "Could not extract text from document"}
 
             logger.info(f"Extracted {len(text)} chars from {filename}")
 
-            # Chunk the text
             chunks = self._chunk_text(text)
             if not chunks:
                 return {"processed": False, "error": "No text chunks generated"}
 
             logger.info(f"Created {len(chunks)} chunks from {filename}")
 
-            # Generate embeddings for all chunks
             embeddings = self._embed_texts(chunks)
+            now = datetime.now(timezone.utc)
 
-            # Create points for Qdrant
-            points = []
-            for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
-                point_id = self._generate_point_id(chunk, doc_id, i)
-                points.append(
-                    qdrant_models.PointStruct(
-                        id=point_id,
-                        vector=embedding,
-                        payload={
-                            "doc_id": doc_id,
-                            "user_id": user_id,
-                            "filename": filename,
-                            "category": category,
-                            "content_type": content_type,
-                            "size_bytes": len(content),
-                            "uploaded_at": datetime.utcnow().isoformat(),
-                            "chunk_index": i,
-                            "chunk_count": len(chunks),
-                            "text": chunk,
-                        },
-                    )
-                )
+            engine = self._get_sync_engine()
+            from sqlalchemy import text as sql_text
 
-            # Upsert to Qdrant
-            self.qdrant_client.upsert(
-                collection_name=TRAINING_COLLECTION,
-                points=points,
-            )
+            with engine.begin() as conn:
+                for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
+                    conn.execute(sql_text("""
+                        INSERT INTO user_doc_vectors
+                            (user_id, doc_id, filename, category, content_type,
+                             size_bytes, chunk_index, chunk_count, text, embedding, uploaded_at)
+                        VALUES
+                            (:user_id, :doc_id, :filename, :category, :content_type,
+                             :size_bytes, :chunk_index, :chunk_count, :text, :embedding, :uploaded_at)
+                    """), {
+                        "user_id": user_id,
+                        "doc_id": doc_id,
+                        "filename": filename,
+                        "category": category,
+                        "content_type": content_type,
+                        "size_bytes": len(content),
+                        "chunk_index": i,
+                        "chunk_count": len(chunks),
+                        "text": chunk,
+                        "embedding": str(embedding),
+                        "uploaded_at": now,
+                    })
 
             logger.info(f"Training document stored: {filename} ({len(chunks)} chunks)")
 
@@ -325,29 +280,16 @@ class QdrantService:
 
     async def delete_training_document(self, doc_id: str, user_id: str) -> bool:
         """Delete all chunks of a training document."""
-        if not self._initialize():
-            return False
-
-        from qdrant_client.http import models as qdrant_models
-
         try:
-            self.qdrant_client.delete(
-                collection_name=TRAINING_COLLECTION,
-                points_selector=qdrant_models.FilterSelector(
-                    filter=qdrant_models.Filter(
-                        must=[
-                            qdrant_models.FieldCondition(
-                                key="doc_id",
-                                match=qdrant_models.MatchValue(value=doc_id),
-                            ),
-                            qdrant_models.FieldCondition(
-                                key="user_id",
-                                match=qdrant_models.MatchValue(value=user_id),
-                            ),
-                        ]
-                    )
-                ),
-            )
+            engine = self._get_sync_engine()
+            from sqlalchemy import text as sql_text
+
+            with engine.begin() as conn:
+                conn.execute(sql_text("""
+                    DELETE FROM user_doc_vectors
+                    WHERE doc_id = :doc_id AND user_id = :user_id
+                """), {"doc_id": doc_id, "user_id": user_id})
+
             logger.info(f"Training document deleted: {doc_id}")
             return True
 
@@ -362,51 +304,49 @@ class QdrantService:
         limit: int = 5,
         category: str = None
     ) -> List[Dict]:
-        """
-        Search for similar documents using vector similarity.
-
-        Filters by user_id to only search user's own training documents.
-        """
-        if not self._initialize():
+        """Search for similar documents using pgvector cosine similarity."""
+        if not self._load_model():
             return []
-
-        from qdrant_client.http import models as qdrant_models
 
         try:
             query_vector = self._embed_query(query)
-
-            # Build filter
-            must_conditions = [
-                qdrant_models.FieldCondition(
-                    key="user_id",
-                    match=qdrant_models.MatchValue(value=user_id),
-                )
-            ]
+            engine = self._get_sync_engine()
+            from sqlalchemy import text as sql_text
 
             if category:
-                must_conditions.append(
-                    qdrant_models.FieldCondition(
-                        key="category",
-                        match=qdrant_models.MatchValue(value=category),
-                    )
-                )
+                sql = sql_text("""
+                    SELECT text, filename, category, doc_id,
+                           1 - (embedding <=> :query_vec) AS score
+                    FROM user_doc_vectors
+                    WHERE user_id = :user_id AND category = :category
+                    ORDER BY embedding <=> :query_vec
+                    LIMIT :limit
+                """)
+                params = {"query_vec": str(query_vector), "user_id": user_id, "category": category, "limit": limit}
+            else:
+                sql = sql_text("""
+                    SELECT text, filename, category, doc_id,
+                           1 - (embedding <=> :query_vec) AS score
+                    FROM user_doc_vectors
+                    WHERE user_id = :user_id
+                    ORDER BY embedding <=> :query_vec
+                    LIMIT :limit
+                """)
+                params = {"query_vec": str(query_vector), "user_id": user_id, "limit": limit}
 
-            results = self.qdrant_client.query_points(
-                collection_name=TRAINING_COLLECTION,
-                query=query_vector,
-                query_filter=qdrant_models.Filter(must=must_conditions),
-                limit=limit,
-            )
+            with engine.connect() as conn:
+                result = conn.execute(sql, params)
+                rows = result.fetchall()
 
             return [
                 {
-                    "text": hit.payload.get("text", ""),
-                    "filename": hit.payload.get("filename", ""),
-                    "category": hit.payload.get("category", ""),
-                    "doc_id": hit.payload.get("doc_id", ""),
-                    "score": hit.score,
+                    "text": row[0] or "",
+                    "filename": row[1] or "",
+                    "category": row[2] or "",
+                    "doc_id": row[3] or "",
+                    "score": float(row[4]) if row[4] else 0,
                 }
-                for hit in results.points
+                for row in rows
             ]
 
         except Exception as e:

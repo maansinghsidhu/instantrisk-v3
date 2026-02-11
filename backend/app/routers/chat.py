@@ -26,6 +26,7 @@ from app.models.user import User
 from app.services.chat_service import ChatService
 from app.middleware.rate_limiter import limiter, RateLimits
 from app.utils.sanitizer import sanitize_for_ai
+from app.services.claimsense_service import get_claimsense_service
 
 router = APIRouter()
 
@@ -46,6 +47,83 @@ GREETING_RESPONSES = {
     "ko": "안녕하세요! 저는 보험 AI 어시스턴트입니다. 어떻게 도와드릴까요?",
     "hi": "नमस्ते! मैं आपका बीमा AI सहायक हूं। मैं आपकी कैसे मदद कर सकता हूं?",
 }
+
+
+# ClaimSense benchmark keywords
+CLAIMSENSE_KEYWORDS = {
+    "benchmark", "claims data", "average severity", "frequency rate",
+    "loss ratio", "claims trend", "industry average", "compare to benchmark",
+    "claims history", "historical claims", "claim statistics",
+    "how does this compare", "industry comparison", "national average",
+}
+
+# Policy type detection
+POLICY_TYPE_MAP = {
+    "general liability": "GL", "gl": "GL",
+    "workers comp": "WC", "workers compensation": "WC", "wc": "WC",
+    "auto liability": "AL", "auto": "AL", "al": "AL",
+    "property": "PR", "pr": "PR",
+    "professional liability": "PL", "pl": "PL",
+    "cyber": "CY", "cy": "CY",
+    "directors and officers": "DO", "d&o": "DO", "do": "DO",
+    "employment practices": "EPL", "epl": "EPL",
+}
+
+# US state detection
+STATE_CODES = {
+    "alabama": "AL", "alaska": "AK", "arizona": "AZ", "arkansas": "AR",
+    "california": "CA", "colorado": "CO", "connecticut": "CT", "delaware": "DE",
+    "florida": "FL", "georgia": "GA", "hawaii": "HI", "idaho": "ID",
+    "illinois": "IL", "indiana": "IN", "iowa": "IA", "kansas": "KS",
+    "kentucky": "KY", "louisiana": "LA", "maine": "ME", "maryland": "MD",
+    "massachusetts": "MA", "michigan": "MI", "minnesota": "MN", "mississippi": "MS",
+    "missouri": "MO", "montana": "MT", "nebraska": "NE", "nevada": "NV",
+    "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
+    "north carolina": "NC", "north dakota": "ND", "ohio": "OH", "oklahoma": "OK",
+    "oregon": "OR", "pennsylvania": "PA", "rhode island": "RI", "south carolina": "SC",
+    "south dakota": "SD", "tennessee": "TN", "texas": "TX", "utah": "UT",
+    "vermont": "VT", "virginia": "VA", "washington": "WA", "west virginia": "WV",
+    "wisconsin": "WI", "wyoming": "WY",
+}
+
+
+def detect_claimsense_query(message: str) -> Optional[Dict]:
+    """Detect if message is asking for ClaimSense benchmark data.
+
+    Returns dict with policy_type and state if detected, None otherwise.
+    """
+    msg_lower = message.lower()
+
+    # Check for benchmark-related keywords
+    is_benchmark = any(kw in msg_lower for kw in CLAIMSENSE_KEYWORDS)
+    if not is_benchmark:
+        return None
+
+    # Try to extract policy type
+    policy_type = None
+    for key, code in POLICY_TYPE_MAP.items():
+        if key in msg_lower:
+            policy_type = code
+            break
+
+    # Try to extract state
+    state = None
+    for state_name, code in STATE_CODES.items():
+        if state_name in msg_lower:
+            state = code
+            break
+    # Also check 2-letter state codes directly
+    import re
+    state_match = re.search(r'\b([A-Z]{2})\b', message)
+    if state_match and not state:
+        candidate = state_match.group(1)
+        if candidate in STATE_CODES.values():
+            state = candidate
+
+    return {
+        "policy_type": policy_type or "GL",
+        "state": state,
+    }
 
 
 def is_greeting(message: str) -> bool:
@@ -172,6 +250,7 @@ async def chat_stream(
             # Get RAG context if enabled
             rag_context = ""
             sources = []
+            claimsense_data = None
 
             if chat_request.use_rag and chat_request.messages:
                 user_query = chat_request.messages[-1].content
@@ -187,6 +266,30 @@ async def chat_stream(
 
                 if sources:
                     yield f"data: {json.dumps({'type': 'sources', 'count': len(sources), 'sources': sources})}\n\n"
+
+                # Check for ClaimSense benchmark query
+                cs_query = detect_claimsense_query(user_query)
+                if cs_query:
+                    yield f"data: {json.dumps({'type': 'thinking', 'message': 'Querying benchmark data...'})}\n\n"
+                    try:
+                        cs_service = get_claimsense_service(db)
+                        benchmark = await cs_service.query_benchmark(
+                            policy_type=cs_query["policy_type"],
+                            state=cs_query.get("state"),
+                        )
+                        if benchmark and hasattr(benchmark, 'to_dict'):
+                            claimsense_data = benchmark.to_dict()
+                        elif isinstance(benchmark, dict):
+                            claimsense_data = benchmark
+
+                        if claimsense_data:
+                            # Send structured ClaimSense data as special event
+                            yield f"data: {json.dumps({'type': 'claimsense', 'data': claimsense_data})}\n\n"
+                            # Append benchmark context to RAG for the AI response
+                            rag_context += f"\n\nCLAIMSENSE BENCHMARK DATA:\n{json.dumps(claimsense_data, default=str)[:2000]}"
+                    except Exception as e:
+                        import logging
+                        logging.getLogger(__name__).warning(f"ClaimSense query failed: {e}")
 
             # Save user message
             if chat_request.messages:

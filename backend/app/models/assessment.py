@@ -159,6 +159,9 @@ class Assessment(Base):
     # OCR extracted text
     ocr_extracted_text = Column(Text, nullable=True, comment="Full OCR extracted text from documents")
 
+    # RapidRate pricing results (auto-populated during analysis pipeline)
+    rapidrate_results = Column(JSON, nullable=True, comment="RapidRate ML pricing output")
+
     # Audit flags
     is_flagged = Column(Boolean, default=False, comment="Flagged for review")
     flag_reason = Column(String(255), nullable=True)

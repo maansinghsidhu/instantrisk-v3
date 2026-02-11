@@ -96,6 +96,7 @@ class GenerationJobResponse(BaseModel):
     agent_outputs: Optional[Dict[str, Any]] = None
     document_suggestions: Optional[List[Dict[str, Any]]] = None
     error_message: Optional[str] = None
+    warnings: Optional[List[str]] = None
     created_at: datetime
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None

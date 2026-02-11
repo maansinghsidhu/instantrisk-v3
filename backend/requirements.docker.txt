@@ -32,8 +32,8 @@ langchain-community>=0.0.19
 openai>=1.12.0
 
 # Vector Database & Embeddings
-qdrant-client>=1.7.1
-fastembed>=0.2.0
+pgvector>=0.3.0
+sentence-transformers>=5.0.0
 
 # OCR & Document Processing
 pytesseract==0.3.10

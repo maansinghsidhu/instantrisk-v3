@@ -67,10 +67,8 @@ class Settings(BaseSettings):
             return self.REDIS_URL
         return f"redis://{self.redis_host}:{self.redis_port}/0"
 
-    # Qdrant Vector Database Settings
-    QDRANT_HOST: str = "localhost"
-    QDRANT_PORT: int = 6333
-    QDRANT_COLLECTION: str = "instantrisk_documents"
+    # pgvector (vector search via PostgreSQL — replaces Qdrant)
+    PGVECTOR_ENABLED: bool = True
 
     # S3 Object Storage Settings (replaces MinIO)
     S3_DOCUMENTS_BUCKET: str = "instantrisk-documents-995306061991"

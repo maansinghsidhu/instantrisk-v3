@@ -157,3 +157,6 @@ from app.models.claims import ClaimRecord, ClaimsSyncLog
 # Loss Run Models
 from app.models.loss_run import BenchmarkLossRun, InsuredLossRun, LossRunSummary
 
+# pgvector Models (RAG knowledge base, user training docs, reference docs)
+from app.models.vector_store import RAGVector, UserDocVector, RefDocVector
+

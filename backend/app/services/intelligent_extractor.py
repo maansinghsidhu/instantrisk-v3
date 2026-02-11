@@ -1098,7 +1098,6 @@ class IntelligentDocumentExtractor:
         self.type_detector = DocumentTypeDetector()
         self.field_extractor = FieldExtractor()
         self.reference_service = None
-        self.qdrant_client = None
         self._initialize_services()
 
     def _initialize_services(self):
@@ -1108,15 +1107,6 @@ class IntelligentDocumentExtractor:
             self.reference_service = reference_document_service
         except ImportError:
             logger.warning("Reference document service not available")
-
-        try:
-            from qdrant_client import QdrantClient
-            self.qdrant_client = QdrantClient(
-                host=settings.QDRANT_HOST,
-                port=settings.QDRANT_PORT
-            )
-        except Exception as e:
-            logger.warning(f"Qdrant not available: {e}")
 
     async def extract_from_document(
         self,

@@ -875,6 +875,10 @@ async def upgrade_analysis(
                 assessment_ref.ai_analysis = analysis
                 assessment_ref.analysis_mode = target_mode
                 assessment_ref.completed_at = datetime.now(timezone.utc)
+                # Store RapidRate pricing results if available
+                agent_results = analysis.get("agent_results", {})
+                if agent_results.get("rapidrate_pricing"):
+                    assessment_ref.rapidrate_results = agent_results["rapidrate_pricing"]
                 await db_session.commit()
 
                 # Send completion message

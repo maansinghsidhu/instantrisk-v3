@@ -768,6 +768,23 @@ class AutoGenDocumentProcessor:
             self._tool_executor = AutoGenToolExecutor(self.db)
         return self._tool_executor
 
+    async def _get_rag_context(self, query: str, user_id: str = None, category: str = None) -> str:
+        """Fetch RAG context from unified knowledge base for agent prompts."""
+        try:
+            from app.services.unified_rag import unified_rag
+            results = await unified_rag.search(
+                query=query,
+                user_id=user_id,
+                category=category,
+                top_k=3,
+                min_score=0.4,
+            )
+            if results:
+                return unified_rag.format_as_context(results, max_chars=2000)
+        except Exception as e:
+            logger.warning(f"RAG context fetch failed: {e}")
+        return ""
+
     async def process_document(
         self,
         document_text: str,
@@ -1072,6 +1089,18 @@ class AutoGenDocumentProcessor:
                 # Build risk summary with extracted data AND FULL document text
                 risk_summary = self._build_concise_summary(classification, extraction)
 
+                # Inject RAG context for risk analysis
+                try:
+                    coverage_type = ""
+                    if extraction:
+                        coverage_type = extraction.get("coverage", {}).get("type", "")
+                    rag_query = f"risk analysis {coverage_type} insurance underwriting"
+                    rag_context = await self._get_rag_context(rag_query)
+                    if rag_context:
+                        risk_summary += f"\n\nRELEVANT KNOWLEDGE BASE CONTEXT:\n{rag_context}"
+                except Exception as e:
+                    logger.debug(f"RAG context for RiskAnalyst skipped: {e}")
+
                 # Process ALL document text - batch if too large, merge results
                 MAX_CHARS = 25000
                 if document_text and len(document_text) <= MAX_CHARS:
@@ -1344,6 +1373,18 @@ class AutoGenDocumentProcessor:
                 # Build underwriting summary with extracted data
                 uw_summary = self._build_concise_summary(classification, extraction)
 
+                # Inject RAG context for underwriting decision
+                try:
+                    coverage_type = ""
+                    if extraction:
+                        coverage_type = extraction.get("coverage", {}).get("type", "")
+                    rag_query = f"underwriting guidelines {coverage_type} appetite pricing"
+                    rag_context = await self._get_rag_context(rag_query)
+                    if rag_context:
+                        uw_summary += f"\n\nRELEVANT KNOWLEDGE BASE CONTEXT:\n{rag_context}"
+                except Exception as e:
+                    logger.debug(f"RAG context for Underwriter skipped: {e}")
+
                 # Mode-aware text handling:
                 # - Quick: Single pass with full text (speed priority)
                 # - Go/No-Go & Deep: Batch if needed for thoroughness
@@ -1440,8 +1481,8 @@ class AutoGenDocumentProcessor:
                 # =========================================================
                 # GATE 5: Underwriter RapidRate Integration
                 # =========================================================
-                # If in DEEP mode with adequate data, get actuarial pricing
-                if mode == AnalysisMode.DEEP and extraction and self.db:
+                # Auto-run RapidRate for GO_NO_GO and DEEP modes
+                if mode in (AnalysisMode.GO_NO_GO, AnalysisMode.DEEP) and extraction and self.db:
                     self.progress.add_finding("Pricing", "Calculating actuarial pricing...", "info")
                     if progress_callback:
                         await progress_callback(self.progress.get_full_state())

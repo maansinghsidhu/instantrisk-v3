@@ -1,90 +1,60 @@
 """
-Reference Document Service
+Reference Document Service — pgvector edition.
+
 Handles training documents for RAG-enhanced document generation.
-Integrates with Qdrant for vector storage and semantic search.
+Uses PostgreSQL pgvector for vector storage and semantic search.
 """
 
-import os
 import hashlib
 import logging
+import numpy as np
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
-from sqlalchemy.orm import selectinload
 
 from app.models.reference_document import ReferenceDocument
 from app.services.ocr_service import ocr_service
-from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Qdrant settings
-QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
-QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))  # HTTP REST API port
-COLLECTION_NAME = "reference_documents"
-EMBEDDING_DIM = 384  # For sentence-transformers mini models
-
-try:
-    from qdrant_client import QdrantClient
-    from qdrant_client.http import models as qdrant_models
-    QDRANT_AVAILABLE = True
-except ImportError:
-    QDRANT_AVAILABLE = False
-    logger.warning("Qdrant client not available. RAG features disabled.")
-
-try:
-    from fastembed import TextEmbedding
-    EMBEDDINGS_AVAILABLE = True
-except ImportError:
-    EMBEDDINGS_AVAILABLE = False
-    logger.warning("Fastembed not available. Using fallback embeddings.")
+EMBEDDING_MODEL = "llmware/industry-bert-insurance-v0.1"
+EMBEDDING_DIM = 768
 
 
 class ReferenceDocumentService:
-    """Service for managing reference/training documents with RAG."""
+    """Service for managing reference/training documents with pgvector RAG."""
 
     def __init__(self):
-        self.qdrant_client = None
         self.embedding_model = None
-        self._initialize_clients()
+        self._model_loaded = False
+        self._sync_engine = None
 
-    def _initialize_clients(self):
-        """Initialize Qdrant and embedding model."""
-        if QDRANT_AVAILABLE:
-            try:
-                self.qdrant_client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
-                self._ensure_collection()
-                logger.info(f"Connected to Qdrant at {QDRANT_HOST}:{QDRANT_PORT}")
-            except Exception as e:
-                logger.error(f"Failed to connect to Qdrant: {e}")
-
-        if EMBEDDINGS_AVAILABLE:
-            try:
-                self.embedding_model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
-                logger.info("Loaded fastembed model: BAAI/bge-small-en-v1.5")
-            except Exception as e:
-                logger.error(f"Failed to load embedding model: {e}")
-
-    def _ensure_collection(self):
-        """Ensure Qdrant collection exists."""
-        if not self.qdrant_client:
-            return
-
+    def _load_model(self) -> bool:
+        """Load the embedding model."""
+        if self._model_loaded:
+            return True
         try:
-            collections = self.qdrant_client.get_collections().collections
-            if not any(c.name == COLLECTION_NAME for c in collections):
-                self.qdrant_client.create_collection(
-                    collection_name=COLLECTION_NAME,
-                    vectors_config=qdrant_models.VectorParams(
-                        size=EMBEDDING_DIM,
-                        distance=qdrant_models.Distance.COSINE
-                    )
-                )
-                logger.info(f"Created Qdrant collection: {COLLECTION_NAME}")
+            from sentence_transformers import SentenceTransformer
+            self.embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+            self._model_loaded = True
+            logger.info(f"Loaded embedding model: {EMBEDDING_MODEL}")
+            return True
         except Exception as e:
-            logger.error(f"Failed to create collection: {e}")
+            logger.error(f"Failed to load embedding model: {e}")
+            return False
+
+    def _get_sync_engine(self):
+        """Get a synchronous database engine."""
+        if self._sync_engine is None:
+            from app.config import settings
+            sync_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
+            if "postgresql://" in sync_url and "+psycopg2" not in sync_url:
+                sync_url = sync_url.replace("postgresql://", "postgresql+psycopg2://")
+            from sqlalchemy import create_engine
+            self._sync_engine = create_engine(sync_url, pool_pre_ping=True)
+        return self._sync_engine
 
     async def create_document(
         self,
@@ -173,12 +143,10 @@ class ReferenceDocumentService:
                 ReferenceDocument.description.ilike(search_pattern)
             )
 
-        # Count total
         count_query = select(func.count()).select_from(query.subquery())
         total_result = await db.execute(count_query)
         total = total_result.scalar()
 
-        # Apply pagination
         query = query.order_by(ReferenceDocument.created_at.desc())
         query = query.offset((page - 1) * page_size).limit(page_size)
 
@@ -224,19 +192,17 @@ class ReferenceDocumentService:
         if not doc:
             return False
 
-        # Delete vectors from Qdrant
-        if doc.vector_ids and self.qdrant_client:
-            try:
-                self.qdrant_client.delete(
-                    collection_name=COLLECTION_NAME,
-                    points_selector=qdrant_models.PointIdsList(
-                        points=doc.vector_ids
-                    )
-                )
-            except Exception as e:
-                logger.error(f"Failed to delete vectors: {e}")
+        # Delete vectors from pgvector table
+        try:
+            engine = self._get_sync_engine()
+            from sqlalchemy import text as sql_text
+            with engine.begin() as conn:
+                conn.execute(sql_text("""
+                    DELETE FROM ref_doc_vectors WHERE document_id = :doc_id
+                """), {"doc_id": doc_id})
+        except Exception as e:
+            logger.error(f"Failed to delete vectors: {e}")
 
-        # Delete from database
         await db.delete(doc)
         await db.commit()
         return True
@@ -246,19 +212,15 @@ class ReferenceDocumentService:
         db: AsyncSession,
         doc_id: int
     ) -> Dict[str, Any]:
-        """
-        Process document: OCR extraction + vectorization.
-        """
+        """Process document: OCR extraction + vectorization."""
         doc = await self.get_document(db, doc_id)
         if not doc:
             return {"success": False, "error": "Document not found"}
 
         try:
-            # Update status
             doc.status = "processing"
             await db.commit()
 
-            # Step 1: OCR extraction
             ocr_result = await self._extract_text(doc.file_path)
             if not ocr_result.get("text"):
                 doc.mark_failed("OCR extraction failed")
@@ -268,10 +230,8 @@ class ReferenceDocumentService:
             doc.ocr_text = ocr_result.get("text")
             doc.quality_score = ocr_result.get("confidence", 0) / 100.0
 
-            # Step 2: Compute content hash
             doc.content_hash = hashlib.sha256(doc.ocr_text.encode()).hexdigest()
 
-            # Step 3: Vectorize and store
             vector_ids = await self._vectorize_document(doc)
             doc.mark_vectorized(vector_ids, len(vector_ids))
 
@@ -295,7 +255,6 @@ class ReferenceDocumentService:
     async def _extract_text(self, file_path: str) -> Dict[str, Any]:
         """Extract text from document using OCR service."""
         try:
-            # Read file from MinIO or local path
             result = await ocr_service.process_file(file_path)
             return result
         except Exception as e:
@@ -303,53 +262,54 @@ class ReferenceDocumentService:
             return {"text": "", "confidence": 0}
 
     async def _vectorize_document(self, doc: ReferenceDocument) -> List[str]:
-        """Chunk text and store vectors in Qdrant."""
-        if not self.qdrant_client or not self.embedding_model:
+        """Chunk text and store vectors in pgvector."""
+        if not self._load_model():
             return []
 
         if not doc.ocr_text:
             return []
 
-        # Chunk the text
         chunks = self._chunk_text(doc.ocr_text, chunk_size=1000, overlap=100)
         if not chunks:
             return []
 
         vector_ids = []
-        points = []
+        engine = self._get_sync_engine()
+        from sqlalchemy import text as sql_text
 
-        for idx, chunk in enumerate(chunks):
-            vector_id = f"{doc.id}_{idx}"
-            vector_ids.append(vector_id)
-
-            # Generate embedding
-            import numpy as np
-            emb = list(self.embedding_model.embed([chunk]))[0]
-            embedding = emb.tolist() if isinstance(emb, np.ndarray) else list(emb)
-
-            points.append(qdrant_models.PointStruct(
-                id=vector_id,
-                vector=embedding,
-                payload={
-                    "document_id": doc.id,
-                    "chunk_index": idx,
-                    "chunk_text": chunk[:500],  # Store truncated for retrieval
-                    "category": doc.category,
-                    "risk_categories": doc.risk_categories,
-                    "title": doc.title,
-                    "file_name": doc.file_name
-                }
-            ))
-
-        # Batch upsert to Qdrant
         try:
-            self.qdrant_client.upsert(
-                collection_name=COLLECTION_NAME,
-                points=points
-            )
-            logger.info(f"Stored {len(points)} vectors for document {doc.id}")
+            embeddings = self.embedding_model.encode(chunks, show_progress_bar=False)
+            now = datetime.now(timezone.utc)
+
+            with engine.begin() as conn:
+                for idx, (chunk, emb) in enumerate(zip(chunks, embeddings)):
+                    vector_id = f"{doc.id}_{idx}"
+                    vector_ids.append(vector_id)
+                    embedding = emb.tolist() if isinstance(emb, np.ndarray) else list(emb)
+
+                    conn.execute(sql_text("""
+                        INSERT INTO ref_doc_vectors
+                            (document_id, chunk_index, chunk_text, category,
+                             risk_categories, title, file_name, embedding, created_at)
+                        VALUES
+                            (:document_id, :chunk_index, :chunk_text, :category,
+                             :risk_categories, :title, :file_name, :embedding, :created_at)
+                    """), {
+                        "document_id": doc.id,
+                        "chunk_index": idx,
+                        "chunk_text": chunk[:500],
+                        "category": doc.category,
+                        "risk_categories": str(doc.risk_categories) if doc.risk_categories else "[]",
+                        "title": doc.title,
+                        "file_name": doc.file_name,
+                        "embedding": str(embedding),
+                        "created_at": now,
+                    })
+
+            logger.info(f"Stored {len(vector_ids)} vectors for document {doc.id}")
+
         except Exception as e:
-            logger.error(f"Qdrant upsert error: {e}")
+            logger.error(f"pgvector upsert error: {e}")
             return []
 
         return vector_ids
@@ -370,7 +330,6 @@ class ReferenceDocumentService:
         while start < len(text):
             end = start + chunk_size
 
-            # Try to end at a sentence boundary
             if end < len(text):
                 for sep in ['. ', '.\n', '\n\n', '\n']:
                     boundary = text.rfind(sep, start + chunk_size // 2, end)
@@ -394,63 +353,56 @@ class ReferenceDocumentService:
         category: str = None,
         min_score: float = 0.5
     ) -> List[Dict[str, Any]]:
-        """
-        Semantic search across reference documents.
-        Returns relevant chunks for RAG.
-        """
-        if not self.qdrant_client or not self.embedding_model:
+        """Semantic search across reference documents using pgvector."""
+        if not self._load_model():
             return []
 
         try:
-            # Generate query embedding
-            import numpy as np
-            emb = list(self.embedding_model.query_embed(query))[0]
+            emb = self.embedding_model.encode(query, show_progress_bar=False)
             query_embedding = emb.tolist() if isinstance(emb, np.ndarray) else list(emb)
 
-            # Build filter
-            filter_conditions = []
-            if risk_categories:
-                for rc in risk_categories:
-                    filter_conditions.append(
-                        qdrant_models.FieldCondition(
-                            key="risk_categories",
-                            match=qdrant_models.MatchAny(any=risk_categories)
-                        )
-                    )
+            engine = self._get_sync_engine()
+            from sqlalchemy import text as sql_text
+
+            # Build query with optional filters
+            where_clauses = []
+            params = {"query_vec": str(query_embedding), "limit": limit, "min_score": min_score}
+
             if category:
-                filter_conditions.append(
-                    qdrant_models.FieldCondition(
-                        key="category",
-                        match=qdrant_models.MatchValue(value=category)
-                    )
-                )
+                where_clauses.append("category = :category")
+                params["category"] = category
 
-            search_filter = None
-            if filter_conditions:
-                search_filter = qdrant_models.Filter(
-                    must=filter_conditions
-                )
+            where_sql = ""
+            if where_clauses:
+                where_sql = "WHERE " + " AND ".join(where_clauses)
 
-            # Search
-            results = self.qdrant_client.search(
-                collection_name=COLLECTION_NAME,
-                query_vector=query_embedding,
-                limit=limit,
-                query_filter=search_filter,
-                score_threshold=min_score
-            )
+            sql = sql_text(f"""
+                SELECT document_id, title, category, chunk_text, file_name,
+                       1 - (embedding <=> :query_vec) AS score
+                FROM ref_doc_vectors
+                {where_sql}
+                ORDER BY embedding <=> :query_vec
+                LIMIT :limit
+            """)
 
-            return [
-                {
-                    "document_id": hit.payload.get("document_id"),
-                    "title": hit.payload.get("title"),
-                    "category": hit.payload.get("category"),
-                    "chunk_text": hit.payload.get("chunk_text"),
-                    "similarity_score": hit.score,
-                    "file_name": hit.payload.get("file_name")
-                }
-                for hit in results
-            ]
+            with engine.connect() as conn:
+                result = conn.execute(sql, params)
+                rows = result.fetchall()
+
+            results = []
+            for row in rows:
+                score = float(row[5]) if row[5] else 0
+                if score >= min_score:
+                    results.append({
+                        "document_id": row[0],
+                        "title": row[1],
+                        "category": row[2],
+                        "chunk_text": row[3],
+                        "similarity_score": score,
+                        "file_name": row[4]
+                    })
+
+            return results
 
         except Exception as e:
             logger.error(f"Semantic search error: {e}")
@@ -462,10 +414,7 @@ class ReferenceDocumentService:
         risk_category: str = None,
         limit: int = 3
     ) -> str:
-        """
-        Get RAG context for document generation.
-        Returns concatenated relevant chunks.
-        """
+        """Get RAG context for document generation."""
         results = await self.semantic_search(
             query=query,
             limit=limit,

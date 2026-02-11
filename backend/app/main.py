@@ -31,6 +31,7 @@ from app.routers import claimsense, loss_runs
 from app.routers import admin
 from app.routers import admin_reset
 from app.routers import training
+from app.routers import rapidrate
 
 # Security middleware
 from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler
@@ -148,6 +149,7 @@ async def lifespan(app: FastAPI):
                 # Copy recommendation to decision_rationale
                 "UPDATE assessments SET decision_rationale = recommendation WHERE decision_rationale IS NULL AND recommendation IS NOT NULL",
                 "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS ocr_extracted_text TEXT",
+                "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS rapidrate_results JSON",
                 "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS is_flagged BOOLEAN DEFAULT FALSE",
                 "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS flag_reason VARCHAR(255)",
                 # Syndicates table (required for assessments FK)
@@ -279,16 +281,91 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"User seed skipped: {e}")
 
-    # Check Qdrant RAG status
+    # Enable pgvector extension and create vector tables
+    try:
+        from sqlalchemy import text
+        pgvector_migrations = [
+            "CREATE EXTENSION IF NOT EXISTS vector",
+            """CREATE TABLE IF NOT EXISTS rag_vectors (
+                id SERIAL PRIMARY KEY,
+                text_hash VARCHAR(64) UNIQUE NOT NULL,
+                text_preview TEXT,
+                full_text TEXT,
+                doc_type VARCHAR(50),
+                category VARCHAR(100),
+                source VARCHAR(100),
+                name VARCHAR(200),
+                question VARCHAR(500),
+                embedding vector(768) NOT NULL,
+                created_at TIMESTAMP
+            )""",
+            "CREATE INDEX IF NOT EXISTS ix_rag_vectors_doc_type ON rag_vectors(doc_type)",
+            """CREATE TABLE IF NOT EXISTS user_doc_vectors (
+                id SERIAL PRIMARY KEY,
+                user_id VARCHAR(36) NOT NULL,
+                doc_id VARCHAR(36) NOT NULL,
+                filename VARCHAR(255),
+                category VARCHAR(100),
+                content_type VARCHAR(100),
+                size_bytes INTEGER,
+                chunk_index INTEGER,
+                chunk_count INTEGER,
+                text TEXT NOT NULL,
+                embedding vector(768) NOT NULL,
+                uploaded_at TIMESTAMP
+            )""",
+            "CREATE INDEX IF NOT EXISTS ix_user_doc_vectors_user_id ON user_doc_vectors(user_id)",
+            "CREATE INDEX IF NOT EXISTS ix_user_doc_vectors_doc_id ON user_doc_vectors(doc_id)",
+            """CREATE TABLE IF NOT EXISTS ref_doc_vectors (
+                id SERIAL PRIMARY KEY,
+                document_id INTEGER,
+                chunk_index INTEGER,
+                chunk_text TEXT,
+                category VARCHAR(100),
+                risk_categories JSONB,
+                title VARCHAR(255),
+                file_name VARCHAR(255),
+                embedding vector(768) NOT NULL,
+                created_at TIMESTAMP
+            )""",
+            "CREATE INDEX IF NOT EXISTS ix_ref_doc_vectors_document_id ON ref_doc_vectors(document_id)",
+        ]
+        for sql in pgvector_migrations:
+            try:
+                async with engine.begin() as conn:
+                    await conn.execute(text(sql))
+                print(f"pgvector OK: {sql[:60]}...")
+            except Exception as e:
+                print(f"pgvector skip: {sql[:60]}... ({str(e)[:80]})")
+
+        # Create HNSW indexes (separate so table creation doesn't fail)
+        hnsw_indexes = [
+            "CREATE INDEX IF NOT EXISTS ix_rag_vectors_embedding_hnsw ON rag_vectors USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64)",
+            "CREATE INDEX IF NOT EXISTS ix_user_doc_vectors_embedding_hnsw ON user_doc_vectors USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64)",
+            "CREATE INDEX IF NOT EXISTS ix_ref_doc_vectors_embedding_hnsw ON ref_doc_vectors USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64)",
+        ]
+        for sql in hnsw_indexes:
+            try:
+                async with engine.begin() as conn:
+                    await conn.execute(text(sql))
+                print(f"HNSW index OK: {sql.split(' ON ')[1][:40]}...")
+            except Exception as e:
+                print(f"HNSW index skip: ({str(e)[:80]})")
+
+        print("pgvector: tables and HNSW indexes verified")
+    except Exception as e:
+        print(f"pgvector setup error: {e}")
+
+    # Check pgvector RAG status (indexing triggered via /admin/index-rag endpoint)
     try:
         from app.services.rag_indexer import rag_indexer
         if rag_indexer.is_indexed():
             count = rag_indexer.get_collection_count()
-            print(f"Qdrant RAG: {count} vectors indexed")
+            print(f"pgvector RAG: {count} vectors indexed")
         else:
-            print("Qdrant RAG: collection not indexed yet - run rag_indexer.index_all()")
+            print("pgvector RAG: not indexed yet - call POST /api/v1/admin/index-rag to trigger")
     except Exception as e:
-        print(f"Qdrant RAG: unavailable ({e})")
+        print(f"pgvector RAG: unavailable ({e})")
 
     yield
 
@@ -417,6 +494,7 @@ app.include_router(loss_runs.router, prefix=f"{settings.api_prefix}/loss-runs", 
 app.include_router(admin.router, prefix=f"{settings.api_prefix}", tags=["Admin"])
 app.include_router(admin_reset.router, prefix=f"{settings.api_prefix}", tags=["Admin Reset"])
 app.include_router(training.router, prefix=f"{settings.api_prefix}/training", tags=["AI Training"])
+app.include_router(rapidrate.router, tags=["RapidRate"])
 
 
 if __name__ == "__main__":

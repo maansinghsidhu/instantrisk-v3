@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.services.claimsense_service import get_claimsense_service
 from app.services.bedrock_client import get_bedrock_client
+from app.services.unified_rag import unified_rag
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +123,31 @@ Useful for underwriting negotiations.""",
                 },
             },
             "required": ["base_scenario"],
+        },
+    },
+    {
+        "name": "search_knowledge_base",
+        "description": """Search the insurance knowledge base using RAG.
+Searches across user uploads, ACORD clauses, CUAD contracts, JETech underwriting blocks,
+and global insurance knowledge (112K+ records). Results are prioritized:
+user docs first, then ACORD, CUAD, JETech, and global knowledge.""",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search query - describe what insurance knowledge you need",
+                },
+                "category": {
+                    "type": "string",
+                    "description": "Optional category filter (e.g., 'clause', 'policy', 'regulatory')",
+                },
+                "top_k": {
+                    "type": "integer",
+                    "description": "Number of results to return (default 5)",
+                },
+            },
+            "required": ["query"],
         },
     },
     {
@@ -328,6 +354,44 @@ async def pricing_what_if(
     }
 
 
+async def search_knowledge_base(
+    query: str,
+    user_id: Optional[str] = None,
+    category: Optional[str] = None,
+    top_k: int = 5,
+) -> Dict[str, Any]:
+    """
+    Search insurance knowledge base with priority chain.
+
+    Called by any agent needing insurance domain knowledge.
+
+    Args:
+        query: Search query text
+        user_id: User ID for per-user doc search
+        category: Optional category filter
+        top_k: Number of results
+
+    Returns:
+        Dict with search results and source attribution
+    """
+    try:
+        results = await unified_rag.search(
+            query=query,
+            user_id=user_id,
+            category=category,
+            top_k=top_k,
+        )
+
+        return {
+            "results": results,
+            "total": len(results),
+            "context": unified_rag.format_as_context(results),
+        }
+    except Exception as e:
+        logger.error(f"Knowledge base search error: {e}")
+        return {"results": [], "total": 0, "error": str(e)}
+
+
 async def compare_insured_to_benchmark(
     db: AsyncSession,
     assessment_id: str,
@@ -399,6 +463,13 @@ class AutoGenToolExecutor:
                     deductible=arguments.get("deductible"),
                     limit=arguments.get("limit"),
                     exposure_change_pct=arguments.get("exposure_change_pct"),
+                )
+            elif tool_name == "search_knowledge_base":
+                result = await search_knowledge_base(
+                    query=arguments.get("query", ""),
+                    user_id=arguments.get("user_id"),
+                    category=arguments.get("category"),
+                    top_k=arguments.get("top_k", 5),
                 )
             elif tool_name == "compare_insured_to_benchmark":
                 result = await compare_insured_to_benchmark(

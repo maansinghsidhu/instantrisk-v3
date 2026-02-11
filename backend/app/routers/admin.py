@@ -161,6 +161,41 @@ async def reset_demo_database(
         raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")
 
 
+@router.post("/index-rag")
+async def index_rag(
+    secret: str = Query(..., description="Admin secret key"),
+    force: bool = Query(False, description="Force re-index even if data exists"),
+):
+    """
+    Trigger RAG indexing of JSONL datasets into PostgreSQL pgvector.
+
+    One-time operation — data persists in RDS PostgreSQL.
+    """
+    if secret != ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid admin secret")
+
+    import asyncio
+    from app.services.rag_indexer import rag_indexer
+
+    try:
+        stats = await asyncio.to_thread(rag_indexer.index_all, force)
+        return {"success": True, "stats": stats}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Indexing failed: {str(e)}")
+
+
+@router.get("/rag-status")
+async def rag_status():
+    """Check RAG indexing status."""
+    from app.services.rag_indexer import rag_indexer
+    try:
+        indexed = rag_indexer.is_indexed()
+        count = rag_indexer.get_collection_count()
+        return {"indexed": indexed, "vector_count": count}
+    except Exception as e:
+        return {"indexed": False, "vector_count": 0, "error": str(e)}
+
+
 @router.get("/health")
 async def admin_health():
     """Check if admin endpoints are available."""

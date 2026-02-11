@@ -67,23 +67,16 @@ async def check_redis() -> ComponentHealth:
         return ComponentHealth(status="degraded", error=str(e))
 
 
-async def check_qdrant() -> ComponentHealth:
-    """Check Qdrant connectivity."""
+async def check_pgvector() -> ComponentHealth:
+    """Check pgvector extension availability."""
     start = datetime.utcnow()
     try:
-        from qdrant_client import QdrantClient
-        client = QdrantClient(
-            host=settings.QDRANT_HOST,
-            port=settings.QDRANT_PORT,
-            timeout=5.0,
-        )
-        # Simple health check - get collections
-        client.get_collections()
-        client.close()
+        from app.services.rag_indexer import rag_indexer
+        count = rag_indexer.get_collection_count()
         latency = (datetime.utcnow() - start).total_seconds() * 1000
         return ComponentHealth(status="healthy", latency_ms=latency)
     except Exception as e:
-        logger.warning(f"Qdrant health check failed: {e}")
+        logger.warning(f"pgvector health check failed: {e}")
         return ComponentHealth(status="degraded", error=str(e))
 
 
@@ -118,10 +111,10 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     Returns 503 if any critical component is unhealthy.
     """
     # Run all checks concurrently
-    db_check, redis_check, qdrant_check, s3_check = await asyncio.gather(
+    db_check, redis_check, pgvector_check, s3_check = await asyncio.gather(
         check_database(db),
         check_redis(),
-        check_qdrant(),
+        check_pgvector(),
         check_s3(),
         return_exceptions=True,
     )
@@ -131,15 +124,15 @@ async def health_check(db: AsyncSession = Depends(get_db)):
         db_check = ComponentHealth(status="unhealthy", error=str(db_check))
     if isinstance(redis_check, Exception):
         redis_check = ComponentHealth(status="degraded", error=str(redis_check))
-    if isinstance(qdrant_check, Exception):
-        qdrant_check = ComponentHealth(status="degraded", error=str(qdrant_check))
+    if isinstance(pgvector_check, Exception):
+        pgvector_check = ComponentHealth(status="degraded", error=str(pgvector_check))
     if isinstance(s3_check, Exception):
         s3_check = ComponentHealth(status="degraded", error=str(s3_check))
 
     checks = {
         "database": db_check.model_dump(),
         "redis": redis_check.model_dump(),
-        "qdrant": qdrant_check.model_dump(),
+        "pgvector": pgvector_check.model_dump(),
         "s3": s3_check.model_dump(),
     }
 
@@ -149,10 +142,10 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     if db_check.status == "unhealthy":
         overall_status = "unhealthy"
         status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-    elif any(c.status == "unhealthy" for c in [redis_check, qdrant_check, s3_check]):
+    elif any(c.status == "unhealthy" for c in [redis_check, pgvector_check, s3_check]):
         overall_status = "degraded"
         status_code = status.HTTP_200_OK  # Still return 200 for ALB
-    elif any(c.status == "degraded" for c in [redis_check, qdrant_check, s3_check]):
+    elif any(c.status == "degraded" for c in [redis_check, pgvector_check, s3_check]):
         overall_status = "degraded"
         status_code = status.HTTP_200_OK
     else:

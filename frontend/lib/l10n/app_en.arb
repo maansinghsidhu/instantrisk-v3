@@ -1,0 +1,2038 @@
+{
+  "@@locale": "en",
+  "appName": "InstantRisk",
+  "@appName": {
+    "description": "The application name"
+  },
+
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings page title"
+  },
+
+  "language": "Language",
+  "@language": {
+    "description": "Language settings title"
+  },
+
+  "languageSubtitle": "Choose your preferred language",
+  "@languageSubtitle": {
+    "description": "Language settings subtitle"
+  },
+
+  "languageChangeInfo": "Choose your preferred language. The app will update immediately when you save.",
+  "@languageChangeInfo": {
+    "description": "Info message on language settings page"
+  },
+
+  "save": "Save",
+  "@save": {
+    "description": "Save button text"
+  },
+
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button text"
+  },
+
+  "change": "Change",
+  "@change": {
+    "description": "Change button text"
+  },
+
+  "languageChanged": "Language changed successfully",
+  "@languageChanged": {
+    "description": "Success message when language is changed"
+  },
+
+  "home": "Home",
+  "@home": {
+    "description": "Home tab label"
+  },
+
+  "reports": "Reports",
+  "@reports": {
+    "description": "Reports tab label"
+  },
+
+  "chat": "Chat",
+  "@chat": {
+    "description": "Chat tab label"
+  },
+
+  "analytics": "Analytics",
+  "@analytics": {
+    "description": "Analytics tab label"
+  },
+
+  "documents": "Documents",
+  "@documents": {
+    "description": "Documents tab label"
+  },
+
+  "templates": "Templates",
+  "@templates": {
+    "description": "Templates tab label"
+  },
+
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile settings title"
+  },
+
+  "profileSubtitle": "Manage your personal information",
+  "@profileSubtitle": {
+    "description": "Profile settings subtitle"
+  },
+
+  "subscription": "Subscription",
+  "@subscription": {
+    "description": "Subscription settings title"
+  },
+
+  "subscriptionPlan": "Professional Plan",
+  "@subscriptionPlan": {
+    "description": "Current subscription plan"
+  },
+
+  "security": "Security",
+  "@security": {
+    "description": "Security settings title"
+  },
+
+  "securitySubtitle": "Password, 2FA, sessions",
+  "@securitySubtitle": {
+    "description": "Security settings subtitle"
+  },
+
+  "account": "Account",
+  "@account": {
+    "description": "Account section title"
+  },
+
+  "teamAdmin": "Team & Administration",
+  "@teamAdmin": {
+    "description": "Team admin section title"
+  },
+
+  "teamManagement": "Team Management",
+  "@teamManagement": {
+    "description": "Team management title"
+  },
+
+  "teamManagementSubtitle": "Manage teams, members & roles",
+  "@teamManagementSubtitle": {
+    "description": "Team management subtitle"
+  },
+
+  "rolesPermissions": "Roles & Permissions",
+  "@rolesPermissions": {
+    "description": "Roles and permissions title"
+  },
+
+  "rolesPermissionsSubtitle": "Configure access control",
+  "@rolesPermissionsSubtitle": {
+    "description": "Roles and permissions subtitle"
+  },
+
+  "lloydsAdminDashboard": "Lloyd's Admin Dashboard",
+  "@lloydsAdminDashboard": {
+    "description": "Lloyd's admin dashboard title"
+  },
+
+  "lloydsAdminSubtitle": "View all syndicates & market data",
+  "@lloydsAdminSubtitle": {
+    "description": "Lloyd's admin dashboard subtitle"
+  },
+
+  "lloydsMarket": "Lloyd's Market",
+  "@lloydsMarket": {
+    "description": "Lloyd's market section title"
+  },
+
+  "syndicateDashboard": "Syndicate Dashboard",
+  "@syndicateDashboard": {
+    "description": "Syndicate dashboard title"
+  },
+
+  "syndicateDashboardSubtitle": "Overview of syndicate metrics",
+  "@syndicateDashboardSubtitle": {
+    "description": "Syndicate dashboard subtitle"
+  },
+
+  "placementBoard": "Placement Board",
+  "@placementBoard": {
+    "description": "Placement board title"
+  },
+
+  "placementBoardSubtitle": "Active placements & pipeline",
+  "@placementBoardSubtitle": {
+    "description": "Placement board subtitle"
+  },
+
+  "exposureDashboard": "Exposure Dashboard",
+  "@exposureDashboard": {
+    "description": "Exposure dashboard title"
+  },
+
+  "exposureDashboardSubtitle": "Risk exposure analysis",
+  "@exposureDashboardSubtitle": {
+    "description": "Exposure dashboard subtitle"
+  },
+
+  "regulatoryCompliance": "Regulatory Compliance",
+  "@regulatoryCompliance": {
+    "description": "Regulatory compliance title"
+  },
+
+  "regulatoryComplianceSubtitle": "Returns & compliance reports",
+  "@regulatoryComplianceSubtitle": {
+    "description": "Regulatory compliance subtitle"
+  },
+
+  "pricingEngine": "Pricing Engine",
+  "@pricingEngine": {
+    "description": "Pricing engine title"
+  },
+
+  "pricingEngineSubtitle": "AI-powered pricing models",
+  "@pricingEngineSubtitle": {
+    "description": "Pricing engine subtitle"
+  },
+
+  "dataQuality": "Data Quality",
+  "@dataQuality": {
+    "description": "Data quality title"
+  },
+
+  "dataQualitySubtitle": "Data validation & quality metrics",
+  "@dataQualitySubtitle": {
+    "description": "Data quality subtitle"
+  },
+
+  "umrManagement": "UMR Management",
+  "@umrManagement": {
+    "description": "UMR management title"
+  },
+
+  "umrManagementSubtitle": "Unique Market Reference tracking",
+  "@umrManagementSubtitle": {
+    "description": "UMR management subtitle"
+  },
+
+  "appSettings": "App Settings",
+  "@appSettings": {
+    "description": "App settings section title"
+  },
+
+  "documentRepository": "Document Repository",
+  "@documentRepository": {
+    "description": "Document repository title"
+  },
+
+  "documentRepositorySubtitle": "Manage stored documents",
+  "@documentRepositorySubtitle": {
+    "description": "Document repository subtitle"
+  },
+
+  "notifications": "Notifications",
+  "@notifications": {
+    "description": "Notifications title"
+  },
+
+  "notificationsSubtitle": "Push, email, SMS alerts",
+  "@notificationsSubtitle": {
+    "description": "Notifications subtitle"
+  },
+
+  "appearance": "Appearance",
+  "@appearance": {
+    "description": "Appearance title"
+  },
+
+  "appearanceSubtitle": "Light mode",
+  "@appearanceSubtitle": {
+    "description": "Appearance subtitle"
+  },
+
+  "support": "Support",
+  "@support": {
+    "description": "Support section title"
+  },
+
+  "helpCenter": "Help Center",
+  "@helpCenter": {
+    "description": "Help center title"
+  },
+
+  "helpCenterSubtitle": "FAQs and guides",
+  "@helpCenterSubtitle": {
+    "description": "Help center subtitle"
+  },
+
+  "contactSupport": "Contact Support",
+  "@contactSupport": {
+    "description": "Contact support title"
+  },
+
+  "contactSupportSubtitle": "Get help from our team",
+  "@contactSupportSubtitle": {
+    "description": "Contact support subtitle"
+  },
+
+  "reportBug": "Report a Bug",
+  "@reportBug": {
+    "description": "Report bug title"
+  },
+
+  "reportBugSubtitle": "Help us improve",
+  "@reportBugSubtitle": {
+    "description": "Report bug subtitle"
+  },
+
+  "about": "About",
+  "@about": {
+    "description": "About section title"
+  },
+
+  "aboutInstantRisk": "About InstantRisk",
+  "@aboutInstantRisk": {
+    "description": "About InstantRisk title"
+  },
+
+  "version": "Version {version}",
+  "@version": {
+    "description": "Version text",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+
+  "termsOfService": "Terms of Service",
+  "@termsOfService": {
+    "description": "Terms of service title"
+  },
+
+  "privacyPolicy": "Privacy Policy",
+  "@privacyPolicy": {
+    "description": "Privacy policy title"
+  },
+
+  "logOut": "Log Out",
+  "@logOut": {
+    "description": "Log out button text"
+  },
+
+  "logOutConfirmation": "Are you sure you want to log out of InstantRisk?",
+  "@logOutConfirmation": {
+    "description": "Log out confirmation message"
+  },
+
+  "login": "Login",
+  "@login": {
+    "description": "Login button/title"
+  },
+
+  "register": "Register",
+  "@register": {
+    "description": "Register button/title"
+  },
+
+  "email": "Email",
+  "@email": {
+    "description": "Email field label"
+  },
+
+  "password": "Password",
+  "@password": {
+    "description": "Password field label"
+  },
+
+  "forgotPassword": "Forgot Password?",
+  "@forgotPassword": {
+    "description": "Forgot password link"
+  },
+
+  "welcomeBack": "Welcome Back",
+  "@welcomeBack": {
+    "description": "Welcome back message"
+  },
+
+  "createAccount": "Create Account",
+  "@createAccount": {
+    "description": "Create account title"
+  },
+
+  "fullName": "Full Name",
+  "@fullName": {
+    "description": "Full name field label"
+  },
+
+  "confirmPassword": "Confirm Password",
+  "@confirmPassword": {
+    "description": "Confirm password field label"
+  },
+
+  "dashboard": "Dashboard",
+  "@dashboard": {
+    "description": "Dashboard title"
+  },
+
+  "uploadDocument": "Upload Document",
+  "@uploadDocument": {
+    "description": "Upload document button"
+  },
+
+  "recentAssessments": "Recent Assessments",
+  "@recentAssessments": {
+    "description": "Recent assessments title"
+  },
+
+  "viewAll": "View All",
+  "@viewAll": {
+    "description": "View all link"
+  },
+
+  "processing": "Processing",
+  "@processing": {
+    "description": "Processing status"
+  },
+
+  "completed": "Completed",
+  "@completed": {
+    "description": "Completed status"
+  },
+
+  "failed": "Failed",
+  "@failed": {
+    "description": "Failed status"
+  },
+
+  "goDecision": "GO",
+  "@goDecision": {
+    "description": "GO decision"
+  },
+
+  "noGoDecision": "NO-GO",
+  "@noGoDecision": {
+    "description": "NO-GO decision"
+  },
+
+  "referDecision": "REFER",
+  "@referDecision": {
+    "description": "REFER decision"
+  },
+
+  "riskScore": "Risk Score",
+  "@riskScore": {
+    "description": "Risk score label"
+  },
+
+  "overallRisk": "Overall Risk",
+  "@overallRisk": {
+    "description": "Overall risk label"
+  },
+
+  "lowRisk": "Low Risk",
+  "@lowRisk": {
+    "description": "Low risk level"
+  },
+
+  "mediumRisk": "Medium Risk",
+  "@mediumRisk": {
+    "description": "Medium risk level"
+  },
+
+  "highRisk": "High Risk",
+  "@highRisk": {
+    "description": "High risk level"
+  },
+
+  "sanctions": "Sanctions",
+  "@sanctions": {
+    "description": "Sanctions title"
+  },
+
+  "sanctionsScreening": "Sanctions Screening",
+  "@sanctionsScreening": {
+    "description": "Sanctions screening title"
+  },
+
+  "noMatches": "No Matches",
+  "@noMatches": {
+    "description": "No sanctions matches"
+  },
+
+  "potentialMatches": "{count} Potential Matches",
+  "@potentialMatches": {
+    "description": "Number of potential sanctions matches",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "analysis": "Analysis",
+  "@analysis": {
+    "description": "Analysis title"
+  },
+
+  "quickAnalysis": "Quick Analysis",
+  "@quickAnalysis": {
+    "description": "Quick analysis option"
+  },
+
+  "deepAnalysis": "Deep Analysis",
+  "@deepAnalysis": {
+    "description": "Deep analysis option"
+  },
+
+  "startAnalysis": "Start Analysis",
+  "@startAnalysis": {
+    "description": "Start analysis button"
+  },
+
+  "analysisInProgress": "Analysis in Progress",
+  "@analysisInProgress": {
+    "description": "Analysis in progress message"
+  },
+
+  "analysisComplete": "Analysis Complete",
+  "@analysisComplete": {
+    "description": "Analysis complete message"
+  },
+
+  "viewResults": "View Results",
+  "@viewResults": {
+    "description": "View results button"
+  },
+
+  "generateReport": "Generate Report",
+  "@generateReport": {
+    "description": "Generate report button"
+  },
+
+  "downloadPdf": "Download PDF",
+  "@downloadPdf": {
+    "description": "Download PDF button"
+  },
+
+  "share": "Share",
+  "@share": {
+    "description": "Share button"
+  },
+
+  "error": "Error",
+  "@error": {
+    "description": "Error title"
+  },
+
+  "tryAgain": "Try Again",
+  "@tryAgain": {
+    "description": "Try again button"
+  },
+
+  "loading": "Loading...",
+  "@loading": {
+    "description": "Loading message"
+  },
+
+  "noData": "No data available",
+  "@noData": {
+    "description": "No data message"
+  },
+
+  "search": "Search",
+  "@search": {
+    "description": "Search placeholder"
+  },
+
+  "filter": "Filter",
+  "@filter": {
+    "description": "Filter button"
+  },
+
+  "sortBy": "Sort by",
+  "@sortBy": {
+    "description": "Sort by label"
+  },
+
+  "date": "Date",
+  "@date": {
+    "description": "Date label"
+  },
+
+  "name": "Name",
+  "@name": {
+    "description": "Name label"
+  },
+
+  "status": "Status",
+  "@status": {
+    "description": "Status label"
+  },
+
+  "type": "Type",
+  "@type": {
+    "description": "Type label"
+  },
+
+  "actions": "Actions",
+  "@actions": {
+    "description": "Actions label"
+  },
+
+  "delete": "Delete",
+  "@delete": {
+    "description": "Delete action"
+  },
+
+  "edit": "Edit",
+  "@edit": {
+    "description": "Edit action"
+  },
+
+  "view": "View",
+  "@view": {
+    "description": "View action"
+  },
+
+  "confirm": "Confirm",
+  "@confirm": {
+    "description": "Confirm button"
+  },
+
+  "yes": "Yes",
+  "@yes": {
+    "description": "Yes option"
+  },
+
+  "no": "No",
+  "@no": {
+    "description": "No option"
+  },
+
+  "ok": "OK",
+  "@ok": {
+    "description": "OK button"
+  },
+
+  "close": "Close",
+  "@close": {
+    "description": "Close button"
+  },
+
+  "back": "Back",
+  "@back": {
+    "description": "Back button"
+  },
+
+  "next": "Next",
+  "@next": {
+    "description": "Next button"
+  },
+
+  "previous": "Previous",
+  "@previous": {
+    "description": "Previous button"
+  },
+
+  "submit": "Submit",
+  "@submit": {
+    "description": "Submit button"
+  },
+
+  "done": "Done",
+  "@done": {
+    "description": "Done button"
+  },
+
+  "refresh": "Refresh",
+  "@refresh": {
+    "description": "Refresh button"
+  },
+
+  "retry": "Retry",
+  "@retry": {
+    "description": "Retry button"
+  },
+
+  "unsavedChanges": "You have unsaved changes",
+  "@unsavedChanges": {
+    "description": "Unsaved changes warning"
+  },
+
+  "discardChanges": "Discard Changes",
+  "@discardChanges": {
+    "description": "Discard changes button"
+  },
+
+  "saveChanges": "Save Changes",
+  "@saveChanges": {
+    "description": "Save changes button"
+  },
+
+  "unsavedChangesPressSave": "You have unsaved changes. Press Save to apply the new language.",
+  "@unsavedChangesPressSave": {
+    "description": "Message shown when user has unsaved language changes"
+  },
+
+  "languageChangedTo": "Language changed to {languageName}",
+  "@languageChangedTo": {
+    "description": "Banner text when language is changed",
+    "placeholders": {
+      "languageName": {
+        "type": "String",
+        "example": "English"
+      }
+    }
+  },
+
+  "undo": "Undo",
+  "@undo": {
+    "description": "Undo button text"
+  },
+
+  "saveLanguagePreference": "Save Language Preference",
+  "@saveLanguagePreference": {
+    "description": "Save language preference button"
+  },
+
+  "failedToSaveLanguage": "Failed to save language preference. Please try again.",
+  "@failedToSaveLanguage": {
+    "description": "Error message when language save fails"
+  },
+
+  "discardChangesQuestion": "Discard Changes?",
+  "@discardChangesQuestion": {
+    "description": "Discard changes dialog title"
+  },
+
+  "discardChangesMessage": "You have unsaved changes. Do you want to discard them?",
+  "@discardChangesMessage": {
+    "description": "Discard changes dialog message"
+  },
+
+  "discard": "Discard",
+  "@discard": {
+    "description": "Discard button text"
+  },
+
+  "rtlLabel": "RTL",
+  "@rtlLabel": {
+    "description": "Right-to-left language indicator"
+  },
+
+  "backToDashboard": "Back to Dashboard",
+  "@backToDashboard": {
+    "description": "Back to dashboard button text"
+  },
+
+  "noAiAnalysisYet": "No AI analysis available yet.\nClick \"Analyze\" to generate risk insights.",
+  "@noAiAnalysisYet": {
+    "description": "Message when AI analysis is not yet available"
+  },
+
+  "clickCalculatePricing": "Click \"Calculate\" to generate a technical premium for this risk.",
+  "@clickCalculatePricing": {
+    "description": "Message prompting user to calculate pricing"
+  },
+
+  "pricingNotAvailableDeclined": "Pricing not available for declined risks.",
+  "@pricingNotAvailableDeclined": {
+    "description": "Message when pricing is not available for declined risks"
+  },
+
+  "leaveAnalysis": "Leave Analysis?",
+  "@leaveAnalysis": {
+    "description": "Leave analysis dialog title"
+  },
+
+  "stayHere": "Stay Here",
+  "@stayHere": {
+    "description": "Stay here button text"
+  },
+
+  "runInBackground": "Run in Background",
+  "@runInBackground": {
+    "description": "Run in background button text"
+  },
+
+  "askAiAboutCategory": "Ask AI About This Category",
+  "@askAiAboutCategory": {
+    "description": "Ask AI about category button"
+  },
+
+  "copy": "Copy",
+  "@copy": {
+    "description": "Copy button text"
+  },
+
+  "analysisMode": "Analysis Mode",
+  "@analysisMode": {
+    "description": "Analysis mode screen title"
+  },
+
+  "recommended": "RECOMMENDED",
+  "@recommended": {
+    "description": "Recommended badge text"
+  },
+
+  "agents": "agents",
+  "@agents": {
+    "description": "Agents label"
+  },
+
+  "documentsToAnalyze": "{count} document(s) to analyze",
+  "@documentsToAnalyze": {
+    "description": "Documents to analyze count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "characters": "characters",
+  "@characters": {
+    "description": "Characters label"
+  },
+
+  "analysisFailed": "Analysis Failed",
+  "@analysisFailed": {
+    "description": "Analysis failed message"
+  },
+
+  "goBack": "Go Back",
+  "@goBack": {
+    "description": "Go back button text"
+  },
+
+  "documentCenter": "Document Center",
+  "@documentCenter": {
+    "description": "Document center title"
+  },
+
+  "createNewDocument": "Create New Document",
+  "@createNewDocument": {
+    "description": "Create new document title"
+  },
+
+  "newDocument": "New Document",
+  "@newDocument": {
+    "description": "New document button text"
+  },
+
+  "recentDocuments": "Recent Documents",
+  "@recentDocuments": {
+    "description": "Recent documents section title"
+  },
+
+  "templatesLibrary": "Templates Library",
+  "@templatesLibrary": {
+    "description": "Templates library section title"
+  },
+
+  "browseByLineOfBusiness": "Browse by line of business",
+  "@browseByLineOfBusiness": {
+    "description": "Browse by line of business subtitle"
+  },
+
+  "assessmentDocuments": "Assessment Documents",
+  "@assessmentDocuments": {
+    "description": "Assessment documents section title"
+  },
+
+  "noAssessmentsYet": "No Assessments Yet",
+  "@noAssessmentsYet": {
+    "description": "No assessments yet message"
+  },
+
+  "uploadDocuments": "Upload Documents",
+  "@uploadDocuments": {
+    "description": "Upload documents button"
+  },
+
+  "searchDocuments": "Search Documents",
+  "@searchDocuments": {
+    "description": "Search documents dialog title"
+  },
+
+  "getStarted": "Get Started",
+  "@getStarted": {
+    "description": "Get started button text"
+  },
+
+  "generate": "Generate",
+  "@generate": {
+    "description": "Generate button text"
+  },
+
+  "uploaded": "Uploaded",
+  "@uploaded": {
+    "description": "Uploaded label"
+  },
+
+  "generated": "Generated",
+  "@generated": {
+    "description": "Generated label"
+  },
+
+  "generateDocuments": "Generate Documents",
+  "@generateDocuments": {
+    "description": "Generate documents screen title"
+  },
+
+  "aiRecommendedDocuments": "AI Recommended Documents",
+  "@aiRecommendedDocuments": {
+    "description": "AI recommended documents title"
+  },
+
+  "selectDocumentsToGenerate": "Select the documents you want to generate",
+  "@selectDocumentsToGenerate": {
+    "description": "Select documents to generate subtitle"
+  },
+
+  "lmaClauses": "LMA Clauses",
+  "@lmaClauses": {
+    "description": "LMA clauses title"
+  },
+
+  "selected": "selected",
+  "@selected": {
+    "description": "Selected label"
+  },
+
+  "required": "REQUIRED",
+  "@required": {
+    "description": "Required badge text"
+  },
+
+  "generatingDocuments": "Generating Documents",
+  "@generatingDocuments": {
+    "description": "Generating documents title"
+  },
+
+  "aiAgentsWorking": "AI agents are working on your documents",
+  "@aiAgentsWorking": {
+    "description": "AI agents working message"
+  },
+
+  "complete": "Complete",
+  "@complete": {
+    "description": "Complete label"
+  },
+
+  "liveActivity": "Live Activity",
+  "@liveActivity": {
+    "description": "Live activity label"
+  },
+
+  "initializing": "Initializing...",
+  "@initializing": {
+    "description": "Initializing message"
+  },
+
+  "documentsGeneratedSuccessfully": "Documents Generated Successfully",
+  "@documentsGeneratedSuccessfully": {
+    "description": "Documents generated successfully message"
+  },
+
+  "documentsReadyForReview": "{count} document(s) ready for review",
+  "@documentsReadyForReview": {
+    "description": "Documents ready for review message",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "preview": "Preview",
+  "@preview": {
+    "description": "Preview button text"
+  },
+
+  "finalize": "Finalize",
+  "@finalize": {
+    "description": "Finalize button text"
+  },
+
+  "generateMore": "Generate More",
+  "@generateMore": {
+    "description": "Generate more button text"
+  },
+
+  "selectLineOfBusiness": "Select Line of Business",
+  "@selectLineOfBusiness": {
+    "description": "Select line of business title"
+  },
+
+  "continueWith": "Continue with {name}",
+  "@continueWith": {
+    "description": "Continue with button text",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+
+  "selectALineOfBusiness": "Select a Line of Business",
+  "@selectALineOfBusiness": {
+    "description": "Select a line of business prompt"
+  },
+
+  "documentLibrary": "Document Library",
+  "@documentLibrary": {
+    "description": "Document library title"
+  },
+
+  "insuranceKnowledgeBase": "Insurance Knowledge Base",
+  "@insuranceKnowledgeBase": {
+    "description": "Insurance knowledge base subtitle"
+  },
+
+  "data": "Data",
+  "@data": {
+    "description": "Data label"
+  },
+
+  "categories": "Categories",
+  "@categories": {
+    "description": "Categories label"
+  },
+
+  "all": "All",
+  "@all": {
+    "description": "All filter option"
+  },
+
+  "insurance": "Insurance",
+  "@insurance": {
+    "description": "Insurance filter option"
+  },
+
+  "training": "Training",
+  "@training": {
+    "description": "Training filter option"
+  },
+
+  "favorites": "Favorites",
+  "@favorites": {
+    "description": "Favorites filter option"
+  },
+
+  "noFavoritesYet": "No favorites yet",
+  "@noFavoritesYet": {
+    "description": "No favorites yet message"
+  },
+
+  "noDocumentsFound": "No documents found",
+  "@noDocumentsFound": {
+    "description": "No documents found message"
+  },
+
+  "newChat": "New Chat",
+  "@newChat": {
+    "description": "New chat title"
+  },
+
+  "aiAssistant": "AI Assistant",
+  "@aiAssistant": {
+    "description": "AI assistant title"
+  },
+
+  "knowledgeSources": "Knowledge Sources",
+  "@knowledgeSources": {
+    "description": "Knowledge sources title"
+  },
+
+  "copiedToClipboard": "Copied to clipboard",
+  "@copiedToClipboard": {
+    "description": "Copied to clipboard message"
+  },
+
+  "screeningLevels": "SCREENING LEVELS",
+  "@screeningLevels": {
+    "description": "Screening levels section title"
+  },
+
+  "screeningHistory": "SCREENING HISTORY",
+  "@screeningHistory": {
+    "description": "Screening history section title"
+  },
+
+  "run": "Run",
+  "@run": {
+    "description": "Run button text"
+  },
+
+  "liveFindings": "LIVE FINDINGS",
+  "@liveFindings": {
+    "description": "Live findings section title"
+  },
+
+  "analysisCanContinueInBackground": "You can close this window. Analysis will continue in background and results will be available in Reports.",
+  "@analysisCanContinueInBackground": {
+    "description": "Message informing user they can close the analysis window"
+  },
+
+  "minimizeLiveResults": "Minimize",
+  "@minimizeLiveResults": {
+    "description": "Minimize live results panel button"
+  },
+
+  "expandLiveResults": "Show Live Results",
+  "@expandLiveResults": {
+    "description": "Expand live results panel button"
+  },
+
+  "checks": "CHECKS",
+  "@checks": {
+    "description": "Checks section title"
+  },
+
+  "pending": "Pending",
+  "@pending": {
+    "description": "Pending status"
+  },
+
+  "checking": "Checking...",
+  "@checking": {
+    "description": "Checking status"
+  },
+
+  "clear": "CLEAR",
+  "@clear": {
+    "description": "Clear status"
+  },
+
+  "reviewRequired": "REVIEW REQUIRED",
+  "@reviewRequired": {
+    "description": "Review required status"
+  },
+
+  "matchFound": "MATCH FOUND",
+  "@matchFound": {
+    "description": "Match found status"
+  },
+
+  "noEntitiesFound": "NO ENTITIES FOUND",
+  "@noEntitiesFound": {
+    "description": "No entities found status"
+  },
+
+  "screeningResults": "SCREENING RESULTS",
+  "@screeningResults": {
+    "description": "Screening results section title"
+  },
+
+  "viewFullResults": "View Full Results",
+  "@viewFullResults": {
+    "description": "View full results button"
+  },
+
+  "sections": "Sections",
+  "@sections": {
+    "description": "Sections tab label"
+  },
+
+  "details": "Details",
+  "@details": {
+    "description": "Details tab label"
+  },
+
+  "coreSections": "Core Sections",
+  "@coreSections": {
+    "description": "Core sections title"
+  },
+
+  "exclusions": "Exclusions",
+  "@exclusions": {
+    "description": "Exclusions title"
+  },
+
+  "conditions": "Conditions",
+  "@conditions": {
+    "description": "Conditions title"
+  },
+
+  "insuredInformation": "Insured Information",
+  "@insuredInformation": {
+    "description": "Insured information title"
+  },
+
+  "coverageLimits": "Coverage Limits",
+  "@coverageLimits": {
+    "description": "Coverage limits title"
+  },
+
+  "premium": "Premium",
+  "@premium": {
+    "description": "Premium label"
+  },
+
+  "generateDocument": "Generate Document",
+  "@generateDocument": {
+    "description": "Generate document button"
+  },
+
+  "generatingYourDocument": "Generating Your Document",
+  "@generatingYourDocument": {
+    "description": "Generating your document title"
+  },
+
+  "umrGenerate": "Generate",
+  "@umrGenerate": {
+    "description": "UMR generate tab"
+  },
+
+  "umrRegistry": "Registry",
+  "@umrRegistry": {
+    "description": "UMR registry tab"
+  },
+
+  "umrValidation": "Validation",
+  "@umrValidation": {
+    "description": "UMR validation tab"
+  },
+
+  "multiAgentAnalysis": "Multi-Agent Analysis",
+  "@multiAgentAnalysis": {
+    "description": "Multi-agent analysis title"
+  },
+
+  "agentPipeline": "5-Agent Pipeline",
+  "@agentPipeline": {
+    "description": "5-agent pipeline label"
+  },
+
+  "overallProgress": "Overall Progress",
+  "@overallProgress": {
+    "description": "Overall progress label"
+  },
+
+  "documentClassifier": "Document Classifier",
+  "@documentClassifier": {
+    "description": "Document classifier agent name"
+  },
+
+  "classifyingDocument": "Classifying Document",
+  "@classifyingDocument": {
+    "description": "Classifying document title"
+  },
+
+  "identifyingDocumentType": "Identifying document type and validating insurance relevance",
+  "@identifyingDocumentType": {
+    "description": "Classifier agent subtitle"
+  },
+
+  "dataExtractor": "Data Extractor",
+  "@dataExtractor": {
+    "description": "Data extractor agent name"
+  },
+
+  "extractingData": "Extracting Data",
+  "@extractingData": {
+    "description": "Extracting data title"
+  },
+
+  "pullingInsuranceFields": "Pulling all insurance fields from document",
+  "@pullingInsuranceFields": {
+    "description": "Extractor agent subtitle"
+  },
+
+  "riskAnalyst": "Risk Analyst",
+  "@riskAnalyst": {
+    "description": "Risk analyst agent name"
+  },
+
+  "analyzingRisks": "Analyzing Risks",
+  "@analyzingRisks": {
+    "description": "Analyzing risks title"
+  },
+
+  "identifyingRiskFactors": "Identifying risk factors and exposures",
+  "@identifyingRiskFactors": {
+    "description": "Risk analyst subtitle"
+  },
+
+  "seniorUnderwriter": "Senior Underwriter",
+  "@seniorUnderwriter": {
+    "description": "Senior underwriter agent name"
+  },
+
+  "underwritingDecision": "Underwriting Decision",
+  "@underwritingDecision": {
+    "description": "Underwriting decision title"
+  },
+
+  "makingGoNoGoDecision": "Making GO/NO-GO/REFER recommendation",
+  "@makingGoNoGoDecision": {
+    "description": "Underwriter agent subtitle"
+  },
+
+  "qualityAssurance": "Quality Assurance",
+  "@qualityAssurance": {
+    "description": "Quality assurance agent name"
+  },
+
+  "finalValidation": "Final Validation",
+  "@finalValidation": {
+    "description": "Final validation title"
+  },
+
+  "ensuringAccuracy": "Ensuring accuracy and completeness",
+  "@ensuringAccuracy": {
+    "description": "QA agent subtitle"
+  },
+
+  "newAssessment": "New Assessment",
+  "@newAssessment": {
+    "description": "New assessment title"
+  },
+
+  "aiPoweredAnalysis": "AI-Powered Analysis",
+  "@aiPoweredAnalysis": {
+    "description": "AI-powered analysis label"
+  },
+
+  "riskTypeAutoDetected": "Risk type will be automatically detected from your documents using OCR & AI",
+  "@riskTypeAutoDetected": {
+    "description": "Risk type auto detection description"
+  },
+
+  "addDocuments": "Add Documents",
+  "@addDocuments": {
+    "description": "Add documents title"
+  },
+
+  "uploadFromPhone": "Upload from Phone",
+  "@uploadFromPhone": {
+    "description": "Upload from phone option"
+  },
+
+  "scanQrWithPhone": "Scan QR with Phone",
+  "@scanQrWithPhone": {
+    "description": "Scan QR with phone option"
+  },
+
+  "usePhoneCamera": "Use phone camera to capture documents",
+  "@usePhoneCamera": {
+    "description": "Use phone camera subtitle"
+  },
+
+  "takePhoto": "Take Photo",
+  "@takePhoto": {
+    "description": "Take photo option"
+  },
+
+  "captureWithCamera": "Capture document with camera",
+  "@captureWithCamera": {
+    "description": "Capture with camera subtitle"
+  },
+
+  "photoGallery": "Photo Gallery",
+  "@photoGallery": {
+    "description": "Photo gallery option"
+  },
+
+  "selectFromPhotos": "Select from your photos",
+  "@selectFromPhotos": {
+    "description": "Select from photos subtitle"
+  },
+
+  "browseFiles": "Browse Files",
+  "@browseFiles": {
+    "description": "Browse files option"
+  },
+
+  "pdfDocXlsAndMore": "PDF, DOC, XLS and more",
+  "@pdfDocXlsAndMore": {
+    "description": "Supported file types"
+  },
+
+  "tapToAddDocuments": "Tap to add documents",
+  "@tapToAddDocuments": {
+    "description": "Tap to add documents prompt"
+  },
+
+  "takePhotoBrowseOrGallery": "Take photo, browse files, or select from gallery",
+  "@takePhotoBrowseOrGallery": {
+    "description": "Upload options description"
+  },
+
+  "uploadedDocuments": "Uploaded Documents",
+  "@uploadedDocuments": {
+    "description": "Uploaded documents section title"
+  },
+
+  "filesCount": "{count} file(s)",
+  "@filesCount": {
+    "description": "Files count label",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "recommendedDocuments": "Recommended Documents",
+  "@recommendedDocuments": {
+    "description": "Recommended documents section title"
+  },
+
+  "applicationFormLossHistory": "Application form, Loss history, Financial statements, Prior policy",
+  "@applicationFormLossHistory": {
+    "description": "Recommended documents list"
+  },
+
+  "startRiskAssessment": "Start Risk Assessment",
+  "@startRiskAssessment": {
+    "description": "Start risk assessment button"
+  },
+
+  "failedToCreateSession": "Failed to create upload session",
+  "@failedToCreateSession": {
+    "description": "Failed to create session error"
+  },
+
+  "documentsReceived": "{count} document(s) received",
+  "@documentsReceived": {
+    "description": "Documents received message",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "scanWithPhoneCamera": "Scan with your phone camera\nto capture and upload documents",
+  "@scanWithPhoneCamera": {
+    "description": "Scan with phone camera instructions"
+  },
+
+  "documentsAddedFromPhone": "{count} document(s) added from phone",
+  "@documentsAddedFromPhone": {
+    "description": "Documents added from phone message",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "personalInformation": "Personal Information",
+  "@personalInformation": {
+    "description": "Personal information section title"
+  },
+
+  "professionalInformation": "Professional Information",
+  "@professionalInformation": {
+    "description": "Professional information section title"
+  },
+
+  "company": "Company",
+  "@company": {
+    "description": "Company field label"
+  },
+
+  "role": "Role",
+  "@role": {
+    "description": "Role field label"
+  },
+
+  "phone": "Phone",
+  "@phone": {
+    "description": "Phone field label"
+  },
+
+  "accountStatistics": "Account Statistics",
+  "@accountStatistics": {
+    "description": "Account statistics section title"
+  },
+
+  "memberSince": "Member Since",
+  "@memberSince": {
+    "description": "Member since label"
+  },
+
+  "totalAssessments": "Total Assessments",
+  "@totalAssessments": {
+    "description": "Total assessments label"
+  },
+
+  "contractsGenerated": "Contracts Generated",
+  "@contractsGenerated": {
+    "description": "Contracts generated label"
+  },
+
+  "lastLogin": "Last Login",
+  "@lastLogin": {
+    "description": "Last login label"
+  },
+
+  "dangerZone": "Danger Zone",
+  "@dangerZone": {
+    "description": "Danger zone section title"
+  },
+
+  "deleteAccountWarning": "Once you delete your account, there is no going back. Please be certain.",
+  "@deleteAccountWarning": {
+    "description": "Delete account warning message"
+  },
+
+  "deleteAccount": "Delete Account",
+  "@deleteAccount": {
+    "description": "Delete account button"
+  },
+
+  "profileUpdatedSuccessfully": "Profile updated successfully",
+  "@profileUpdatedSuccessfully": {
+    "description": "Profile updated success message"
+  },
+
+  "thisFieldRequired": "This field is required",
+  "@thisFieldRequired": {
+    "description": "Field required validation message"
+  },
+
+  "deleteAccountConfirmation": "Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.",
+  "@deleteAccountConfirmation": {
+    "description": "Delete account confirmation message"
+  },
+
+  "professionalPlan": "Professional Plan",
+  "@professionalPlan": {
+    "description": "Professional plan name"
+  },
+
+  "activeUntil": "Active until {date}",
+  "@activeUntil": {
+    "description": "Active until date",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+
+  "active": "ACTIVE",
+  "@active": {
+    "description": "Active status badge"
+  },
+
+  "thisMonthsUsage": "This Month's Usage",
+  "@thisMonthsUsage": {
+    "description": "This month's usage section title"
+  },
+
+  "assessments": "Assessments",
+  "@assessments": {
+    "description": "Assessments label"
+  },
+
+  "contractGenerations": "Contract Generations",
+  "@contractGenerations": {
+    "description": "Contract generations label"
+  },
+
+  "aiChatMessages": "AI Chat Messages",
+  "@aiChatMessages": {
+    "description": "AI chat messages label"
+  },
+
+  "documentStorage": "Document Storage",
+  "@documentStorage": {
+    "description": "Document storage label"
+  },
+
+  "availablePlans": "Available Plans",
+  "@availablePlans": {
+    "description": "Available plans section title"
+  },
+
+  "basic": "Basic",
+  "@basic": {
+    "description": "Basic plan name"
+  },
+
+  "enterprise": "Enterprise",
+  "@enterprise": {
+    "description": "Enterprise plan name"
+  },
+
+  "popular": "POPULAR",
+  "@popular": {
+    "description": "Popular badge"
+  },
+
+  "current": "CURRENT",
+  "@current": {
+    "description": "Current plan badge"
+  },
+
+  "perMonth": "/month",
+  "@perMonth": {
+    "description": "Per month pricing suffix"
+  },
+
+  "assessmentsPerMonth": "{count} assessments/month",
+  "@assessmentsPerMonth": {
+    "description": "Assessments per month feature",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+
+  "contractGenerationsCount": "{count} contract generations",
+  "@contractGenerationsCount": {
+    "description": "Contract generations count feature",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+
+  "aiChatMessagesCount": "{count} AI chat messages",
+  "@aiChatMessagesCount": {
+    "description": "AI chat messages count feature",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+
+  "documentStorageAmount": "{amount} document storage",
+  "@documentStorageAmount": {
+    "description": "Document storage amount feature",
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+
+  "emailSupport": "Email support",
+  "@emailSupport": {
+    "description": "Email support feature"
+  },
+
+  "prioritySupport": "Priority support",
+  "@prioritySupport": {
+    "description": "Priority support feature"
+  },
+
+  "advancedAnalytics": "Advanced analytics",
+  "@advancedAnalytics": {
+    "description": "Advanced analytics feature"
+  },
+
+  "dedicatedSupport": "24/7 dedicated support",
+  "@dedicatedSupport": {
+    "description": "Dedicated support feature"
+  },
+
+  "customIntegrations": "Custom integrations",
+  "@customIntegrations": {
+    "description": "Custom integrations feature"
+  },
+
+  "whiteLabelOptions": "White-label options",
+  "@whiteLabelOptions": {
+    "description": "White-label options feature"
+  },
+
+  "unlimited": "Unlimited",
+  "@unlimited": {
+    "description": "Unlimited label"
+  },
+
+  "upgrade": "Upgrade",
+  "@upgrade": {
+    "description": "Upgrade button"
+  },
+
+  "downgrade": "Downgrade",
+  "@downgrade": {
+    "description": "Downgrade button"
+  },
+
+  "billingHistory": "Billing History",
+  "@billingHistory": {
+    "description": "Billing history section title"
+  },
+
+  "visaEndingIn": "Visa ending in {last4}",
+  "@visaEndingIn": {
+    "description": "Visa card ending in",
+    "placeholders": {
+      "last4": {
+        "type": "String"
+      }
+    }
+  },
+
+  "expires": "Expires {date}",
+  "@expires": {
+    "description": "Card expiration date",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+
+  "update": "Update",
+  "@update": {
+    "description": "Update button"
+  },
+
+  "enterpriseEdition": "ENTERPRISE EDITION",
+  "@enterpriseEdition": {
+    "description": "Enterprise edition label"
+  },
+
+  "goNoGoAnalysis": "Go/No-Go Analysis",
+  "@goNoGoAnalysis": {
+    "description": "Go/No-Go analysis mode"
+  },
+
+  "approved": "Approved",
+  "@approved": {
+    "description": "Approved decision"
+  },
+
+  "declined": "Declined",
+  "@declined": {
+    "description": "Declined decision"
+  },
+
+  "refer": "Refer",
+  "@refer": {
+    "description": "Refer decision"
+  },
+
+  "confidence": "Confidence",
+  "@confidence": {
+    "description": "Confidence label"
+  },
+
+  "completedIn": "Completed in {time}",
+  "@completedIn": {
+    "description": "Completed in time",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+
+  "estimatedRemaining": "Estimated: {time} remaining",
+  "@estimatedRemaining": {
+    "description": "Estimated time remaining",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+
+  "agentsLabel": "AGENTS",
+  "@agentsLabel": {
+    "description": "Agents section label"
+  },
+
+  "findingsLabel": "FINDINGS",
+  "@findingsLabel": {
+    "description": "Findings section label"
+  },
+
+  "doneStatus": "Done",
+  "@doneStatus": {
+    "description": "Done status"
+  },
+
+  "runningStatus": "Running",
+  "@runningStatus": {
+    "description": "Running status"
+  },
+
+  "pendingStatus": "Pending",
+  "@pendingStatus": {
+    "description": "Pending status"
+  },
+
+  "identifyDocumentType": "Identify document type",
+  "@identifyDocumentType": {
+    "description": "Identify document type description"
+  },
+
+  "extractInsuranceData": "Extract insurance data",
+  "@extractInsuranceData": {
+    "description": "Extract insurance data description"
+  },
+
+  "analyzeRiskFactors": "Analyze risk factors",
+  "@analyzeRiskFactors": {
+    "description": "Analyze risk factors description"
+  },
+
+  "makeDecision": "Make decision",
+  "@makeDecision": {
+    "description": "Make decision description"
+  },
+
+  "underwriter": "Underwriter",
+  "@underwriter": {
+    "description": "Underwriter agent name"
+  },
+
+  "analysisRunningMessage": "The analysis is running. You can:\n\n• Run in background - analysis continues, check results later in Reports\n• Stay here - wait for completion",
+  "@analysisRunningMessage": {
+    "description": "Analysis running dialog message"
+  },
+
+  "unexpectedError": "An unexpected error occurred",
+  "@unexpectedError": {
+    "description": "Unexpected error message"
+  },
+
+  "clauses": "Clauses",
+  "@clauses": {
+    "description": "Clauses label"
+  },
+
+  "knowledge": "Knowledge",
+  "@knowledge": {
+    "description": "Knowledge label"
+  },
+
+  "languages": "Languages",
+  "@languages": {
+    "description": "Languages label"
+  },
+
+  "searchDocumentsClausesPolicies": "Search documents, clauses, policies...",
+  "@searchDocumentsClausesPolicies": {
+    "description": "Search placeholder for document library"
+  },
+
+  "docs": "docs",
+  "@docs": {
+    "description": "Docs abbreviation"
+  },
+
+  "tapStarToFavorite": "Tap the star icon on any category to add it to favorites",
+  "@tapStarToFavorite": {
+    "description": "Tap star to favorite instruction"
+  },
+
+  "tryAdjustingSearch": "Try adjusting your search or filter",
+  "@tryAdjustingSearch": {
+    "description": "Try adjusting search message"
+  },
+
+  "searchInThisCategory": "Search in this category...",
+  "@searchInThisCategory": {
+    "description": "Search in category placeholder"
+  },
+
+  "noDocumentsMatchSearch": "No documents match your search",
+  "@noDocumentsMatchSearch": {
+    "description": "No documents match search message"
+  },
+
+  "noDocumentsInCategory": "No documents in this category",
+  "@noDocumentsInCategory": {
+    "description": "No documents in category message"
+  },
+
+  "contentCopied": "Content copied",
+  "@contentCopied": {
+    "description": "Content copied message"
+  },
+
+  "pathCopiedToClipboard": "Path copied to clipboard",
+  "@pathCopiedToClipboard": {
+    "description": "Path copied to clipboard message"
+  },
+
+  "resetPassword": "Reset Password",
+  "@resetPassword": {
+    "description": "Reset password title"
+  },
+
+  "resetPasswordInstructions": "Enter your email address and we'll send you instructions to reset your password.",
+  "@resetPasswordInstructions": {
+    "description": "Reset password instructions"
+  },
+
+  "enterYourEmail": "Enter your email",
+  "@enterYourEmail": {
+    "description": "Enter your email placeholder"
+  },
+
+  "pleaseEnterYourEmail": "Please enter your email",
+  "@pleaseEnterYourEmail": {
+    "description": "Please enter email validation"
+  },
+
+  "pleaseEnterValidEmail": "Please enter a valid email",
+  "@pleaseEnterValidEmail": {
+    "description": "Please enter valid email validation"
+  },
+
+  "sendResetLink": "Send Reset Link",
+  "@sendResetLink": {
+    "description": "Send reset link button"
+  },
+
+  "backToSignIn": "Back to Sign In",
+  "@backToSignIn": {
+    "description": "Back to sign in button"
+  },
+
+  "checkYourEmail": "Check Your Email",
+  "@checkYourEmail": {
+    "description": "Check your email title"
+  },
+
+  "passwordResetSentTo": "We've sent password reset instructions to",
+  "@passwordResetSentTo": {
+    "description": "Password reset sent to message"
+  },
+
+  "didntReceiveEmailResend": "Didn't receive the email? Resend",
+  "@didntReceiveEmailResend": {
+    "description": "Didn't receive email resend link"
+  },
+
+  "startRiskAssessmentJourney": "Start your risk assessment journey",
+  "@startRiskAssessmentJourney": {
+    "description": "Start risk assessment journey subtitle"
+  },
+
+  "enterYourFullName": "Enter your full name",
+  "@enterYourFullName": {
+    "description": "Enter full name placeholder"
+  },
+
+  "pleaseEnterYourName": "Please enter your name",
+  "@pleaseEnterYourName": {
+    "description": "Please enter name validation"
+  },
+
+  "companyOptional": "Company (Optional)",
+  "@companyOptional": {
+    "description": "Company optional field label"
+  },
+
+  "enterYourCompanyName": "Enter your company name",
+  "@enterYourCompanyName": {
+    "description": "Enter company name placeholder"
+  },
+
+  "createPassword": "Create a password",
+  "@createPassword": {
+    "description": "Create password placeholder"
+  },
+
+  "pleaseEnterPassword": "Please enter a password",
+  "@pleaseEnterPassword": {
+    "description": "Please enter password validation"
+  },
+
+  "passwordMinLength": "Password must be at least 8 characters",
+  "@passwordMinLength": {
+    "description": "Password minimum length validation"
+  },
+
+  "confirmYourPassword": "Confirm your password",
+  "@confirmYourPassword": {
+    "description": "Confirm password placeholder"
+  },
+
+  "pleaseConfirmPassword": "Please confirm your password",
+  "@pleaseConfirmPassword": {
+    "description": "Please confirm password validation"
+  },
+
+  "passwordsDoNotMatch": "Passwords do not match",
+  "@passwordsDoNotMatch": {
+    "description": "Passwords do not match validation"
+  },
+
+  "iAgreeToThe": "I agree to the",
+  "@iAgreeToThe": {
+    "description": "I agree to the prefix"
+  },
+
+  "and": "and",
+  "@and": {
+    "description": "And conjunction"
+  },
+
+  "alreadyHaveAccount": "Already have an account?",
+  "@alreadyHaveAccount": {
+    "description": "Already have account text"
+  },
+
+  "signIn": "Sign In",
+  "@signIn": {
+    "description": "Sign in button"
+  },
+
+  "pleaseAcceptTerms": "Please accept the terms and conditions",
+  "@pleaseAcceptTerms": {
+    "description": "Please accept terms validation"
+  },
+
+  "onboardingTitle1": "AI-Powered Risk Assessment",
+  "@onboardingTitle1": {
+    "description": "First onboarding screen title"
+  },
+
+  "onboardingDesc1": "Upload insurance documents and get instant AI-powered risk analysis with GO/NO-GO recommendations",
+  "@onboardingDesc1": {
+    "description": "First onboarding screen description"
+  },
+
+  "onboardingTitle2": "Smart Document Generation",
+  "@onboardingTitle2": {
+    "description": "Second onboarding screen title"
+  },
+
+  "onboardingDesc2": "Generate professional insurance documents, contracts, and clauses tailored to Lloyd's market standards",
+  "@onboardingDesc2": {
+    "description": "Second onboarding screen description"
+  },
+
+  "onboardingTitle3": "24/7 Insurance AI Assistant",
+  "@onboardingTitle3": {
+    "description": "Third onboarding screen title"
+  },
+
+  "onboardingDesc3": "Get instant answers to insurance questions from our AI trained on 20GB+ of Lloyd's market knowledge",
+  "@onboardingDesc3": {
+    "description": "Third onboarding screen description"
+  },
+
+  "skip": "Skip",
+  "@skip": {
+    "description": "Skip button"
+  },
+
+  "getStartedNow": "Get Started",
+  "@getStartedNow": {
+    "description": "Get started button on onboarding"
+  }
+}
