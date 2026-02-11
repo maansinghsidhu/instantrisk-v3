@@ -49,8 +49,8 @@ class ReferenceDocumentService:
         """Get a synchronous database engine."""
         if self._sync_engine is None:
             from app.config import settings
-            sync_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
-            if "postgresql://" in sync_url and "+psycopg2" not in sync_url:
+            sync_url = settings.sync_database_url
+            if "+psycopg2" not in sync_url:
                 sync_url = sync_url.replace("postgresql://", "postgresql+psycopg2://")
             from sqlalchemy import create_engine
             self._sync_engine = create_engine(sync_url, pool_pre_ping=True)
