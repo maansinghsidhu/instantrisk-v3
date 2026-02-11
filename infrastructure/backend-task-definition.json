@@ -38,6 +38,14 @@
         {
           "name": "DATABASE_PASSWORD",
           "valueFrom": "arn:aws:secretsmanager:us-east-1:995306061991:secret:instantrisk/database-3KNa2l:password::"
+        },
+        {
+          "name": "SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:995306061991:secret:instantrisk/app-secret-GVs197"
+        },
+        {
+          "name": "JWT_SECRET_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:995306061991:secret:instantrisk/jwt-secret-25GkUZ"
         }
       ],
       "logConfiguration": {
