@@ -133,12 +133,26 @@ class _ResultsScreenState extends State<ResultsScreen>
     }
   }
 
+  int _stallSeconds = 0;
+  double _lastProgress = 0;
+
   void _startElapsedTimer() {
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_startTime != null && !_processingComplete && !_hasProcessingError) {
         setState(() {
           _elapsedSeconds = DateTime.now().difference(_startTime!).inSeconds;
         });
+        // Safety: if progress stalls at >=90% for 20s, force poll assessment status
+        if (_progressPercent >= 90 && _progressPercent == _lastProgress) {
+          _stallSeconds++;
+          if (_stallSeconds >= 20) {
+            _stallSeconds = 0;
+            _pollAssessmentStatus();
+          }
+        } else {
+          _stallSeconds = 0;
+          _lastProgress = _progressPercent;
+        }
       }
     });
   }
@@ -189,7 +203,7 @@ class _ResultsScreenState extends State<ResultsScreen>
         onDone: () {
           // WebSocket closed
           if (!_processingComplete && !_hasProcessingError) {
-            // Try reconnecting once, then fall back to polling
+            // Try reconnecting once, then fall back to assessment status polling
             if (_wsRetryCount < _maxWsRetries) {
               Future.delayed(const Duration(seconds: 2), () {
                 if (mounted && !_processingComplete && !_hasProcessingError) {
@@ -197,7 +211,8 @@ class _ResultsScreenState extends State<ResultsScreen>
                 }
               });
             } else {
-              _startPolling();
+              // Use assessment status polling as fallback (more reliable)
+              _startPollingAssessment();
             }
           }
         },
@@ -2747,10 +2762,6 @@ class _ResultsScreenState extends State<ResultsScreen>
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                // Live findings
-                if (_liveFindings.isNotEmpty)
-                  _buildLiveFindingsPanel(modeColor),
-
                 const SizedBox(height: 16),
 
                 // Analysis summary

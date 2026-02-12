@@ -172,7 +172,7 @@ class _Sidebar extends StatelessWidget {
     return Container(
       width: 240,
       decoration: BoxDecoration(
-        color: AppTheme.primaryDark,
+        color: const Color(0xFF0a0618),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -189,23 +189,9 @@ class _Sidebar extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               child: Row(
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'IR',
-                        style: TextStyle(
-                          color: AppTheme.primaryDark,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset('assets/images/logo-full.png', width: 44, height: 44, fit: BoxFit.contain),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -228,23 +214,9 @@ class _Sidebar extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
               child: Row(
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'IR',
-                        style: TextStyle(
-                          color: AppTheme.primaryDark,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset('assets/images/logo-full.png', width: 44, height: 44, fit: BoxFit.contain),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -577,10 +549,10 @@ class _BottomNavBar extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: const Color(0xFF0a0618),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),

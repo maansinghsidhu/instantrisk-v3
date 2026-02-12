@@ -181,48 +181,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                // Build/Deploy date and time
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryDark.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.primaryDark.withOpacity(0.15)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.rocket_launch_outlined,
-                        size: 18,
-                        color: AppTheme.primaryDark,
-                      ),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Deployed: $_buildDate at $_buildTime',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimary,
-                              fontFamily: 'Inter',
-                            ),
-                          ),
-                          Text(
-                            _buildVersion,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.textSecondary,
-                              fontFamily: 'Inter',
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
                 const SizedBox(height: 24),
 
                 // Error message
@@ -461,16 +419,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Deployment date (bottom)
+                // Logo at bottom
                 Center(
-                  child: Text(
-                    '$_buildVersion - $_buildDate $_buildTime',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppTheme.textHint,
-                      fontFamily: 'Inter',
-                    ),
-                  ),
+                  child: Image.asset('assets/images/logo-full.png', height: 32),
                 ),
               ],
             ),
