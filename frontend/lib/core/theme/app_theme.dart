@@ -56,13 +56,15 @@ class AppTheme {
       appBarTheme: const AppBarTheme(
         elevation: 0,
         centerTitle: true,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Color(0xFF0a0618),
         foregroundColor: textPrimary,
+        surfaceTintColor: Colors.transparent,
         titleTextStyle: TextStyle(
           fontFamily: 'Inter',
           fontSize: 18,
           fontWeight: FontWeight.w600,
           color: textPrimary,
+          letterSpacing: -0.3,
         ),
       ),
 

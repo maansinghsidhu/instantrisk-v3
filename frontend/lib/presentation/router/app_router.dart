@@ -22,6 +22,7 @@ import '../screens/reports/history_screen.dart';
 import '../screens/reports/results_screen.dart';
 import '../screens/reports/refinement_screen.dart';
 import '../screens/reports/contract_screen.dart';
+import '../screens/reports/share_view_screen.dart';
 
 import '../screens/chat/unified_chat_screen.dart';
 
@@ -108,6 +109,8 @@ class AppRouter {
     if (_publicRoutes.contains(location)) return true;
     // Check if it's a deep link upload route (public for mobile uploads)
     if (location.startsWith('/upload/')) return true;
+    // Share links are public (no auth required)
+    if (location.startsWith('/share/')) return true;
     return false;
   }
 
@@ -201,6 +204,15 @@ class AppRouter {
         path: '/upload/:token',
         name: 'qrUpload',
         builder: (context, state) => QRUploadScreen(
+          token: state.pathParameters['token']!,
+        ),
+      ),
+
+      // ==================== SHARED ASSESSMENT (Public) ====================
+      GoRoute(
+        path: '/share/:token',
+        name: 'sharedAssessment',
+        builder: (context, state) => ShareViewScreen(
           token: state.pathParameters['token']!,
         ),
       ),

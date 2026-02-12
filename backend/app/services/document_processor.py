@@ -523,7 +523,7 @@ Extract all insurance-relevant information and return ONLY valid JSON."""
                 "documents_remaining": 0,  # All loaded
                 "document_name": f"All {total_documents} documents",
                 "current_agent": agent_name,
-                "overall_progress": min(95, overall_progress),
+                "overall_progress": min(99, overall_progress),
                 "live_findings": live_findings
             })
 

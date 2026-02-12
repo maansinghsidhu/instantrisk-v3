@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:convert';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/services/chat_service.dart';
+import '../../../core/services/subscription_service.dart';
 
 /// Unified AI Chat Screen - Claude/ChatGPT-style interface
 ///
@@ -180,6 +183,62 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Premium gate - chat is premium-only
+    if (!SubscriptionService().isPremium) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0A0E1A),
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [const Color(0xFFFF0080).withValues(alpha: 0.2), const Color(0xFF6B00CC).withValues(alpha: 0.2)],
+                      ),
+                    ),
+                    child: const Icon(Icons.chat_bubble_outline, size: 48, color: Color(0xFF8B00FF)),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text('AI Chat Assistant', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700, fontFamily: 'Inter')),
+                  const SizedBox(height: 12),
+                  Text('Get instant answers about insurance policies, risk analysis, and underwriting decisions.',
+                      textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14, height: 1.5)),
+                  const SizedBox(height: 32),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF6B00CC).withValues(alpha: 0.3)),
+                      color: const Color(0xFF6B00CC).withValues(alpha: 0.08),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.workspace_premium, color: Color(0xFF8B00FF), size: 20),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text('Premium Feature', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                        ),
+                        TextButton(
+                          onPressed: () => context.go('/settings/subscription'),
+                          child: const Text('Upgrade', style: TextStyle(color: Color(0xFF8B00FF), fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E1A),
       appBar: _isWelcomeState ? null : _buildAppBar(),
@@ -694,7 +753,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                 subtitle: const Text('Attach an assessment for context', style: TextStyle(color: Colors.white38, fontSize: 12)),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: Navigate to assessment picker
+                  _showAssessmentPicker();
                 },
               ),
               ListTile(
@@ -710,7 +769,9 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                 subtitle: const Text('PDF, DOCX, or images', style: TextStyle(color: Colors.white38, fontSize: 12)),
                 onTap: () {
                   Navigator.pop(context);
-                  // TODO: File picker
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Document upload coming soon'), duration: Duration(seconds: 2)),
+                  );
                 },
               ),
               const SizedBox(height: 16),
@@ -719,6 +780,70 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
         );
       },
     );
+  }
+
+  Future<void> _showAssessmentPicker() async {
+    try {
+      final response = await authService.get('/assessments/?page=1&page_size=20');
+      if (response.statusCode != 200 || !mounted) return;
+      final data = jsonDecode(response.body);
+      final items = (data['items'] as List?) ?? [];
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1F2E),
+          title: const Text('Select Assessment', style: TextStyle(color: Colors.white)),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 400,
+            child: items.isEmpty
+                ? const Center(child: Text('No assessments found', style: TextStyle(color: Colors.white54)))
+                : ListView.builder(
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      final title = item['title'] ?? item['insured_name'] ?? 'Assessment';
+                      final status = item['status'] ?? '';
+                      final decision = item['decision'] ?? '';
+                      return ListTile(
+                        leading: Icon(
+                          decision == 'go' ? Icons.check_circle : decision == 'no_go' ? Icons.cancel : Icons.pending,
+                          color: decision == 'go' ? Colors.green : decision == 'no_go' ? Colors.red : Colors.orange,
+                          size: 20,
+                        ),
+                        title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        subtitle: Text('$status ${decision.isNotEmpty ? "· $decision" : ""}', style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          setState(() {
+                            _attachedAssessmentId = item['id']?.toString();
+                            _attachedAssessmentTitle = title;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Attached: $title'), duration: const Duration(seconds: 2)),
+                          );
+                        },
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load assessments')),
+        );
+      }
+    }
   }
 
   String _formatTimeAgo(DateTime date) {

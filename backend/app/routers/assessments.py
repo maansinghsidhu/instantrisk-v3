@@ -335,6 +335,35 @@ async def get_assessment(
     return assessment
 
 
+@router.get("/{assessment_id}/status")
+async def get_assessment_status(
+    assessment_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get assessment analysis status for polling fallback."""
+    result = await db.execute(select(Assessment).where(Assessment.id == assessment_id))
+    assessment = result.scalar_one_or_none()
+
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    if assessment.status == AssessmentStatus.COMPLETED:
+        return {
+            "status": "completed",
+            "result": {
+                "decision": assessment.decision.value if assessment.decision else "NO_GO",
+                "confidence": (assessment.confidence_score or 70) / 100,
+                "risk_score": assessment.risk_score or 50,
+                "processing_time": int((assessment.completed_at - assessment.created_at).total_seconds()) if assessment.completed_at else 0,
+            }
+        }
+    elif assessment.status == AssessmentStatus.FAILED:
+        return {"status": "failed", "error": "Analysis failed"}
+    else:
+        return {"status": "in_progress", "progress": 50}
+
+
 @router.put("/{assessment_id}", response_model=AssessmentResponse)
 async def update_assessment(
     assessment_id: str,

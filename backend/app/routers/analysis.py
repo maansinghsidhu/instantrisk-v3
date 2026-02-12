@@ -240,7 +240,7 @@ async def create_progress_callback(session_id: str, mode: AnalysisMode, start_ti
             sub_step_progress = (current_sub_index / len(sub_steps)) * agent_time
             completed_time += sub_step_progress
 
-        progress_percent = min(95, int((completed_time / total_estimated) * 100))
+        progress_percent = min(99, int((completed_time / total_estimated) * 100))
         remaining = max(0, total_estimated - elapsed)
 
         # Get current sub-step description

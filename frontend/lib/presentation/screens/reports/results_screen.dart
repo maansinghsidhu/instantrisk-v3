@@ -49,6 +49,7 @@ class _ResultsScreenState extends State<ResultsScreen>
 
   // AI Analysis state
   bool _isRunningAnalysis = false;
+  bool _showDetails = false;
 
   // Upgrade analysis state
   bool _isUpgrading = false;
@@ -1921,8 +1922,31 @@ class _ResultsScreenState extends State<ResultsScreen>
               ),
             if (_isBasicOrHigher && coverageDetails.isNotEmpty) const SizedBox(height: 24),
 
+            // "View Full Analysis" toggle button
+            if (_isBasicOrHigher)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => setState(() => _showDetails = !_showDetails),
+                    icon: Icon(_showDetails ? Icons.expand_less : Icons.expand_more, size: 20),
+                    label: Text(_showDetails ? 'Hide Detailed Analysis' : 'View Full Analysis'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF8B00FF),
+                      side: BorderSide(color: const Color(0xFF8B00FF).withValues(alpha: 0.3)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ),
+            if (_isBasicOrHigher) const SizedBox(height: 24),
+
+            // === DETAIL SECTIONS (hidden by default, shown on toggle) ===
+
             // Risk Factors (from AI analysis) - Basic+ only
-            if (_isBasicOrHigher) ...[
+            if (_isBasicOrHigher && _showDetails) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2058,7 +2082,7 @@ class _ResultsScreenState extends State<ResultsScreen>
             ],
 
             // Pricing Factors Section - Key data for underwriting decisions (Premium only)
-            if (_isPremium && pricingFactors.isNotEmpty)
+            if (_isPremium && pricingFactors.isNotEmpty && _showDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2213,11 +2237,11 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isPremium && pricingFactors.isNotEmpty) const SizedBox(height: 24),
+            if (_isPremium && pricingFactors.isNotEmpty && _showDetails) const SizedBox(height: 24),
 
             // Decision Rationale (Extensive GO/NO-GO Summary) - Basic+ only
             // Trial users see only the Go/No-Go decision, not the detailed rationale
-            if (_isBasicOrHigher && decisionRationale.isNotEmpty)
+            if (_isBasicOrHigher && decisionRationale.isNotEmpty && _showDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2275,7 +2299,7 @@ class _ResultsScreenState extends State<ResultsScreen>
             if (_isBasicOrHigher && decisionRationale.isNotEmpty) const SizedBox(height: 24),
 
             // Agent Reports Section - Expandable details for each AI agent (Premium only)
-            if (_isPremium && agentResults.isNotEmpty)
+            if (_isPremium && agentResults.isNotEmpty && _showDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2336,7 +2360,7 @@ class _ResultsScreenState extends State<ResultsScreen>
             if (_isPremium && agentResults.isNotEmpty) const SizedBox(height: 24),
 
             // OCR Extracted Text Section (Premium only)
-            if (_isPremium && ocrExtractedText.isNotEmpty)
+            if (_isPremium && ocrExtractedText.isNotEmpty && _showDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2407,7 +2431,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isPremium && ocrExtractedText.isNotEmpty) const SizedBox(height: 24),
+            if (_isPremium && ocrExtractedText.isNotEmpty && _showDetails) const SizedBox(height: 24),
 
             // Upgrade prompt for lower tiers
             if (!_isPremium) ...[
