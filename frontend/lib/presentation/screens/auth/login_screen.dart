@@ -159,28 +159,48 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 20),
+                // Brand logo
+                Center(
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF6B00CC).withOpacity(0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.asset('assets/images/logo-full.png', fit: BoxFit.contain),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
 
                 // Header
                 Text(
                   l10n.welcomeBack,
                   style: const TextStyle(
-                    fontSize: 32,
+                    fontSize: 28,
                     fontWeight: FontWeight.w700,
                     color: AppTheme.textPrimary,
                     fontFamily: 'Inter',
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
-                  '${l10n.login} - ${l10n.appName}',
+                  'Sign in to continue',
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     color: AppTheme.textSecondary,
                     fontFamily: 'Inter',
                   ),
                 ),
-                const SizedBox(height: 8),
                 const SizedBox(height: 24),
 
                 // Error message

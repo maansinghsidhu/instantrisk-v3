@@ -1706,10 +1706,10 @@ async def ai_recommend_documents(
         )
         return {"recommended_documents": recommendations}
     except Exception as e:
-        # Fallback to basic recommendations
+        logger.error(f"AI document recommendation failed: {e}", exc_info=True)
         risk_category = assessment.risk_category.value if assessment.risk_category else "general"
         fallback = _get_fallback_recommendations(risk_category)
-        return {"recommended_documents": fallback}
+        return {"recommended_documents": fallback, "is_fallback": True}
 
 
 @router.post("/ai-clauses")
@@ -1734,27 +1734,30 @@ async def ai_clause_search(
             document_types, str(current_user.id)
         )
         return {"clauses_by_document": clauses}
-    except Exception:
-        # Fallback
+    except Exception as e:
+        logger.error(f"AI clause search failed: {e}", exc_info=True)
+        # Rich fallback with document-type-appropriate clauses
         clauses_by_doc = {}
         for doc_type in document_types:
-            clauses_by_doc[doc_type] = [
-                {
-                    "clause_id": "preamble",
-                    "name": "Preamble & Recitals",
-                    "source": "ai_generated",
-                    "content_preview": "Standard opening recitals...",
-                    "is_mandatory": True,
-                },
-                {
-                    "clause_id": "insuring_agreement",
-                    "name": "Insuring Agreement",
-                    "source": "acord",
-                    "content_preview": "The Insurer agrees to indemnify...",
-                    "is_mandatory": True,
-                },
+            base_clauses = [
+                {"clause_id": "preamble", "name": "Preamble & Recitals", "source": "template", "content_preview": "Standard opening recitals and parties identification...", "is_mandatory": True},
+                {"clause_id": "insuring_agreement", "name": "Insuring Agreement", "source": "template", "content_preview": "The Insurer agrees to indemnify the Insured against...", "is_mandatory": True},
+                {"clause_id": "exclusions", "name": "General Exclusions", "source": "template", "content_preview": "War, nuclear, sanctions and other standard exclusions...", "is_mandatory": True},
+                {"clause_id": "conditions", "name": "General Conditions", "source": "template", "content_preview": "Duty of utmost good faith, claims notification, premium payment...", "is_mandatory": True},
+                {"clause_id": "claims", "name": "Claims Procedure", "source": "template", "content_preview": "Claims notification requirements and procedure...", "is_mandatory": True},
+                {"clause_id": "cancellation", "name": "Cancellation & Termination", "source": "template", "content_preview": "Cancellation rights, notice periods, return premium...", "is_mandatory": True},
+                {"clause_id": "law_jurisdiction", "name": "Law & Jurisdiction", "source": "template", "content_preview": "English law and exclusive jurisdiction of English courts...", "is_mandatory": True},
             ]
-        return {"clauses_by_document": clauses_by_doc}
+            if doc_type in ("policy_wording", "endorsement"):
+                base_clauses.extend([
+                    {"clause_id": "definitions", "name": "Definitions", "source": "template", "content_preview": "Key terms and definitions used throughout this policy...", "is_mandatory": True},
+                    {"clause_id": "premium", "name": "Premium & Payment", "source": "template", "content_preview": "Premium amount, payment schedule, and terms...", "is_mandatory": False},
+                    {"clause_id": "subrogation", "name": "Subrogation", "source": "template", "content_preview": "Subrogation rights following claim settlement...", "is_mandatory": False},
+                    {"clause_id": "lma5021", "name": "Several Liability Notice (LMA5021)", "source": "template", "content_preview": "Lloyd's several liability clause per LMA5021...", "is_mandatory": True},
+                    {"clause_id": "sanctions", "name": "Sanctions Limitation (LMA5173)", "source": "template", "content_preview": "Sanctions compliance and limitation clause...", "is_mandatory": True},
+                ])
+            clauses_by_doc[doc_type] = base_clauses
+        return {"clauses_by_document": clauses_by_doc, "is_fallback": True}
 
 
 @router.post("/generate")
@@ -1807,8 +1810,10 @@ async def generate_documents_opendraft(
 
         return result
     except Exception as e:
-        # Return basic fallback
+        logger.error(f"Document generation failed: {e}", exc_info=True)
         return {
+            "is_fallback": True,
+            "error": str(e),
             "documents": [
                 {
                     "id": f"gen_{assessment_id}_{doc_type}",

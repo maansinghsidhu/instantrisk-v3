@@ -367,9 +367,9 @@ class _AIDocumentAdvisorScreenState extends State<AIDocumentAdvisorScreen> {
   Widget _buildDocCard(Map<String, dynamic> doc, int index, bool isSelected) {
     final priority = doc['priority'] ?? 'optional';
     final priorityColor = priority == 'mandatory'
-        ? const Color(0xFFEF4444)
+        ? AppTheme.errorRed
         : priority == 'recommended'
-            ? const Color(0xFFF59E0B)
+            ? AppTheme.warningAmber
             : priority == 'user_requested'
                 ? AppTheme.primaryDark
                 : AppTheme.textSecondary;

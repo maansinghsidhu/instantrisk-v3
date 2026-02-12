@@ -71,11 +71,11 @@ class OpenDraftGenerator:
 
     def _resolve_model_id(self, model_alias: str) -> Optional[str]:
         """Resolve short model alias to full Bedrock model ID."""
-        import os
+        from app.config import settings
         if model_alias == "sonnet":
-            return os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-sonnet-20240229-v1:0")
+            return settings.BEDROCK_MODEL_ID
         elif model_alias == "haiku":
-            return os.getenv("BEDROCK_FALLBACK_MODEL", "anthropic.claude-3-haiku-20240307-v1:0")
+            return settings.BEDROCK_FALLBACK_MODEL
         return None
 
     async def _run_agent(
@@ -94,6 +94,10 @@ class OpenDraftGenerator:
                 {"role": "user", "content": user_content},
             ]
             response = await self.bedrock.chat(messages, temperature=temperature, model_id=model_id)
+            if response:
+                logger.info(f"Agent {name} succeeded (response length: {len(response)})")
+            else:
+                logger.warning(f"Agent {name} returned empty response (Bedrock may be disabled)")
             return response
         except Exception as e:
             logger.error(f"Agent {name} failed: {e}")
@@ -930,6 +934,9 @@ Return ONLY valid JSON:
             "documents": [],
             "pipeline_steps": [],
             "total_agents": TOTAL_AGENTS,
+            "errors": [],
+            "agents_succeeded": 0,
+            "agents_failed": 0,
         }
 
         async def step(agent_num: int, name: str, status: str = "running"):
@@ -942,9 +949,24 @@ Return ONLY valid JSON:
                     "phase": self._get_phase(agent_num),
                 })
 
+        # Helper to track agent success/failure
+        def _track_agent(results, name, output, fallback_check=None):
+            """Track whether an agent returned real AI data or fallback."""
+            used_fallback = False
+            if fallback_check and output:
+                used_fallback = fallback_check(output)
+            if used_fallback:
+                results["agents_failed"] += 1
+                results["errors"].append(f"{name}: used fallback (Bedrock call failed or returned empty)")
+                logger.warning(f"Agent {name} used fallback data")
+            else:
+                results["agents_succeeded"] += 1
+
         # ── PHASE 1: RESEARCH ──
         await step(1, "RiskResearcher")
         research = await self.agent_risk_researcher(assessment_data, user_id)
+        _track_agent(results, "RiskResearcher", research,
+                     lambda r: set(c.get("clause_id") for c in r.get("relevant_clauses", [])) == {"LMA5021", "LMA5173", "SUBROGATION", "ICC_A"})
         results["pipeline_steps"].append({"agent": "RiskResearcher", "status": "completed"})
         await step(1, "RiskResearcher", "completed")
 
@@ -1093,6 +1115,18 @@ Return ONLY valid JSON:
 
         results["total_documents"] = len(results["documents"])
         results["clause_selections"] = selected_clauses
+
+        # Determine pipeline health
+        total_tracked = results["agents_succeeded"] + results["agents_failed"]
+        if total_tracked > 0 and results["agents_failed"] > total_tracked / 2:
+            results["pipeline_status"] = "degraded"
+            logger.warning(f"Pipeline degraded: {results['agents_failed']}/{total_tracked} agents failed")
+        elif results["agents_failed"] > 0:
+            results["pipeline_status"] = "partial"
+            logger.info(f"Pipeline partial: {results['agents_failed']}/{total_tracked} agents used fallback")
+        else:
+            results["pipeline_status"] = "success"
+            logger.info("Pipeline completed successfully — all agents used real AI data")
 
         return results
 

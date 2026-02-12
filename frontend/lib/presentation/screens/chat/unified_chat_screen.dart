@@ -186,7 +186,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
     // Premium gate - chat is premium-only
     if (!SubscriptionService().isPremium) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0A0E1A),
+        backgroundColor: AppTheme.darkCardAlt,
         body: SafeArea(
           child: Center(
             child: Padding(
@@ -199,10 +199,10 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
-                        colors: [const Color(0xFFFF0080).withValues(alpha: 0.2), const Color(0xFF6B00CC).withValues(alpha: 0.2)],
+                        colors: [AppTheme.accent.withValues(alpha: 0.2), AppTheme.primaryDark.withValues(alpha: 0.2)],
                       ),
                     ),
-                    child: const Icon(Icons.chat_bubble_outline, size: 48, color: Color(0xFF8B00FF)),
+                    child: const Icon(Icons.chat_bubble_outline, size: 48, color: AppTheme.accentBright),
                   ),
                   const SizedBox(height: 24),
                   const Text('AI Chat Assistant', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700, fontFamily: 'Inter')),
@@ -214,19 +214,19 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF6B00CC).withValues(alpha: 0.3)),
-                      color: const Color(0xFF6B00CC).withValues(alpha: 0.08),
+                      border: Border.all(color: AppTheme.primaryDark.withValues(alpha: 0.3)),
+                      color: AppTheme.primaryDark.withValues(alpha: 0.08),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.workspace_premium, color: Color(0xFF8B00FF), size: 20),
+                        const Icon(Icons.workspace_premium, color: AppTheme.accentBright, size: 20),
                         const SizedBox(width: 12),
                         const Expanded(
                           child: Text('Premium Feature', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
                         ),
                         TextButton(
                           onPressed: () => context.go('/settings/subscription'),
-                          child: const Text('Upgrade', style: TextStyle(color: Color(0xFF8B00FF), fontWeight: FontWeight.w600)),
+                          child: const Text('Upgrade', style: TextStyle(color: AppTheme.accentBright, fontWeight: FontWeight.w600)),
                         ),
                       ],
                     ),
@@ -240,7 +240,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0E1A),
+      backgroundColor: AppTheme.darkCardAlt,
       appBar: _isWelcomeState ? null : _buildAppBar(),
       body: SafeArea(
         child: Column(
@@ -261,7 +261,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: const Color(0xFF0A0E1A),
+      backgroundColor: AppTheme.darkCardAlt,
       elevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white70),
@@ -294,7 +294,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
   Widget _buildContextBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: const Color(0xFF1A1F2E),
+      color: AppTheme.darkCard,
       child: Row(
         children: [
           Container(
@@ -341,7 +341,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
             height: 64,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppTheme.primaryDark, const Color(0xFF7C3AED)],
+                colors: [AppTheme.primaryDark, AppTheme.analysisPurple],
               ),
               borderRadius: BorderRadius.circular(20),
             ),
@@ -394,7 +394,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1F2E),
+          color: AppTheme.darkCard,
           borderRadius: BorderRadius.circular(10),
         ),
         child: const Icon(Icons.chat_bubble_outline, color: Colors.white38, size: 16),
@@ -440,7 +440,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppTheme.primaryDark, const Color(0xFF5B4FD6)],
+                colors: [AppTheme.primaryDark, AppTheme.analysisIndigo],
               ),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(18),
@@ -469,7 +469,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1F2E),
+              color: AppTheme.darkCard,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(4),
                 topRight: Radius.circular(18),
@@ -526,7 +526,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [const Color(0xFF1E293B), const Color(0xFF1A1F2E)],
+          colors: [AppTheme.darkCard, AppTheme.darkCard],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -553,7 +553,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                 ),
                 child: const Text(
                   'ClaimSense',
-                  style: TextStyle(color: Color(0xFF60A5FA), fontSize: 10, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: AppTheme.phaseResearch, fontSize: 10, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -599,7 +599,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1F2E),
+              color: AppTheme.darkCard,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(4),
                 topRight: Radius.circular(18),
@@ -662,7 +662,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
     return Container(
       padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(context).padding.bottom + 12),
       decoration: const BoxDecoration(
-        color: Color(0xFF0F1320),
+        color: AppTheme.darkBg,
         border: Border(top: BorderSide(color: Colors.white10)),
       ),
       child: Row(
@@ -677,7 +677,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
             child: Container(
               constraints: const BoxConstraints(maxHeight: 120),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1F2E),
+                color: AppTheme.darkCard,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: Colors.white10),
               ),
@@ -703,7 +703,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
             decoration: BoxDecoration(
               gradient: _isStreaming
                   ? null
-                  : LinearGradient(colors: [AppTheme.primaryDark, const Color(0xFF5B4FD6)]),
+                  : LinearGradient(colors: [AppTheme.primaryDark, AppTheme.analysisIndigo]),
               color: _isStreaming ? Colors.white10 : null,
               shape: BoxShape.circle,
             ),
@@ -724,7 +724,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
   void _showContextPicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1F2E),
+      backgroundColor: AppTheme.darkCard,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -793,7 +793,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1F2E),
+          backgroundColor: AppTheme.darkCard,
           title: const Text('Select Assessment', style: TextStyle(color: Colors.white)),
           content: SizedBox(
             width: double.maxFinite,

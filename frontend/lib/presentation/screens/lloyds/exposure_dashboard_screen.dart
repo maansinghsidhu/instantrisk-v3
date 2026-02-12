@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:convert';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
@@ -17,14 +18,6 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
   bool _isLoading = true;
   String? _errorMessage;
   late TabController _tabController;
-
-  // Corporate color palette
-  static const Color _primaryDark = Color(0xFF0D1B2A);
-  static const Color _primaryBlue = Color(0xFF1B4965);
-  static const Color _accentBlue = Color(0xFF5FA8D3);
-  static const Color _success = Color(0xFF2E7D32);
-  static const Color _warning = Color(0xFFED6C02);
-  static const Color _danger = Color(0xFFD32F2F);
 
   // Real data from API
   Map<String, dynamic>? _dashboardData;
@@ -46,8 +39,8 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
   double _pml250 = 0;
 
   final List<Color> _zoneColors = [
-    const Color(0xFF1B4965),
-    const Color(0xFF5FA8D3),
+    AppTheme.corporateBlue,
+    AppTheme.corporateBlueLight,
     const Color(0xFF7DC4E4),
     const Color(0xFF94D2BD),
     const Color(0xFFADE8F4),
@@ -167,8 +160,8 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
   void _setFallbackData() {
     // Fallback data when API is unavailable
     _zoneExposure = [
-      {'zone': 'North America', 'code': 'NA', 'gross': 45.5, 'net': 32.1, 'color': const Color(0xFF1B4965)},
-      {'zone': 'Europe', 'code': 'EU', 'gross': 28.3, 'net': 19.7, 'color': const Color(0xFF5FA8D3)},
+      {'zone': 'North America', 'code': 'NA', 'gross': 45.5, 'net': 32.1, 'color': AppTheme.corporateBlue},
+      {'zone': 'Europe', 'code': 'EU', 'gross': 28.3, 'net': 19.7, 'color': AppTheme.corporateBlueLight},
       {'zone': 'Asia Pacific', 'code': 'APAC', 'gross': 15.2, 'net': 10.8, 'color': const Color(0xFF7DC4E4)},
       {'zone': 'Latin America', 'code': 'LATAM', 'gross': 6.5, 'net': 4.2, 'color': const Color(0xFF94D2BD)},
       {'zone': 'Middle East', 'code': 'ME', 'gross': 4.5, 'net': 3.1, 'color': const Color(0xFFADE8F4)},
@@ -222,14 +215,14 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
           _loadActualStats();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Loss added successfully'), backgroundColor: _success),
+              const SnackBar(content: Text('Loss added successfully'), backgroundColor: AppTheme.successDark),
             );
           }
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to add loss: $e'), backgroundColor: _danger),
+            SnackBar(content: Text('Failed to add loss: $e'), backgroundColor: AppTheme.dangerDark),
           );
         }
       }
@@ -252,14 +245,14 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
           _loadActualStats();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Claim added successfully'), backgroundColor: _success),
+              const SnackBar(content: Text('Claim added successfully'), backgroundColor: AppTheme.successDark),
             );
           }
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to add claim: $e'), backgroundColor: _danger),
+            SnackBar(content: Text('Failed to add claim: $e'), backgroundColor: AppTheme.dangerDark),
           );
         }
       }
@@ -295,9 +288,9 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppTheme.background,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _primaryBlue))
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.corporateBlue))
           : NestedScrollView(
               headerSliverBuilder: (context, innerBoxIsScrolled) => [
                 _buildAppBar(),
@@ -306,9 +299,9 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
                   delegate: _TabBarDelegate(
                     TabBar(
                       controller: _tabController,
-                      labelColor: _primaryDark,
+                      labelColor: AppTheme.darkBg,
                       unselectedLabelColor: Colors.grey,
-                      indicatorColor: _primaryBlue,
+                      indicatorColor: AppTheme.corporateBlue,
                       tabs: const [
                         Tab(text: 'Portfolio'),
                         Tab(text: 'Actual Stats'),
@@ -370,14 +363,14 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
                 'Incurred Losses',
                 'GBP ${(totalLosses / 1000000).toStringAsFixed(1)}M',
                 Icons.trending_down,
-                _danger,
+                AppTheme.dangerDark,
               )),
               const SizedBox(width: 12),
               Expanded(child: _buildActualStatCard(
                 'Loss Ratio',
                 '${lossRatio.toStringAsFixed(1)}%',
                 Icons.pie_chart,
-                lossRatio > 65 ? _danger : lossRatio > 50 ? _warning : _success,
+                lossRatio > 65 ? AppTheme.dangerDark : lossRatio > 50 ? AppTheme.warningAmber : AppTheme.successDark,
               )),
             ],
           ),
@@ -388,14 +381,14 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
                 'Total Claims',
                 'GBP ${(totalClaims / 1000000).toStringAsFixed(1)}M',
                 Icons.receipt_long,
-                _warning,
+                AppTheme.warningAmber,
               )),
               const SizedBox(width: 12),
               Expanded(child: _buildActualStatCard(
                 'Open Claims',
                 '$openClaimsCount of $claimsCount',
                 Icons.pending_actions,
-                _accentBlue,
+                AppTheme.corporateBlueLight,
               )),
             ],
           ),
@@ -406,7 +399,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
                 'Reserves',
                 'GBP ${(totalReserves / 1000000).toStringAsFixed(1)}M',
                 Icons.savings,
-                _primaryBlue,
+                AppTheme.corporateBlue,
               )),
               const SizedBox(width: 12),
               const Expanded(child: SizedBox()),
@@ -474,7 +467,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: _primaryDark,
+              color: AppTheme.darkBg,
             ),
           ),
           const SizedBox(height: 4),
@@ -497,7 +490,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _primaryDark)),
+            Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.darkBg)),
             Text(subtitle, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
           ],
         ),
@@ -506,7 +499,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
           icon: const Icon(Icons.add, size: 18),
           label: Text(buttonText),
           style: ElevatedButton.styleFrom(
-            backgroundColor: _primaryBlue,
+            backgroundColor: AppTheme.corporateBlue,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
@@ -553,10 +546,10 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
             leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: _danger.withOpacity(0.1),
+                color: AppTheme.dangerDark.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.trending_down, color: _danger, size: 20),
+              child: const Icon(Icons.trending_down, color: AppTheme.dangerDark, size: 20),
             ),
             title: Text(
               'GBP ${((loss['loss_amount'] ?? 0) / 1000).toStringAsFixed(0)}K',
@@ -615,22 +608,22 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
           switch (status) {
             case 'PAID':
             case 'CLOSED':
-              statusColor = _success;
+              statusColor = AppTheme.successDark;
               break;
             case 'DISPUTED':
-              statusColor = _danger;
+              statusColor = AppTheme.dangerDark;
               break;
             default:
-              statusColor = _warning;
+              statusColor = AppTheme.warningAmber;
           }
           return ListTile(
             leading: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: _warning.withOpacity(0.1),
+                color: AppTheme.warningAmber.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.receipt_long, color: _warning, size: 20),
+              child: const Icon(Icons.receipt_long, color: AppTheme.warningAmber, size: 20),
             ),
             title: Text(
               claim['claim_number'] ?? 'Claim #${index + 1}',
@@ -662,7 +655,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
       expandedHeight: 120,
       floating: false,
       pinned: true,
-      backgroundColor: _primaryDark,
+      backgroundColor: AppTheme.darkBg,
       flexibleSpace: FlexibleSpaceBar(
         title: const Text(
           'Exposure Dashboard',
@@ -676,7 +669,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [_primaryDark, _primaryBlue],
+              colors: [AppTheme.darkBg, AppTheme.corporateBlue],
             ),
           ),
           child: Align(
@@ -722,7 +715,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
               'GBP 2.5B',
               '+3.2%',
               true,
-              const LinearGradient(colors: [Color(0xFF1B4965), Color(0xFF2D6A8F)]),
+              LinearGradient(colors: [AppTheme.corporateBlue, AppTheme.corporateBlue.withOpacity(0.8)]),
               Icons.account_balance_wallet_outlined,
             )),
             const SizedBox(width: 12),
@@ -731,7 +724,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
               'GBP 1.8B',
               '+2.1%',
               true,
-              const LinearGradient(colors: [Color(0xFF5FA8D3), Color(0xFF7DC4E4)]),
+              LinearGradient(colors: [AppTheme.corporateBlueLight, AppTheme.corporateBlueLight.withOpacity(0.7)]),
               Icons.shield_outlined,
             )),
           ],
@@ -744,7 +737,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
               'GBP 318M',
               '-1.5%',
               false,
-              const LinearGradient(colors: [Color(0xFFED6C02), Color(0xFFFFA726)]),
+              LinearGradient(colors: [AppTheme.warningAmber, AppTheme.warningAmber.withOpacity(0.7)]),
               Icons.trending_down,
             )),
             const SizedBox(width: 12),
@@ -753,7 +746,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
               'GBP 512M',
               '+0.8%',
               true,
-              const LinearGradient(colors: [Color(0xFFD32F2F), Color(0xFFEF5350)]),
+              LinearGradient(colors: [AppTheme.dangerDark, AppTheme.errorRed]),
               Icons.priority_high_rounded,
             )),
           ],
@@ -774,7 +767,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: _primaryDark,
+                color: AppTheme.darkBg,
                 letterSpacing: -0.5,
               ),
             ),
@@ -901,19 +894,19 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: _primaryDark,
+                  color: AppTheme.darkBg,
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: _warning.withOpacity(0.1),
+                  color: AppTheme.warningAmber.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   '${utilization.toStringAsFixed(1)}%',
                   style: const TextStyle(
-                    color: _warning,
+                    color: AppTheme.warningAmber,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                   ),
@@ -939,10 +932,10 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: utilization > 80
-                            ? [_danger, _danger.withOpacity(0.8)]
+                            ? [AppTheme.dangerDark, AppTheme.dangerDark.withOpacity(0.8)]
                             : utilization > 60
-                                ? [_warning, _warning.withOpacity(0.8)]
-                                : [_success, _success.withOpacity(0.8)],
+                                ? [AppTheme.warningAmber, AppTheme.warningAmber.withOpacity(0.8)]
+                                : [AppTheme.successDark, AppTheme.successDark.withOpacity(0.8)],
                       ),
                     ),
                   ),
@@ -986,14 +979,14 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
   Widget _buildCapacityMetric(String label, String value, IconData icon) {
     return Column(
       children: [
-        Icon(icon, color: _primaryBlue, size: 20),
+        Icon(icon, color: AppTheme.corporateBlue, size: 20),
         const SizedBox(height: 4),
         Text(
           value,
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w700,
-            color: _primaryDark,
+            color: AppTheme.darkBg,
           ),
         ),
         Text(
@@ -1029,7 +1022,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: _primaryDark,
+              color: AppTheme.darkBg,
             ),
           ),
           const SizedBox(height: 8),
@@ -1115,9 +1108,9 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildChartLegend('Gross', _primaryBlue.withOpacity(0.4)),
+              _buildChartLegend('Gross', AppTheme.corporateBlue.withOpacity(0.4)),
               const SizedBox(width: 24),
-              _buildChartLegend('Net', _primaryBlue),
+              _buildChartLegend('Net', AppTheme.corporateBlue),
             ],
           ),
         ],
@@ -1171,7 +1164,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: _primaryDark,
+              color: AppTheme.darkBg,
             ),
           ),
           const SizedBox(height: 8),
@@ -1194,7 +1187,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: AppTheme.background,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.grey[200]!),
       ),
@@ -1203,12 +1196,12 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: _primaryBlue.withOpacity(0.1),
+              color: AppTheme.corporateBlue.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               peril['icon'] as IconData,
-              color: _primaryBlue,
+              color: AppTheme.corporateBlue,
               size: 20,
             ),
           ),
@@ -1223,7 +1216,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
-                    color: _primaryDark,
+                    color: AppTheme.darkBg,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -1232,14 +1225,14 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
                     Icon(
                       isPositive ? Icons.trending_up : Icons.trending_down,
                       size: 14,
-                      color: isPositive ? _danger : _success,
+                      color: isPositive ? AppTheme.dangerDark : AppTheme.successDark,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '${isPositive ? '+' : ''}${trend.toStringAsFixed(1)}% MoM',
                       style: TextStyle(
                         fontSize: 11,
-                        color: isPositive ? _danger : _success,
+                        color: isPositive ? AppTheme.dangerDark : AppTheme.successDark,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -1257,7 +1250,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
-                    color: _primaryDark,
+                    color: AppTheme.darkBg,
                   ),
                 ),
                 Text(
@@ -1277,7 +1270,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
-                    color: _primaryDark,
+                    color: AppTheme.darkBg,
                   ),
                 ),
                 Text(
@@ -1314,10 +1307,10 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _warning.withOpacity(0.1),
+                  color: AppTheme.warningAmber.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.notifications_active, color: _warning, size: 20),
+                child: const Icon(Icons.notifications_active, color: AppTheme.warningAmber, size: 20),
               ),
               const SizedBox(width: 12),
               const Text(
@@ -1325,7 +1318,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: _primaryDark,
+                  color: AppTheme.darkBg,
                 ),
               ),
               const Spacer(),
@@ -1363,18 +1356,18 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
 
     switch (severity) {
       case 'critical':
-        color = _danger;
-        bgColor = _danger.withOpacity(0.1);
+        color = AppTheme.dangerDark;
+        bgColor = AppTheme.dangerDark.withOpacity(0.1);
         icon = Icons.error_outline;
         break;
       case 'warning':
-        color = _warning;
-        bgColor = _warning.withOpacity(0.1);
+        color = AppTheme.warningAmber;
+        bgColor = AppTheme.warningAmber.withOpacity(0.1);
         icon = Icons.warning_amber_rounded;
         break;
       default:
-        color = _accentBlue;
-        bgColor = _accentBlue.withOpacity(0.1);
+        color = AppTheme.corporateBlueLight;
+        bgColor = AppTheme.corporateBlueLight.withOpacity(0.1);
         icon = Icons.info_outline;
     }
 
@@ -1429,7 +1422,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
             Text('Exporting exposure report...'),
           ],
         ),
-        backgroundColor: _primaryBlue,
+        backgroundColor: AppTheme.corporateBlue,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -1452,7 +1445,7 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: const Color(0xFFF8FAFC),
+      color: AppTheme.background,
       child: tabBar,
     );
   }

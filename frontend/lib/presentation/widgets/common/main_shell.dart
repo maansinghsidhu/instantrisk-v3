@@ -172,7 +172,7 @@ class _Sidebar extends StatelessWidget {
     return Container(
       width: 240,
       decoration: BoxDecoration(
-        color: const Color(0xFF0a0618),
+        color: AppTheme.darkBg,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -549,7 +549,7 @@ class _BottomNavBar extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF0a0618),
+        color: AppTheme.darkBg,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),

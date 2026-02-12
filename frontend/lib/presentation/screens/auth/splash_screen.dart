@@ -99,35 +99,40 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Glow effect behind logo
-                      Container(
-                        width: 160,
-                        height: 160,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF6B00CC).withValues(alpha: 0.3),
-                              blurRadius: 60,
-                              spreadRadius: 20,
+                      // Logo with glow
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Glow effect behind
+                          Container(
+                            width: 180,
+                            height: 180,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF6B00CC).withValues(alpha: 0.3),
+                                  blurRadius: 60,
+                                  spreadRadius: 20,
+                                ),
+                                BoxShadow(
+                                  color: const Color(0xFFFF0080).withValues(alpha: 0.15),
+                                  blurRadius: 80,
+                                  spreadRadius: 30,
+                                ),
+                              ],
                             ),
-                            BoxShadow(
-                              color: const Color(0xFFFF0080).withValues(alpha: 0.15),
-                              blurRadius: 80,
-                              spreadRadius: 30,
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(24),
-                          child: Image.asset(
+                          ),
+                          // Sharp logo on top
+                          Image.asset(
                             'assets/images/logo-full.png',
-                            width: 120,
-                            height: 120,
+                            width: 130,
+                            height: 130,
                             fit: BoxFit.contain,
+                            filterQuality: FilterQuality.high,
                             errorBuilder: (_, __, ___) => Container(
-                              width: 120,
-                              height: 120,
+                              width: 130,
+                              height: 130,
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
                                   colors: [Color(0xFFFF0080), Color(0xFF6B00CC), Color(0xFF0066FF)],
@@ -137,7 +142,7 @@ class _SplashScreenState extends State<SplashScreen>
                               child: const Icon(Icons.shield_outlined, size: 60, color: Colors.white),
                             ),
                           ),
-                        ),
+                        ],
                       ),
                       const SizedBox(height: 32),
                       // App Name
@@ -163,7 +168,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'ENTERPRISE EDITION V2.0',
+                        'AI UNDERWRITING PLATFORM',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 12,
@@ -172,17 +177,31 @@ class _SplashScreenState extends State<SplashScreen>
                           letterSpacing: 3,
                         ),
                       ),
-                      const SizedBox(height: 40),
-                      // Loading indicator
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white.withValues(alpha: 0.4),
+                      const SizedBox(height: 48),
+                      // Loading indicator with text
+                      Column(
+                        children: [
+                          SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                const Color(0xFF8B00FF).withValues(alpha: 0.6),
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Loading...',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                              color: Colors.white.withValues(alpha: 0.35),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

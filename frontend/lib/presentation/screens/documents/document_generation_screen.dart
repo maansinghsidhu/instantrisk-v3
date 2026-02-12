@@ -1290,84 +1290,84 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
       // Phase 1: Research
       case 'RiskResearcher':
         icon = Icons.search;
-        color = const Color(0xFF3B82F6);
+        color = AppTheme.phaseResearch;
         break;
       case 'ClauseExtractor':
         icon = Icons.content_paste_search;
-        color = const Color(0xFF3B82F6);
+        color = AppTheme.phaseResearch;
         break;
       case 'GapAnalyzer':
         icon = Icons.find_replace;
-        color = const Color(0xFF3B82F6);
+        color = AppTheme.phaseResearch;
         break;
       // Phase 2: Structure
       case 'ClauseManager':
         icon = Icons.library_books;
-        color = const Color(0xFF8B5CF6);
+        color = AppTheme.phaseStructure;
         break;
       case 'StructurePlanner':
         icon = Icons.account_tree;
-        color = const Color(0xFF8B5CF6);
+        color = AppTheme.phaseStructure;
         break;
       case 'LloydFormatter':
         icon = Icons.format_align_left;
-        color = const Color(0xFF8B5CF6);
+        color = AppTheme.phaseStructure;
         break;
       // Phase 3: Compose
       case 'SectionDrafter':
         icon = Icons.edit_document;
-        color = const Color(0xFF10B981);
+        color = AppTheme.phaseCompose;
         break;
       case 'ConsistencyChecker':
         icon = Icons.fact_check;
-        color = const Color(0xFF10B981);
+        color = AppTheme.phaseCompose;
         break;
       case 'ToneUnifier':
         icon = Icons.record_voice_over;
-        color = const Color(0xFF10B981);
+        color = AppTheme.phaseCompose;
         break;
       // Phase 4: Validate
       case 'RiskChallenger':
         icon = Icons.gavel;
-        color = const Color(0xFFF59E0B);
+        color = AppTheme.phaseValidate;
         break;
       case 'ClauseVerifier':
         icon = Icons.verified_user;
-        color = const Color(0xFFF59E0B);
+        color = AppTheme.phaseValidate;
         break;
       case 'ComplianceReviewer':
         icon = Icons.policy;
-        color = const Color(0xFFF59E0B);
+        color = AppTheme.phaseValidate;
         break;
       // Phase 5: Refine
       case 'HouseStyleAgent':
         icon = Icons.style;
-        color = const Color(0xFFEC4899);
+        color = AppTheme.phaseRefine;
         break;
       case 'LanguageVarier':
         icon = Icons.text_rotation_none;
-        color = const Color(0xFFEC4899);
+        color = AppTheme.phaseRefine;
         break;
       case 'ProofReader':
         icon = Icons.spellcheck;
-        color = const Color(0xFFEC4899);
+        color = AppTheme.phaseRefine;
         break;
       case 'ClauseCompiler':
         icon = Icons.integration_instructions;
-        color = const Color(0xFFEC4899);
+        color = AppTheme.phaseRefine;
         break;
       // Phase 6: Export
       case 'ScheduleBuilder':
         icon = Icons.table_chart;
-        color = const Color(0xFF6366F1);
+        color = AppTheme.phaseExport;
         break;
       case 'PDFExporter':
         icon = Icons.picture_as_pdf;
-        color = const Color(0xFF6366F1);
+        color = AppTheme.phaseExport;
         break;
       case 'QualityGate':
         icon = Icons.check_circle_outline;
-        color = const Color(0xFF6366F1);
+        color = AppTheme.phaseExport;
         break;
       default:
         icon = Icons.smart_toy;
@@ -1388,12 +1388,12 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
   Widget _buildAgentPipeline() {
     // Show 6 phases instead of individual agents for compact display
     final phases = [
-      {'name': 'Research', 'icon': Icons.search, 'color': const Color(0xFF3B82F6), 'threshold': 16},
-      {'name': 'Structure', 'icon': Icons.account_tree, 'color': const Color(0xFF8B5CF6), 'threshold': 32},
-      {'name': 'Compose', 'icon': Icons.edit_document, 'color': const Color(0xFF10B981), 'threshold': 48},
-      {'name': 'Validate', 'icon': Icons.verified, 'color': const Color(0xFFF59E0B), 'threshold': 64},
-      {'name': 'Refine', 'icon': Icons.auto_fix_high, 'color': const Color(0xFFEC4899), 'threshold': 84},
-      {'name': 'Export', 'icon': Icons.output, 'color': const Color(0xFF6366F1), 'threshold': 100},
+      {'name': 'Research', 'icon': Icons.search, 'color': AppTheme.phaseResearch, 'threshold': 16},
+      {'name': 'Structure', 'icon': Icons.account_tree, 'color': AppTheme.phaseStructure, 'threshold': 32},
+      {'name': 'Compose', 'icon': Icons.edit_document, 'color': AppTheme.phaseCompose, 'threshold': 48},
+      {'name': 'Validate', 'icon': Icons.verified, 'color': AppTheme.phaseValidate, 'threshold': 64},
+      {'name': 'Refine', 'icon': Icons.auto_fix_high, 'color': AppTheme.phaseRefine, 'threshold': 84},
+      {'name': 'Export', 'icon': Icons.output, 'color': AppTheme.phaseExport, 'threshold': 100},
     ];
 
     return Row(

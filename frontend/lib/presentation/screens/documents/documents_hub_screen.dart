@@ -27,61 +27,61 @@ class _DocumentsHubScreenState extends State<DocumentsHubScreen> {
   String _activeFilter = 'all'; // all, generated, training, assessments, templates
 
   // Template categories
-  static const List<Map<String, dynamic>> _templateCategories = [
+  static final List<Map<String, dynamic>> _templateCategories = [
     {
       'id': 'cyber',
       'name': 'Cyber',
       'icon': Icons.security,
-      'color': Color(0xFF00ACC1),
+      'color': AppTheme.lobColors[0],
       'count': 15,
     },
     {
       'id': 'marine',
       'name': 'Marine',
       'icon': Icons.directions_boat,
-      'color': Color(0xFF1E88E5),
+      'color': AppTheme.lobColors[1],
       'count': 23,
     },
     {
       'id': 'aviation',
       'name': 'Aviation',
       'icon': Icons.flight,
-      'color': Color(0xFF7C4DFF),
+      'color': AppTheme.lobColors[2],
       'count': 12,
     },
     {
       'id': 'property',
       'name': 'Property',
       'icon': Icons.business,
-      'color': Color(0xFFFF7043),
+      'color': AppTheme.lobColors[3],
       'count': 18,
     },
     {
       'id': 'casualty',
       'name': 'Casualty',
       'icon': Icons.person_outline,
-      'color': Color(0xFF26A69A),
+      'color': AppTheme.lobColors[4],
       'count': 15,
     },
     {
       'id': 'financial',
       'name': 'Financial',
       'icon': Icons.account_balance,
-      'color': Color(0xFF5C6BC0),
+      'color': AppTheme.lobColors[5],
       'count': 14,
     },
     {
       'id': 'energy',
       'name': 'Energy',
       'icon': Icons.bolt,
-      'color': Color(0xFFFFA726),
+      'color': AppTheme.lobColors[6],
       'count': 11,
     },
     {
       'id': 'reinsurance',
       'name': 'Reinsurance',
       'icon': Icons.autorenew,
-      'color': Color(0xFFAB47BC),
+      'color': AppTheme.lobColors[7],
       'count': 8,
     },
   ];

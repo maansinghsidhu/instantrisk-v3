@@ -33,6 +33,53 @@ class AppTheme {
   static const Color textHint = Color(0xFFBDC3C7);
   static const Color border = Color(0xFFE0E6ED);
 
+  // Dark UI Colors (sidebar, nav bar, chat, splash)
+  static const Color darkBg = Color(0xFF0a0618);
+  static const Color darkSurface = Color(0xFF1a0a2e);
+  static const Color darkCard = Color(0xFF1A1F2E);
+  static const Color darkCardAlt = Color(0xFF0A0E1A);
+
+  // Extended Brand
+  static const Color corporateBlue = Color(0xFF1B4965);
+  static const Color corporateBlueLight = Color(0xFF5FA8D3);
+  static const Color highlightBlue = Color(0xFF0984E3);
+  static const Color accentBright = Color(0xFF8B00FF);
+
+  // Status Dark Variants (for data viz & dashboards)
+  static const Color successDark = Color(0xFF059669);
+  static const Color warningAmber = Color(0xFFF59E0B);
+  static const Color dangerDark = Color(0xFFDC2626);
+  static const Color errorRed = Color(0xFFEF4444);
+
+  // Pipeline Phase Colors
+  static const Color phaseResearch = Color(0xFF3B82F6);
+  static const Color phaseStructure = Color(0xFF8B5CF6);
+  static const Color phaseCompose = Color(0xFF10B981);
+  static const Color phaseValidate = Color(0xFFF59E0B);
+  static const Color phaseRefine = Color(0xFFEC4899);
+  static const Color phaseExport = Color(0xFF6366F1);
+
+  // Analysis Type Colors
+  static const Color analysisClassifier = Color(0xFF2563EB);
+  static const Color analysisExtractor = Color(0xFF059669);
+  static const Color analysisRisk = Color(0xFFDC2626);
+  static const Color analysisPurple = Color(0xFF7C3AED);
+  static const Color analysisCyan = Color(0xFF0891B2);
+  static const Color analysisIndigo = Color(0xFF4F46E5);
+
+  // LOB Category Colors
+  static const List<Color> lobColors = [
+    Color(0xFF00ACC1), // Cyber
+    Color(0xFF1E88E5), // Marine
+    Color(0xFF7C4DFF), // Aviation
+    Color(0xFFFF7043), // Property
+    Color(0xFF26A69A), // Casualty
+    Color(0xFF5C6BC0), // Financial
+    Color(0xFFFFA726), // Energy
+    Color(0xFFAB47BC), // Reinsurance
+    Color(0xFFEC407A), // Specialty
+  ];
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
@@ -57,13 +104,14 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
         backgroundColor: Color(0xFF0a0618),
-        foregroundColor: textPrimary,
+        foregroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
+        iconTheme: IconThemeData(color: Colors.white),
         titleTextStyle: TextStyle(
           fontFamily: 'Inter',
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: textPrimary,
+          color: Colors.white,
           letterSpacing: -0.3,
         ),
       ),

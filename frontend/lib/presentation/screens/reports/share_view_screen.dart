@@ -57,7 +57,7 @@ class _ShareViewScreenState extends State<ShareViewScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0a0618),
+        backgroundColor: AppTheme.darkBg,
         elevation: 0,
         title: Row(
           mainAxisSize: MainAxisSize.min,

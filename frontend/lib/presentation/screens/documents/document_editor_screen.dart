@@ -165,7 +165,7 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(finalize ? 'Document finalized' : 'Draft saved'),
-              backgroundColor: const Color(0xFF059669),
+              backgroundColor: AppTheme.successDark,
             ),
           );
           if (finalize) {
@@ -281,11 +281,11 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
                 ),
               ),
               if (_hasChanges)
-                const Text(
+                Text(
                   'Unsaved changes',
                   style: TextStyle(
                     fontSize: 11,
-                    color: Color(0xFFF59E0B),
+                    color: AppTheme.warningAmber,
                   ),
                 ),
             ],
@@ -459,7 +459,7 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
                   fontSize: 14,
                   fontFamily: 'Courier',
                   height: 1.6,
-                  color: Color(0xFF1F2937),
+                  color: AppTheme.textPrimary,
                 ),
                 decoration: const InputDecoration(
                   border: InputBorder.none,
@@ -501,7 +501,7 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
           style: const TextStyle(
             fontSize: 13,
             height: 1.6,
-            color: Color(0xFF1F2937),
+            color: AppTheme.textPrimary,
           ),
         ),
       ),
@@ -667,8 +667,8 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: (_document['status'] == 'finalized')
-                    ? const Color(0xFF059669).withOpacity(0.1)
-                    : const Color(0xFFF59E0B).withOpacity(0.1),
+                    ? AppTheme.successDark.withOpacity(0.1)
+                    : AppTheme.warningAmber.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
@@ -680,8 +680,8 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
                         : Icons.edit_note,
                     size: 16,
                     color: (_document['status'] == 'finalized')
-                        ? const Color(0xFF059669)
-                        : const Color(0xFFF59E0B),
+                        ? AppTheme.successDark
+                        : AppTheme.warningAmber,
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -690,8 +690,8 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: (_document['status'] == 'finalized')
-                          ? const Color(0xFF059669)
-                          : const Color(0xFFF59E0B),
+                          ? AppTheme.successDark
+                          : AppTheme.warningAmber,
                     ),
                   ),
                 ],
@@ -705,7 +705,7 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
                 icon: const Icon(Icons.check, size: 18),
                 label: const Text('Finalize'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF059669),
+                  backgroundColor: AppTheme.successDark,
                   foregroundColor: Colors.white,
                 ),
               ),

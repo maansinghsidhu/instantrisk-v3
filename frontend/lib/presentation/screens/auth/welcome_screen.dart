@@ -25,18 +25,9 @@ class WelcomeScreen extends StatelessWidget {
                   // Logo and brand
                   Row(
                     children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryDark,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.shield_outlined,
-                          color: Colors.white,
-                          size: 22,
-                        ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.asset('assets/images/logo-full.png', width: 40, height: 40, fit: BoxFit.contain),
                       ),
                       const SizedBox(width: 12),
                       Text(
@@ -70,25 +61,23 @@ class WelcomeScreen extends StatelessWidget {
               // Center content
               Column(
                 children: [
-                  // Main logo icon
+                  // Main logo
                   Container(
-                    width: 120,
-                    height: 120,
+                    width: 140,
+                    height: 140,
                     decoration: BoxDecoration(
-                      color: Colors.white,
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: const Color(0xFF6B00CC).withOpacity(0.3),
                           blurRadius: 40,
                           offset: const Offset(0, 10),
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.analytics_outlined,
-                      size: 56,
-                      color: AppTheme.primaryDark,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(28),
+                      child: Image.asset('assets/images/logo-full.png', fit: BoxFit.contain),
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -161,60 +150,28 @@ class WelcomeScreen extends StatelessWidget {
 
               const SizedBox(height: 32),
 
-              // Version and links
+              // Footer
               Column(
                 children: [
-                  Text(
-                    'ENTERPRISE EDITION V${AppConfig.appVersion}',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppTheme.textHint,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       TextButton(
-                        onPressed: () {
-                          // Show terms
-                        },
+                        onPressed: () {},
                         child: Text(
                           l10n.termsOfService,
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 13,
-                            color: AppTheme.textSecondary,
-                          ),
+                          style: const TextStyle(fontFamily: 'Inter', fontSize: 13, color: AppTheme.textSecondary),
                         ),
                       ),
                       const SizedBox(width: 16),
                       TextButton(
-                        onPressed: () {
-                          // Show privacy
-                        },
+                        onPressed: () {},
                         child: Text(
                           l10n.privacyPolicy,
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 13,
-                            color: AppTheme.textSecondary,
-                          ),
+                          style: const TextStyle(fontFamily: 'Inter', fontSize: 13, color: AppTheme.textSecondary),
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'v5.0.0 - Deployed: 2026-02-02',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 11,
-                      color: AppTheme.textHint,
-                    ),
                   ),
                 ],
               ),

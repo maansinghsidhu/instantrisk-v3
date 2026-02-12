@@ -34,7 +34,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       title: 'Classifying Document',
       subtitle: 'Identifying document type and validating insurance relevance',
       icon: Icons.category_outlined,
-      color: Color(0xFF6366F1), // Indigo
+      color: AppTheme.phaseExport, // Indigo
       tasks: [
         'Analyzing document structure',
         'Identifying document type (Slip, Policy, Certificate)',
@@ -47,7 +47,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       title: 'Extracting Data',
       subtitle: 'Pulling all insurance fields from document',
       icon: Icons.storage_outlined,
-      color: Color(0xFF8B5CF6), // Violet
+      color: AppTheme.phaseStructure, // Violet
       tasks: [
         'Extracting insured information',
         'Identifying coverage details',
@@ -61,7 +61,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       title: 'Analyzing Risks',
       subtitle: 'Identifying risk factors and exposures',
       icon: Icons.analytics_outlined,
-      color: Color(0xFFEC4899), // Pink
+      color: AppTheme.phaseRefine, // Pink
       tasks: [
         'Identifying primary risk factors',
         'Analyzing exposure areas',
@@ -75,7 +75,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       title: 'Underwriting Decision',
       subtitle: 'Making GO/NO-GO/REFER recommendation',
       icon: Icons.gavel_outlined,
-      color: Color(0xFF14B8A6), // Teal
+      color: AppTheme.analysisCyan, // Teal
       tasks: [
         'Reviewing risk assessment',
         'Calculating suggested premium',
@@ -89,7 +89,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       title: 'Final Validation',
       subtitle: 'Ensuring accuracy and completeness',
       icon: Icons.verified_outlined,
-      color: Color(0xFF22C55E), // Green
+      color: AppTheme.success, // Green
       tasks: [
         'Validating extracted data',
         'Cross-checking calculations',
@@ -344,7 +344,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Color(0xFF0D1117),
+                          color: AppTheme.darkBg,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
@@ -366,7 +366,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF7D8590),
+                                    color: AppTheme.textSecondary,
                                     fontFamily: 'monospace',
                                   ),
                                 ),
@@ -386,7 +386,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                                       '> $log',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: Color(0xFF7D8590),
+                                        color: AppTheme.textSecondary,
                                         fontFamily: 'monospace',
                                       ),
                                     ),

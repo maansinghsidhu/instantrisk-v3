@@ -928,8 +928,8 @@ class _ResultsScreenState extends State<ResultsScreen>
     if (!canUpgradeAnalysis) return const SizedBox.shrink();
 
     final modeColor = nextMode == 'go_no_go'
-        ? const Color(0xFF2563EB)
-        : const Color(0xFF7C3AED);
+        ? AppTheme.analysisClassifier
+        : AppTheme.analysisPurple;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -1163,7 +1163,7 @@ class _ResultsScreenState extends State<ResultsScreen>
             title: limitLabel,
             value: hasLimitData ? 'GBP ${_formatCurrency(suggestedLimit)}' : 'Insufficient Data',
             icon: Icons.shield_outlined,
-            color: const Color(0xFF7C3AED),
+            color: AppTheme.analysisPurple,
             hasData: hasLimitData,
             fullWidth: true,
           ),
@@ -1501,15 +1501,15 @@ class _ResultsScreenState extends State<ResultsScreen>
 
   Color _getAgentColor(String name) {
     final colors = {
-      'classifier': const Color(0xFF2563EB),
-      'extractor': const Color(0xFF059669),
-      'risk_analyst': const Color(0xFFDC2626),
-      'financial_analyst': const Color(0xFF7C3AED),
-      'compliance': const Color(0xFF0891B2),
-      'exposure': const Color(0xFFF59E0B),
-      'underwriter': const Color(0xFF4F46E5),
-      'verification': const Color(0xFF10B981),
-      'qa': const Color(0xFF6366F1),
+      'classifier': AppTheme.analysisClassifier,
+      'extractor': AppTheme.analysisExtractor,
+      'risk_analyst': AppTheme.analysisRisk,
+      'financial_analyst': AppTheme.analysisPurple,
+      'compliance': AppTheme.analysisCyan,
+      'exposure': AppTheme.warningAmber,
+      'underwriter': AppTheme.analysisIndigo,
+      'verification': AppTheme.phaseCompose,
+      'qa': AppTheme.phaseExport,
     };
     return colors[name.toLowerCase()] ?? AppTheme.primaryDark;
   }
@@ -1948,8 +1948,8 @@ class _ResultsScreenState extends State<ResultsScreen>
                     icon: Icon(_showDetails ? Icons.expand_less : Icons.expand_more, size: 20),
                     label: Text(_showDetails ? 'Hide Detailed Analysis' : 'View Full Analysis'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF8B00FF),
-                      side: BorderSide(color: const Color(0xFF8B00FF).withValues(alpha: 0.3)),
+                      foregroundColor: AppTheme.accentBright,
+                      side: BorderSide(color: AppTheme.accentBright.withValues(alpha: 0.3)),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -2333,12 +2333,12 @@ class _ResultsScreenState extends State<ResultsScreen>
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
+                          color: AppTheme.analysisPurple.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.psychology_outlined,
-                          color: Color(0xFF7C3AED),
+                          color: AppTheme.analysisPurple,
                           size: 20,
                         ),
                       ),
@@ -2539,7 +2539,7 @@ class _ResultsScreenState extends State<ResultsScreen>
 
   /// Build processing state UI - shows live progress
   Widget _buildProcessingState() {
-    const modeColor = Color(0xFF7C3AED); // Deep analysis purple
+    const modeColor = AppTheme.analysisPurple; // Deep analysis purple
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -2933,15 +2933,15 @@ class _ResultsScreenState extends State<ResultsScreen>
     IconData typeIcon;
     switch (type) {
       case 'success':
-        typeColor = const Color(0xFF059669);
+        typeColor = AppTheme.analysisExtractor;
         typeIcon = Icons.check_circle;
         break;
       case 'warning':
-        typeColor = const Color(0xFFF59E0B);
+        typeColor = AppTheme.warningAmber;
         typeIcon = Icons.warning;
         break;
       case 'error':
-        typeColor = const Color(0xFFDC2626);
+        typeColor = AppTheme.analysisRisk;
         typeIcon = Icons.error;
         break;
       default:
@@ -3044,21 +3044,21 @@ class _ResultsScreenState extends State<ResultsScreen>
                 height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFDC2626).withValues(alpha: 0.1),
+                  color: AppTheme.analysisRisk.withValues(alpha: 0.1),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.error_outline,
                   size: 48,
-                  color: Color(0xFFDC2626),
+                  color: AppTheme.analysisRisk,
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Analysis Failed',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFFDC2626),
+                  color: AppTheme.analysisRisk,
                 ),
               ),
               const SizedBox(height: 12),
@@ -3372,13 +3372,13 @@ class _ResultsScreenState extends State<ResultsScreen>
 
   Color _getPricingCategoryColor(String category) {
     final colors = {
-      'insured_profile': const Color(0xFF2563EB),
-      'financial_metrics': const Color(0xFF059669),
-      'coverage_details': const Color(0xFF7C3AED),
-      'claims_history': const Color(0xFFDC2626),
-      'geographic_exposure': const Color(0xFF0891B2),
-      'risk_indicators': const Color(0xFFF59E0B),
-      'key_personnel': const Color(0xFF4F46E5),
+      'insured_profile': AppTheme.analysisClassifier,
+      'financial_metrics': AppTheme.analysisExtractor,
+      'coverage_details': AppTheme.analysisPurple,
+      'claims_history': AppTheme.analysisRisk,
+      'geographic_exposure': AppTheme.analysisCyan,
+      'risk_indicators': AppTheme.warningAmber,
+      'key_personnel': AppTheme.analysisIndigo,
     };
     return colors[category] ?? AppTheme.primaryDark;
   }

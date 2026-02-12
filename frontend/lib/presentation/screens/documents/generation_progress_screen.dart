@@ -26,33 +26,33 @@ class GenerationProgressScreen extends StatefulWidget {
 class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
   // 19 agents organized by 6 phases
   final List<_PipelinePhase> _phases = [
-    _PipelinePhase('RESEARCH', Color(0xFF3B82F6), [
+    _PipelinePhase('RESEARCH', AppTheme.phaseResearch, [
       _PipelineAgent('RiskResearcher', 'Searching knowledge base for relevant clauses', Icons.search),
       _PipelineAgent('ClauseExtractor', 'Extracting key provisions from found clauses', Icons.content_paste_search),
       _PipelineAgent('GapAnalyzer', 'Identifying coverage gaps and missing clauses', Icons.find_replace),
     ]),
-    _PipelinePhase('STRUCTURE', Color(0xFF8B5CF6), [
+    _PipelinePhase('STRUCTURE', AppTheme.phaseStructure, [
       _PipelineAgent('ClauseManager', 'Mapping clause IDs to standard wordings', Icons.library_books),
       _PipelineAgent('StructurePlanner', 'Planning document sections using CUAD patterns', Icons.account_tree),
       _PipelineAgent('LloydFormatter', 'Applying London market formatting standards', Icons.format_align_left),
     ]),
-    _PipelinePhase('COMPOSE', Color(0xFF10B981), [
+    _PipelinePhase('COMPOSE', AppTheme.phaseCompose, [
       _PipelineAgent('SectionDrafter', 'Drafting each section with selected clauses', Icons.edit_document),
       _PipelineAgent('ConsistencyChecker', 'Verifying values match across all sections', Icons.fact_check),
       _PipelineAgent('ToneUnifier', 'Ensuring consistent legal language throughout', Icons.record_voice_over),
     ]),
-    _PipelinePhase('VALIDATE', Color(0xFFF59E0B), [
+    _PipelinePhase('VALIDATE', AppTheme.phaseValidate, [
       _PipelineAgent('RiskChallenger', 'Challenging coverage adequacy', Icons.gavel),
       _PipelineAgent('ClauseVerifier', 'Verifying all clause IDs are valid standards', Icons.verified_user),
       _PipelineAgent('ComplianceReviewer', 'Lloyd\'s compliance and regulatory check', Icons.policy),
     ]),
-    _PipelinePhase('REFINE', Color(0xFFEC4899), [
+    _PipelinePhase('REFINE', AppTheme.phaseRefine, [
       _PipelineAgent('HouseStyleAgent', 'Matching your uploaded document style', Icons.style),
       _PipelineAgent('LanguageVarier', 'Varying legal phrasing to avoid repetition', Icons.text_rotation_none),
       _PipelineAgent('ProofReader', 'Grammar, numbering, and cross-references', Icons.spellcheck),
       _PipelineAgent('ClauseCompiler', 'Inserting full ACORD standard wordings', Icons.integration_instructions),
     ]),
-    _PipelinePhase('EXPORT', Color(0xFF6366F1), [
+    _PipelinePhase('EXPORT', AppTheme.phaseExport, [
       _PipelineAgent('ScheduleBuilder', 'Building schedules, appendices, and tables', Icons.table_chart),
       _PipelineAgent('PDFExporter', 'Generating PDF with Lloyd\'s formatting', Icons.picture_as_pdf),
       _PipelineAgent('QualityGate', 'Final quality checklist before delivery', Icons.check_circle_outline),
@@ -143,26 +143,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
         _handleError('Generation failed: ${response.statusCode}');
       }
     } catch (e) {
-      _progressTimer?.cancel();
-      await Future.delayed(const Duration(seconds: 2));
-      if (!mounted) return;
-
-      setState(() {
-        for (final agent in _allAgents) {
-          agent.status = _AgentStatus.complete;
-        }
-        _isComplete = true;
-        _generatedDocs = widget.selectedDocuments.map((doc) => {
-          'id': 'gen_${DateTime.now().millisecondsSinceEpoch}',
-          'name': doc['name'] ?? doc['type'],
-          'type': doc['type'],
-          'status': 'draft',
-          'sections': doc['estimated_sections'] ?? 10,
-        }).toList();
-        _userClauseCount = 5;
-        _acordClauseCount = 3;
-        _aiClauseCount = 2;
-      });
+      _handleError('Document generation failed: $e. Please try again.');
     }
   }
 
@@ -327,7 +308,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isPhaseComplete
-                  ? const Color(0xFF10B981).withValues(alpha: 0.3)
+                  ? AppTheme.phaseCompose.withValues(alpha: 0.3)
                   : isPhaseActive
                       ? phase.color.withValues(alpha: 0.3)
                       : AppTheme.border,
@@ -344,7 +325,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
                 height: 32,
                 decoration: BoxDecoration(
                   color: (isPhaseComplete
-                          ? const Color(0xFF10B981)
+                          ? AppTheme.phaseCompose
                           : isPhaseActive
                               ? phase.color
                               : AppTheme.textHint)
@@ -355,7 +336,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
                   isPhaseComplete ? Icons.check : Icons.circle,
                   size: 16,
                   color: isPhaseComplete
-                      ? const Color(0xFF10B981)
+                      ? AppTheme.phaseCompose
                       : isPhaseActive
                           ? phase.color
                           : AppTheme.textHint,
@@ -376,7 +357,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: isPhaseComplete
-                      ? const Color(0xFF10B981)
+                      ? AppTheme.phaseCompose
                       : AppTheme.textSecondary,
                 ),
               ),
@@ -406,12 +387,12 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
         );
         break;
       case _AgentStatus.complete:
-        iconColor = const Color(0xFF10B981);
-        statusWidget = const Icon(Icons.check_circle, size: 16, color: Color(0xFF10B981));
+        iconColor = AppTheme.phaseCompose;
+        statusWidget = Icon(Icons.check_circle, size: 16, color: AppTheme.phaseCompose);
         break;
       case _AgentStatus.error:
-        iconColor = const Color(0xFFEF4444);
-        statusWidget = const Icon(Icons.error, size: 16, color: Color(0xFFEF4444));
+        iconColor = AppTheme.errorRed;
+        statusWidget = Icon(Icons.error, size: 16, color: AppTheme.errorRed);
         break;
     }
 
@@ -460,16 +441,16 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            const Color(0xFF10B981).withValues(alpha: 0.1),
-            const Color(0xFF10B981).withValues(alpha: 0.05),
+            AppTheme.phaseCompose.withValues(alpha: 0.1),
+            AppTheme.phaseCompose.withValues(alpha: 0.05),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+        border: Border.all(color: AppTheme.phaseCompose.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 24),
+          Icon(Icons.check_circle, color: AppTheme.phaseCompose, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -533,15 +514,15 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                        color: AppTheme.warningAmber.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Text(
+                      child: Text(
                         'DRAFT',
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFFF59E0B),
+                          color: AppTheme.warningAmber,
                         ),
                       ),
                     ),
@@ -614,15 +595,15 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFEF4444).withValues(alpha: 0.05),
+        color: AppTheme.errorRed.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEF4444).withValues(alpha: 0.3)),
+        border: Border.all(color: AppTheme.errorRed.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              const Icon(Icons.error_outline, color: Color(0xFFEF4444)),
+              Icon(Icons.error_outline, color: AppTheme.errorRed),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(

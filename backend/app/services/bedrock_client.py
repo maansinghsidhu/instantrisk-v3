@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 # Bedrock configuration
 BEDROCK_REGION = os.getenv("AWS_BEDROCK_REGION", "us-east-1")
-BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-3-sonnet-20240229-v1:0")
-BEDROCK_FALLBACK_MODEL = os.getenv("BEDROCK_FALLBACK_MODEL", "anthropic.claude-3-haiku-20240307-v1:0")
+BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-5-20250929-v1:0")
+BEDROCK_FALLBACK_MODEL = os.getenv("BEDROCK_FALLBACK_MODEL", "anthropic.claude-haiku-4-5-20251001-v1:0")
 BEDROCK_ENABLED = os.getenv("BEDROCK_ENABLED", "true").lower() == "true"
 
 
