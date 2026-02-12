@@ -184,11 +184,11 @@ async def access_shared_assessment(
     ai_analysis = assessment.ai_analysis or {}
 
     return SharedAssessmentResponse(
-        assessment_id=assessment.id,
+        assessment_id=str(assessment.id),
         insured_name=assessment.insured_name,
         risk_category=assessment.risk_category.value if assessment.risk_category else None,
-        status=assessment.status,
-        decision=assessment.decision or ai_analysis.get("decision"),
+        status=assessment.status.value if hasattr(assessment.status, 'value') else str(assessment.status),
+        decision=(assessment.decision.value if hasattr(assessment.decision, 'value') else assessment.decision) or ai_analysis.get("decision"),
         decision_rationale=assessment.decision_rationale or ai_analysis.get("decision_rationale"),
         risk_score=assessment.risk_score,
         confidence_score=assessment.confidence_score,

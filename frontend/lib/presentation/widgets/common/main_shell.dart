@@ -54,23 +54,9 @@ class _MainShellState extends State<MainShell> {
           ),
           title: Row(
             children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(
-                    'IR',
-                    style: TextStyle(
-                      color: AppTheme.primaryDark,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset('assets/images/logo-full.png', width: 32, height: 32, fit: BoxFit.contain),
               ),
               const SizedBox(width: 10),
               Text(
