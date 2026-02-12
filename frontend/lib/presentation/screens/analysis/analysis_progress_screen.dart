@@ -198,20 +198,45 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
           }
         },
         onError: (error) {
-          // WebSocket error - continue polling instead
-          _startPolling();
+          // WebSocket error - polling already running as backup
         },
         onDone: () {
-          // WebSocket closed
-          if (!_isComplete && !_hasError) {
-            _startPolling();
-          }
+          // WebSocket closed - polling already running as backup
         },
       );
+      // Start backup polling alongside WebSocket
+      _startBackupPolling();
     } catch (e) {
       // Fall back to polling if WebSocket fails
       _startPolling();
     }
+  }
+
+  Timer? _backupPollTimer;
+  DateTime? _stuckAt95Since;
+
+  void _startBackupPolling() {
+    _backupPollTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      if (_isComplete || _hasError) {
+        _backupPollTimer?.cancel();
+        return;
+      }
+      // Track time stuck at 95%+
+      if (_progressPercent >= 95) {
+        _stuckAt95Since ??= DateTime.now();
+        final stuckDuration = DateTime.now().difference(_stuckAt95Since!);
+        if (stuckDuration.inSeconds > 60) {
+          // Stuck too long - force poll for completion
+          await _pollProgress();
+        }
+      } else {
+        _stuckAt95Since = null;
+      }
+      // Always poll if progress >= 90% (approaching completion)
+      if (_progressPercent >= 90) {
+        await _pollProgress();
+      }
+    });
   }
 
   // Additional state for detailed sub-steps
@@ -338,6 +363,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
     });
     _elapsedTimer?.cancel();
     _pollTimer?.cancel();
+    _backupPollTimer?.cancel();
   }
 
   @override
@@ -347,6 +373,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
     _channel?.sink.close();
     _elapsedTimer?.cancel();
     _pollTimer?.cancel();
+    _backupPollTimer?.cancel();
     super.dispose();
   }
 

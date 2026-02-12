@@ -62,7 +62,22 @@ async def lifespan(app: FastAPI):
     # Run each migration in its own transaction so one failure doesn't abort others
     try:
         from sqlalchemy import text
+        # Convert any old 'refer' decisions to 'no_go' (REFER was removed from enum)
         migrations = [
+                "UPDATE assessments SET decision = 'no_go' WHERE decision = 'refer'",
+                # Share links table
+                """CREATE TABLE IF NOT EXISTS share_links (
+                    id SERIAL PRIMARY KEY,
+                    assessment_id UUID REFERENCES assessments(id),
+                    token VARCHAR(64) UNIQUE NOT NULL,
+                    created_by UUID REFERENCES users(id) NOT NULL,
+                    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+                    expires_at TIMESTAMP NOT NULL,
+                    is_revoked BOOLEAN DEFAULT FALSE NOT NULL,
+                    access_count INTEGER DEFAULT 0 NOT NULL,
+                    last_accessed_at TIMESTAMP
+                )""",
+                "CREATE INDEX IF NOT EXISTS ix_share_links_token ON share_links(token)",
                 # Users table - columns added in EC2 version
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS syndicate_id INTEGER",
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) DEFAULT 'approved'",

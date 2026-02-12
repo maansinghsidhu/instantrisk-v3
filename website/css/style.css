@@ -1,17 +1,17 @@
 /* InstantRisk Marketing Website - Global Styles */
 :root {
-  --navy-900: #0a1628;
-  --navy-800: #0f2137;
-  --navy-700: #152d4a;
-  --navy-600: #1e3a5f;
-  --navy-500: #2d5a87;
-  --teal-500: #00b894;
-  --teal-400: #00cec9;
-  --teal-300: #55efc4;
-  --cyan-500: #0984e3;
-  --cyan-400: #74b9ff;
-  --purple-500: #6c5ce7;
-  --purple-400: #a29bfe;
+  --navy-900: #0a0618;
+  --navy-800: #110a24;
+  --navy-700: #1a0a2e;
+  --navy-600: #241245;
+  --navy-500: #3d1d6e;
+  --teal-500: #FF0080;
+  --teal-400: #FF33A0;
+  --teal-300: #FF66B8;
+  --cyan-500: #0066FF;
+  --cyan-400: #00CCFF;
+  --purple-500: #6B00CC;
+  --purple-400: #8B00FF;
   --red-500: #e74c3c;
   --gold-500: #f39c12;
   --text-white: #ffffff;
@@ -20,13 +20,13 @@
   --text-dim: #636e72;
   --border-dark: rgba(255,255,255,0.08);
   --border-light: rgba(255,255,255,0.15);
-  --glass-bg: rgba(15, 33, 55, 0.6);
+  --glass-bg: rgba(26, 10, 46, 0.6);
   --glass-border: rgba(255,255,255,0.1);
-  --card-bg: rgba(21, 45, 74, 0.5);
-  --gradient-primary: linear-gradient(135deg, var(--teal-500), var(--cyan-500));
+  --card-bg: rgba(36, 18, 69, 0.5);
+  --gradient-primary: linear-gradient(135deg, var(--teal-500), var(--purple-500), var(--cyan-500));
   --gradient-hero: linear-gradient(135deg, var(--navy-900) 0%, var(--navy-700) 50%, var(--navy-800) 100%);
-  --gradient-card: linear-gradient(135deg, rgba(0,184,148,0.1), rgba(9,132,227,0.1));
-  --shadow-glow: 0 0 40px rgba(0,184,148,0.15);
+  --gradient-card: linear-gradient(135deg, rgba(255,0,128,0.1), rgba(107,0,204,0.1));
+  --shadow-glow: 0 0 40px rgba(107,0,204,0.15);
   --shadow-card: 0 8px 32px rgba(0,0,0,0.3);
   --radius-sm: 8px;
   --radius-md: 12px;

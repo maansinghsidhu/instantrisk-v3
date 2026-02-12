@@ -265,16 +265,13 @@ async def get_assessment_summary(
     # Decision counts
     go_query = select(func.count(Assessment.id)).where(Assessment.decision == AssessmentDecision.GO)
     no_go_query = select(func.count(Assessment.id)).where(Assessment.decision == AssessmentDecision.NO_GO)
-    refer_query = select(func.count(Assessment.id)).where(Assessment.decision == AssessmentDecision.REFER)
 
     if base_filter:
         go_query = go_query.where(*base_filter)
         no_go_query = no_go_query.where(*base_filter)
-        refer_query = refer_query.where(*base_filter)
 
     go_result = await db.execute(go_query)
     no_go_result = await db.execute(no_go_query)
-    refer_result = await db.execute(refer_query)
 
     # Average risk score
     avg_query = select(func.avg(cast(Assessment.risk_score, Float))).where(Assessment.risk_score.isnot(None))
@@ -289,7 +286,7 @@ async def get_assessment_summary(
         "completed_count": completed,
         "go_decisions": go_result.scalar() or 0,
         "no_go_decisions": no_go_result.scalar() or 0,
-        "refer_decisions": refer_result.scalar() or 0,
+        "refer_decisions": 0,
         "average_risk_score": round(avg_risk, 2) if avg_risk else 0.0
     }
 
@@ -859,7 +856,7 @@ async def upgrade_analysis(
                 elif "no" in decision_str or "decline" in decision_str:
                     decision = AssessmentDecision.NO_GO
                 else:
-                    decision = AssessmentDecision.REFER
+                    decision = AssessmentDecision.NO_GO
 
                 risk_score = analysis.get("risk_score", 50)
                 confidence = analysis.get("confidence", 0.5)

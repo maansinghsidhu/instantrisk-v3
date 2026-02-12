@@ -5,10 +5,10 @@ class AppTheme {
   // Font fallback for missing characters
   static const List<String> fontFallback = ['Roboto', 'sans-serif'];
   // Brand Colors
-  static const Color primaryDark = Color(0xFF1E3A5F);  // Navy blue (from PDF)
-  static const Color primaryLight = Color(0xFF2D5A87);
-  static const Color accent = Color(0xFF00B894);  // Teal green (GO color)
-  static const Color accentSecondary = Color(0xFF00CEC9);
+  static const Color primaryDark = Color(0xFF6B00CC);  // Brand purple
+  static const Color primaryLight = Color(0xFF8A2BE2);
+  static const Color accent = Color(0xFFFF0080);  // Hot pink accent
+  static const Color accentSecondary = Color(0xFFFF0080);  // Hot pink accent
 
   // Status Colors
   static const Color success = Color(0xFF00B894);  // Green for GO

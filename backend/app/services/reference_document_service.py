@@ -255,7 +255,10 @@ class ReferenceDocumentService:
     async def _extract_text(self, file_path: str) -> Dict[str, Any]:
         """Extract text from document using OCR service."""
         try:
-            result = await ocr_service.process_file(file_path)
+            if file_path.lower().endswith('.pdf'):
+                result = await ocr_service.process_pdf(file_path)
+            else:
+                result = await ocr_service.process_document(file_path)
             return result
         except Exception as e:
             logger.error(f"OCR error: {e}")

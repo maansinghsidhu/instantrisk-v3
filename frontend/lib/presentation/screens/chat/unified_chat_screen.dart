@@ -302,9 +302,6 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
             'Insurance AI with 112K+ knowledge base records',
             style: TextStyle(color: Colors.white38, fontSize: 14),
           ),
-          const SizedBox(height: 40),
-          // Suggestion Grid (2x2)
-          _buildSuggestionGrid(),
           const SizedBox(height: 32),
           // Recent Conversations
           if (_recentConversations.isNotEmpty) ...[
@@ -326,84 +323,6 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
           const SizedBox(height: 100),
         ],
       ),
-    );
-  }
-
-  Widget _buildSuggestionGrid() {
-    final suggestions = [
-      {
-        'icon': Icons.bar_chart,
-        'title': 'GL claims in CA?',
-        'subtitle': 'Query benchmark data',
-        'query': "What's the average GL claim severity in California?",
-      },
-      {
-        'icon': Icons.compare_arrows,
-        'title': 'Compare to benchmarks',
-        'subtitle': 'Assessment vs industry',
-        'query': 'Compare my assessment to industry benchmarks',
-      },
-      {
-        'icon': Icons.description,
-        'title': 'What clauses do I need?',
-        'subtitle': 'Document generation help',
-        'query': 'What clauses do I need for a marine cargo policy?',
-      },
-      {
-        'icon': Icons.search,
-        'title': 'Explain war exclusion',
-        'subtitle': 'Clause explanation',
-        'query': 'Explain the war exclusion clause and when it applies',
-      },
-    ];
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 1.6,
-      ),
-      itemCount: suggestions.length,
-      itemBuilder: (context, index) {
-        final s = suggestions[index];
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => _sendMessage(s['query'] as String),
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A1F2E),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white10),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(s['icon'] as IconData, color: AppTheme.primaryDark, size: 20),
-                  const Spacer(),
-                  Text(
-                    s['title'] as String,
-                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    s['subtitle'] as String,
-                    style: const TextStyle(color: Colors.white38, fontSize: 11),
-                    maxLines: 1,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 

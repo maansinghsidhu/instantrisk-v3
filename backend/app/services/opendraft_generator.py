@@ -867,6 +867,43 @@ Return ONLY valid JSON:
         )
         return result or {"approved": True, "quality_score": 0.75, "blocking_issues": [], "warnings": [], "summary": ""}
 
+    # ─── CONVENIENCE METHODS (used by document_generation router) ─────
+
+    async def analyze_assessment(
+        self,
+        assessment_data: Dict[str, Any],
+        user_id: str = None,
+    ) -> Dict[str, Any]:
+        """Run research + gap analysis on an assessment (agents 1+3)."""
+        try:
+            research = await self.agent_risk_researcher(assessment_data, user_id)
+            clause_candidates = await self.agent_clause_extractor(research, user_id)
+            gap_analysis = await self.agent_gap_analyzer(research, clause_candidates, assessment_data)
+            return {
+                "research": research,
+                "clause_candidates": clause_candidates,
+                "gap_analysis": gap_analysis,
+                "recommended_documents": gap_analysis.get("mandatory_missing", []),
+            }
+        except Exception as e:
+            logger.error(f"analyze_assessment error: {e}")
+            return {"research": {}, "clause_candidates": [], "gap_analysis": {}, "recommended_documents": []}
+
+    async def search_clauses(
+        self,
+        document_types: List[str] = None,
+        user_id: str = None,
+    ) -> List[Dict[str, Any]]:
+        """Search for relevant clauses by document type (agents 2+4)."""
+        try:
+            research = {"risk_category": "general", "key_findings": document_types or []}
+            clause_candidates = await self.agent_clause_extractor(research, user_id)
+            selected = await self.agent_clause_manager(clause_candidates, {"coverage_gaps": [], "mandatory_missing": []})
+            return selected
+        except Exception as e:
+            logger.error(f"search_clauses error: {e}")
+            return []
+
     # ─── MAIN PIPELINE ────────────────────────────────────────────────
 
     async def generate(

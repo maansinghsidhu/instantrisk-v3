@@ -1802,7 +1802,7 @@ async def generate_documents_opendraft(
         result = await opendraft_generator.generate(
             assessment_data=assessment_data,
             user_id=str(current_user.id),
-            document_types=documents,
+            doc_types=documents,
         )
 
         return result
