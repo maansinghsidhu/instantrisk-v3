@@ -171,66 +171,95 @@ async def suggest_documents(
     # Get suggestions from AI for documents
     suggestions = await document_generator.suggest_documents(assessment_data)
 
-    # Get COMPREHENSIVE clause recommendations from clause service
-    # This returns ALL relevant clauses from the bank, categorized properly
-    clause_recommendations = lma_clauses_service.recommend_clauses(
-        risk_category=risk_category,
-        territory=territory,
-        perils=perils if perils else None,
-        sum_insured=sum_insured,
-        special_features=special_features if special_features else None
-    )
+    # Get clause recommendations using the REAL clauses library (with actual data)
+    from app.services.clauses_library_service import clauses_library_service
 
-    # Build comprehensive LMA clauses list with proper categorization
     lma_clauses = []
+    existing_ids = set()
 
-    # Add mandatory clauses (always selected)
-    for clause in clause_recommendations.get("mandatory", []):
-        lma_clauses.append(LMAClauseSuggestion(
-            id=clause.get("id", ""),
-            name=clause.get("name", ""),
-            mandatory=True,
-            category=clause.get("category", "general"),
-            selected=True,  # Pre-selected
-            reason=f"Required for {risk_category} policies"
-        ))
+    # 1. Mandatory LMA clauses (always required for Lloyd's policies)
+    mandatory_lma_ids = {
+        "LMA5021": "War & terrorism exclusion - mandatory for all Lloyd's policies",
+        "LMA5390": "Sanctions compliance - mandatory for all Lloyd's policies",
+        "LMA5400": "Several liability - mandatory for all Lloyd's policies",
+        "LMA5027": "Market Reform Contract standard - mandatory for Lloyd's",
+        "LMA5515": "Law & jurisdiction - mandatory for all Lloyd's policies",
+        "LMA5406": "Claims cooperation - mandatory for all Lloyd's policies",
+    }
 
-    # Add recommended clauses (pre-selected)
-    for clause in clause_recommendations.get("recommended", []):
-        lma_clauses.append(LMAClauseSuggestion(
-            id=clause.get("id", ""),
-            name=clause.get("name", ""),
-            mandatory=False,
-            category=clause.get("category", "general"),
-            selected=True,  # Pre-selected as recommended
-            reason=f"Recommended for {risk_category} in {territory or 'worldwide'}"
-        ))
-
-    # Add optional clauses (not pre-selected, available for user to add)
-    for clause in clause_recommendations.get("optional", []):
-        lma_clauses.append(LMAClauseSuggestion(
-            id=clause.get("id", ""),
-            name=clause.get("name", ""),
-            mandatory=False,
-            category=clause.get("category", "general"),
-            selected=False,  # Available but not pre-selected
-            reason="Available for inclusion if needed"
-        ))
-
-    # Also add ALL other clauses from the library for search/browse
-    all_clauses = lma_clauses_service.get_all_clauses()
-    existing_ids = {c.id for c in lma_clauses}
-
-    for clause in all_clauses:
-        if clause.get("id") not in existing_ids:
+    for clause_id, reason in mandatory_lma_ids.items():
+        clause_data = clauses_library_service.get_clause_by_id(clause_id)
+        if clause_data:
             lma_clauses.append(LMAClauseSuggestion(
-                id=clause.get("id", ""),
-                name=clause.get("name", ""),
-                mandatory=False,
-                category=clause.get("category", "general"),
-                selected=False,
-                reason="Available in clause library"
+                id=clause_data["id"],
+                name=clause_data["name"],
+                mandatory=True,
+                category=clause_data.get("category", "general"),
+                selected=True,
+                reason=reason
             ))
+            existing_ids.add(clause_data["id"])
+
+    # 2. Risk-category specific recommended clauses (pre-selected)
+    category_searches = {
+        "property": ["property", "fire", "damage"],
+        "marine": ["marine", "cargo", "hull"],
+        "cyber": ["cyber", "data", "network"],
+        "aviation": ["aviation", "aircraft"],
+        "professional": ["professional", "negligence"],
+        "casualty": ["liability", "casualty"],
+        "energy": ["energy", "offshore"],
+    }
+    search_terms = category_searches.get(risk_category.lower(), [risk_category.lower()])
+
+    for term in search_terms[:2]:  # Max 2 search terms
+        results, _ = clauses_library_service.search(
+            query=term,
+            source="lma",
+            page_size=5
+        )
+        for clause_data in results:
+            if clause_data["id"] not in existing_ids:
+                lma_clauses.append(LMAClauseSuggestion(
+                    id=clause_data["id"],
+                    name=clause_data["name"],
+                    mandatory=False,
+                    category=clause_data.get("category", "general"),
+                    selected=True,
+                    reason=f"Recommended for {risk_category} risks"
+                ))
+                existing_ids.add(clause_data["id"])
+
+    # 3. Search clause library for risk-category relevant clauses from all sources
+    category_results, _ = clauses_library_service.search(
+        query=risk_category,
+        page_size=15
+    )
+    for clause_data in category_results:
+        if clause_data["id"] not in existing_ids:
+            lma_clauses.append(LMAClauseSuggestion(
+                id=clause_data["id"],
+                name=clause_data["name"],
+                mandatory=False,
+                category=clause_data.get("category", "general"),
+                selected=False,
+                reason=f"Available for {risk_category} policies"
+            ))
+            existing_ids.add(clause_data["id"])
+
+    # 4. Add remaining LMA clauses not yet included
+    lma_results, _ = clauses_library_service.search(source="lma", page_size=50)
+    for clause_data in lma_results:
+        if clause_data["id"] not in existing_ids:
+            lma_clauses.append(LMAClauseSuggestion(
+                id=clause_data["id"],
+                name=clause_data["name"],
+                mandatory=False,
+                category=clause_data.get("category", "general"),
+                selected=False,
+                reason="Available in LMA clause library"
+            ))
+            existing_ids.add(clause_data["id"])
 
     # Map to response schema
     return DocumentSuggestionResponse(

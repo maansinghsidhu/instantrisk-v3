@@ -1103,7 +1103,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
               // Clause selector widget
               Expanded(
                 child: ClauseSelectorWidget(
-                  assessmentId: int.tryParse(widget.assessmentId),
+                  assessmentId: widget.assessmentId,
                   selectedClauseIds: _selectedClauses,
                   onSelectionChanged: (selectedIds) {
                     setState(() {

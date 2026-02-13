@@ -14,7 +14,7 @@ import '../../core/services/auth_service.dart';
 /// - Virtual scrolling for large lists
 /// - Clause detail modal with full text
 class ClauseSelectorWidget extends StatefulWidget {
-  final int? assessmentId;
+  final String? assessmentId;
   final Set<String> selectedClauseIds;
   final Function(Set<String>) onSelectionChanged;
   final String? lineOfBusiness;
