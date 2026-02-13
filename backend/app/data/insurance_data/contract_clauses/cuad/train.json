@@ -1,0 +1,172 @@
+[
+  {
+    "context": "The Contractor shall maintain at its own expense comprehensive general liability insurance with a minimum limit of $1,000,000 per occurrence and $2,000,000 in the aggregate. Such insurance shall name the Company as an additional insured and shall provide thirty (30) days written notice of cancellation.",
+    "question": "Highlight the parts (if any) of this contract related to \"Insurance\".",
+    "title": "Insurance Contract - Insurance"
+  },
+  {
+    "context": "Each party shall maintain professional indemnity insurance with limits not less than $5,000,000 per claim and in the aggregate during the term of this Agreement and for a period of six (6) years following termination.",
+    "question": "Highlight the parts (if any) of this contract related to \"Insurance\".",
+    "title": "Insurance Contract - Insurance"
+  },
+  {
+    "context": "The Insured shall procure and maintain Directors and Officers liability insurance with a limit of not less than $10,000,000 per claim. The policy shall include entity coverage and shall be maintained on a claims-made basis.",
+    "question": "Highlight the parts (if any) of this contract related to \"Insurance\".",
+    "title": "Insurance Contract - Insurance"
+  },
+  {
+    "context": "Comprehensive crime insurance covering employee dishonesty, forgery or alteration, theft, disappearance and destruction, computer fraud, and funds transfer fraud shall be maintained with limits of not less than $5,000,000.",
+    "question": "Highlight the parts (if any) of this contract related to \"Insurance\".",
+    "title": "Insurance Contract - Insurance"
+  },
+  {
+    "context": "Cyber liability insurance covering data breach response costs, network security liability, privacy liability, and regulatory proceedings shall be maintained with limits of not less than $10,000,000 per occurrence.",
+    "question": "Highlight the parts (if any) of this contract related to \"Insurance\".",
+    "title": "Insurance Contract - Insurance"
+  },
+  {
+    "context": "In no event shall either party's total aggregate liability under this Agreement exceed the total fees paid or payable by Customer during the twelve (12) month period immediately preceding the event giving rise to the claim.",
+    "question": "Highlight the parts (if any) of this contract related to \"Cap On Liability\".",
+    "title": "Insurance Contract - Cap On Liability"
+  },
+  {
+    "context": "Notwithstanding anything to the contrary herein, the maximum liability of the Provider under this Agreement shall not exceed two (2) times the annual contract value, except in cases of gross negligence or willful misconduct.",
+    "question": "Highlight the parts (if any) of this contract related to \"Cap On Liability\".",
+    "title": "Insurance Contract - Cap On Liability"
+  },
+  {
+    "context": "The total liability of the Insurer under this Policy for all claims arising during any single Policy Period shall not exceed the aggregate limit of liability stated in the Declarations, regardless of the number of claims made or insureds.",
+    "question": "Highlight the parts (if any) of this contract related to \"Cap On Liability\".",
+    "title": "Insurance Contract - Cap On Liability"
+  },
+  {
+    "context": "Each party's liability for indirect, special, consequential, or punitive damages shall be limited to the greater of (a) $500,000 or (b) the fees paid under this Agreement in the twelve months prior to the claim.",
+    "question": "Highlight the parts (if any) of this contract related to \"Cap On Liability\".",
+    "title": "Insurance Contract - Cap On Liability"
+  },
+  {
+    "context": "The Contractor shall indemnify, defend, and hold harmless the Company and its officers, directors, employees, and agents from and against any and all claims, damages, losses, costs, and expenses (including reasonable attorneys' fees) arising out of or relating to the Contractor's breach of this Agreement or negligent acts or omissions.",
+    "question": "Highlight the parts (if any) of this contract related to \"Indemnification\".",
+    "title": "Insurance Contract - Indemnification"
+  },
+  {
+    "context": "Each party (the 'Indemnifying Party') shall indemnify the other party (the 'Indemnified Party') against all losses, liabilities, damages, and expenses arising from any third-party claim that the Indemnifying Party's products or services infringe any intellectual property right.",
+    "question": "Highlight the parts (if any) of this contract related to \"Indemnification\".",
+    "title": "Insurance Contract - Indemnification"
+  },
+  {
+    "context": "The Reinsurer shall indemnify the Cedant in respect of the ultimate net loss sustained by the Cedant in excess of the retention stated herein, subject to the limits and terms of this Agreement.",
+    "question": "Highlight the parts (if any) of this contract related to \"Indemnification\".",
+    "title": "Insurance Contract - Indemnification"
+  },
+  {
+    "context": "The Named Insured agrees to indemnify and hold harmless the Insurer against all claims, costs, and expenses arising from any misrepresentation or non-disclosure of material facts in the application for this Policy.",
+    "question": "Highlight the parts (if any) of this contract related to \"Indemnification\".",
+    "title": "Insurance Contract - Indemnification"
+  },
+  {
+    "context": "Either party may terminate this Agreement for convenience upon not less than ninety (90) days' prior written notice to the other party. Upon such termination, the Company shall pay the Contractor for all services performed and expenses incurred up to the effective date of termination.",
+    "question": "Highlight the parts (if any) of this contract related to \"Termination For Convenience\".",
+    "title": "Insurance Contract - Termination For Convenience"
+  },
+  {
+    "context": "The Policyholder may cancel this Policy at any time by written notice to the Insurer stating when the cancellation shall be effective. The Insurer shall return the pro rata unearned premium to the Policyholder.",
+    "question": "Highlight the parts (if any) of this contract related to \"Termination For Convenience\".",
+    "title": "Insurance Contract - Termination For Convenience"
+  },
+  {
+    "context": "This Agreement may be terminated by either party without cause upon sixty (60) days' written notice. In the event of termination, all accrued obligations and any provisions that by their nature should survive shall remain in effect.",
+    "question": "Highlight the parts (if any) of this contract related to \"Termination For Convenience\".",
+    "title": "Insurance Contract - Termination For Convenience"
+  },
+  {
+    "context": "This Agreement shall be governed by and construed in accordance with the laws of England and Wales, without regard to its conflict of laws principles. The parties hereby submit to the exclusive jurisdiction of the courts of England and Wales.",
+    "question": "Highlight the parts (if any) of this contract related to \"Governing Law\".",
+    "title": "Insurance Contract - Governing Law"
+  },
+  {
+    "context": "This Policy shall be governed by and construed in accordance with the laws of the State of New York. Any dispute arising under this Policy shall be subject to the exclusive jurisdiction of the courts located in the Borough of Manhattan, New York.",
+    "question": "Highlight the parts (if any) of this contract related to \"Governing Law\".",
+    "title": "Insurance Contract - Governing Law"
+  },
+  {
+    "context": "The construction, interpretation and meaning of the provisions of this Policy shall be determined in accordance with the laws of Bermuda. This clause shall not be overridden by any other choice of law provision.",
+    "question": "Highlight the parts (if any) of this contract related to \"Governing Law\".",
+    "title": "Insurance Contract - Governing Law"
+  },
+  {
+    "context": "During the term of this Agreement and for a period of twelve (12) months following termination, the Employee shall not directly or indirectly engage in any business that competes with the Company within the Territory.",
+    "question": "Highlight the parts (if any) of this contract related to \"Non-Compete\".",
+    "title": "Insurance Contract - Non-Compete"
+  },
+  {
+    "context": "The Consultant agrees that for a period of two (2) years after the termination of this Agreement, the Consultant shall not solicit or service any client of the Company that was a client during the last twelve (12) months of the engagement.",
+    "question": "Highlight the parts (if any) of this contract related to \"Non-Compete\".",
+    "title": "Insurance Contract - Non-Compete"
+  },
+  {
+    "context": "Each party shall maintain the confidentiality of all Confidential Information received from the other party and shall not disclose such information to any third party without the prior written consent of the disclosing party, except as required by law or regulation.",
+    "question": "Highlight the parts (if any) of this contract related to \"Confidentiality\".",
+    "title": "Insurance Contract - Confidentiality"
+  },
+  {
+    "context": "The Reinsurer acknowledges that all information relating to the Cedant's book of business, including but not limited to loss experience, premium volumes, and underwriting guidelines, constitutes confidential information and shall be treated accordingly.",
+    "question": "Highlight the parts (if any) of this contract related to \"Confidentiality\".",
+    "title": "Insurance Contract - Confidentiality"
+  },
+  {
+    "context": "All information exchanged between the parties in connection with the placement and administration of this insurance program shall be treated as confidential and shall not be disclosed to any third party except as necessary for the purpose of this Agreement.",
+    "question": "Highlight the parts (if any) of this contract related to \"Confidentiality\".",
+    "title": "Insurance Contract - Confidentiality"
+  },
+  {
+    "context": "Neither party shall be liable for any failure or delay in performing its obligations under this Agreement to the extent that such failure or delay results from circumstances beyond the reasonable control of that party, including but not limited to acts of God, war, terrorism, pandemic, epidemic, governmental action, natural disasters, or failure of telecommunications.",
+    "question": "Highlight the parts (if any) of this contract related to \"Force Majeure\".",
+    "title": "Insurance Contract - Force Majeure"
+  },
+  {
+    "context": "If a Force Majeure Event continues for more than ninety (90) consecutive days, either party may terminate this Agreement by giving written notice to the other party. Neither party shall have any liability for such termination.",
+    "question": "Highlight the parts (if any) of this contract related to \"Force Majeure\".",
+    "title": "Insurance Contract - Force Majeure"
+  },
+  {
+    "context": "Any dispute arising out of or in connection with this contract, including any question regarding its existence, validity or termination, shall be referred to and finally resolved by arbitration under the LCIA Rules, which rules are deemed to be incorporated by reference into this clause.",
+    "question": "Highlight the parts (if any) of this contract related to \"Arbitration\".",
+    "title": "Insurance Contract - Arbitration"
+  },
+  {
+    "context": "All disputes arising under or in connection with this reinsurance shall be referred to three arbitrators. Each party shall appoint one arbitrator and the two so appointed shall choose a third. Arbitration shall be conducted in London in accordance with the Arbitration Act 1996.",
+    "question": "Highlight the parts (if any) of this contract related to \"Arbitration\".",
+    "title": "Insurance Contract - Arbitration"
+  },
+  {
+    "context": "During the term of this Agreement, the Company grants the Distributor the exclusive right to market and distribute the Products within the Territory. The Company shall not appoint any other distributor or sell directly to customers within the Territory.",
+    "question": "Highlight the parts (if any) of this contract related to \"Exclusivity\".",
+    "title": "Insurance Contract - Exclusivity"
+  },
+  {
+    "context": "In the event of a Change of Control of either party, the other party shall have the right to terminate this Agreement upon thirty (30) days' written notice. 'Change of Control' means the acquisition by any person of more than fifty percent (50%) of the voting securities of a party.",
+    "question": "Highlight the parts (if any) of this contract related to \"Change Of Control\".",
+    "title": "Insurance Contract - Change Of Control"
+  },
+  {
+    "context": "Neither party may assign or transfer this Agreement or any rights or obligations hereunder without the prior written consent of the other party, except that either party may assign this Agreement to an affiliate or in connection with a merger, acquisition, or sale of substantially all of its assets.",
+    "question": "Highlight the parts (if any) of this contract related to \"Anti-Assignment\".",
+    "title": "Insurance Contract - Anti-Assignment"
+  },
+  {
+    "context": "The Reinsurer shall have the right to inspect, examine, and audit all books, records, and documents of the Cedant relating to this Agreement during normal business hours upon reasonable prior notice. This right shall continue for a period of three (3) years following the termination of this Agreement.",
+    "question": "Highlight the parts (if any) of this contract related to \"Audit Rights\".",
+    "title": "Insurance Contract - Audit Rights"
+  },
+  {
+    "context": "In the event of a breach of the service level requirements, the Provider shall pay liquidated damages to the Customer in the amount set forth in Schedule B. The parties acknowledge that such amounts represent a genuine pre-estimate of loss and are not a penalty.",
+    "question": "Highlight the parts (if any) of this contract related to \"Liquidated Damages\".",
+    "title": "Insurance Contract - Liquidated Damages"
+  },
+  {
+    "context": "The Provider warrants that the Services shall conform to the specifications set forth herein for a period of twelve (12) months following delivery (the 'Warranty Period'). The Provider's sole obligation under this warranty shall be to re-perform or correct any non-conforming Services at no additional cost.",
+    "question": "Highlight the parts (if any) of this contract related to \"Warranty Duration\".",
+    "title": "Insurance Contract - Warranty Duration"
+  }
+]

@@ -609,7 +609,7 @@ Return ONLY valid JSON:
             f"""Verify these clause references are valid standard clauses.
 
 Clauses used:
-{json.dumps([{{"id": c["clause_id"], "name": c["name"], "source": c.get("source", "unknown")}} for c in selected_clauses[:30]], indent=2)}
+{json.dumps([{"id": c.get("clause_id", ""), "name": c.get("name", ""), "source": c.get("source", "unknown")} for c in selected_clauses[:30]], indent=2)}
 
 For each clause, verify:
 1. Is this a real standard clause ID?

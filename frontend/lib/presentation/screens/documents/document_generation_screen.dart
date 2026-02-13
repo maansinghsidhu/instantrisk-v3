@@ -151,6 +151,149 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
     }
   }
 
+  void _showGenerationConfirmation() {
+    if (_selectedDocs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select at least one document to generate')),
+      );
+      return;
+    }
+
+    // Get selected document names
+    final selectedDocNames = _suggestions
+        .where((doc) => _selectedDocs.contains(doc['document_type']?.toString()))
+        .map((doc) => doc['template_name'] as String? ?? (doc['document_type'] as String).replaceAll('_', ' '))
+        .toList();
+
+    // Get language name
+    final langName = _availableLanguages
+        .firstWhere((l) => l['code'] == _selectedLanguage, orElse: () => {'name': 'English'})['name']!;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryDark.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.summarize, color: AppTheme.primaryDark, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Text('Generation Summary'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Documents
+              Text(
+                'Documents (${selectedDocNames.length})',
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+              const SizedBox(height: 8),
+              ...selectedDocNames.map((name) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.description, size: 16, color: AppTheme.primaryDark),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(name, style: const TextStyle(fontSize: 13))),
+                  ],
+                ),
+              )),
+              const Divider(height: 24),
+
+              // Clauses
+              Row(
+                children: [
+                  Text(
+                    'Selected Clauses: ${_selectedClauses.length}',
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${_selectedClauses.length}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: 24),
+
+              // Language
+              Row(
+                children: [
+                  const Icon(Icons.language, size: 16),
+                  const SizedBox(width: 8),
+                  Text('Language: $langName', style: const TextStyle(fontSize: 13)),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Pipeline info
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.info.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.info.withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.auto_awesome, size: 16, color: AppTheme.info),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '19-agent AI pipeline will generate, validate, and refine your documents.',
+                        style: TextStyle(fontSize: 12, color: AppTheme.info),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Back to Review'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _startGeneration();
+            },
+            icon: const Icon(Icons.rocket_launch, size: 18),
+            label: const Text('Generate Documents'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryDark,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _startGeneration() async {
     if (_selectedDocs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -591,7 +734,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _selectedDocs.isEmpty ? null : _startGeneration,
+                onPressed: _selectedDocs.isEmpty ? null : _showGenerationConfirmation,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryDark,
                   disabledBackgroundColor: AppTheme.border,
@@ -795,7 +938,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                         ),
                       ),
                       Text(
-                        '102,000+ clauses with AI recommendations',
+                        'Insurance clauses with AI recommendations',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppTheme.textSecondary,
@@ -1690,7 +1833,21 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                     }
                   },
                   icon: const Icon(Icons.visibility_outlined, size: 18),
-                  label: const Text('Preview'),
+                  label: const Text('View'),
+                ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: () {
+                    final docId = doc['id']?.toString();
+                    if (docId != null) {
+                      context.push('/documents/edit/$docId');
+                    }
+                  },
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text('Edit'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.primaryDark,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 if (status != 'finalized')
@@ -1706,7 +1863,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Document finalized successfully')),
                           );
-                          _loadGeneratedDocuments(); // Refresh the list
+                          _loadGeneratedDocuments();
                         }
                       } catch (e) {
                         if (mounted) {
@@ -1716,10 +1873,10 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                         }
                       }
                     },
-                    icon: const Icon(Icons.download, size: 18),
+                    icon: const Icon(Icons.check_circle_outline, size: 18),
                     label: const Text('Finalize'),
                     style: TextButton.styleFrom(
-                      foregroundColor: AppTheme.primaryDark,
+                      foregroundColor: Colors.green,
                     ),
                   ),
               ],

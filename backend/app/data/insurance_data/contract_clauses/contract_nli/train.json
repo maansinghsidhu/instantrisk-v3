@@ -1,0 +1,282 @@
+[
+  {
+    "sentence1": "All information disclosed by either party to the other party during the term of this Agreement shall be treated as confidential and shall not be disclosed to any third party without the prior written consent of the disclosing party.",
+    "sentence2": "Confidentiality obligations survive termination of the agreement.",
+    "gold_label": "not_mentioned"
+  },
+  {
+    "sentence1": "The Receiving Party agrees to keep all Confidential Information strictly confidential for a period of five (5) years following disclosure, including after termination of this Agreement.",
+    "sentence2": "Confidentiality obligations survive termination of the agreement.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "Upon termination of this Agreement, all obligations of confidentiality shall immediately cease and the Receiving Party shall be free to use any information previously received.",
+    "sentence2": "Confidentiality obligations survive termination of the agreement.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "This Agreement shall be governed by and construed in accordance with the laws of the State of New York, without regard to its conflict of laws principles.",
+    "sentence2": "The agreement is governed by the laws of England.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "This Policy is governed by English law. Any dispute arising under this Policy shall be subject to the exclusive jurisdiction of the English courts.",
+    "sentence2": "The agreement is governed by the laws of England.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "Either party may terminate this Agreement at any time by providing thirty (30) days written notice to the other party.",
+    "sentence2": "The agreement can be terminated for convenience.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "This Agreement shall continue in full force and effect unless terminated in accordance with the provisions herein. Neither party shall have the right to terminate without cause.",
+    "sentence2": "The agreement can be terminated for convenience.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "The Contractor shall indemnify and hold harmless the Client from any and all claims, damages, and expenses arising from the Contractor's performance of services under this Agreement.",
+    "sentence2": "The contractor must indemnify the client against third-party claims.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "Neither party shall be liable to the other for any indirect, incidental, or consequential damages, regardless of the cause of action.",
+    "sentence2": "Consequential damages are excluded under the agreement.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "The Contractor shall maintain professional liability insurance with limits of not less than $5,000,000 per claim throughout the term of this Agreement.",
+    "sentence2": "The contractor is required to maintain insurance coverage.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "Insurance requirements may be waived at the discretion of the project manager.",
+    "sentence2": "Insurance coverage is mandatory.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "Neither party shall be liable for delays or failures in performance resulting from causes beyond that party's reasonable control, including but not limited to acts of God, war, strikes, and natural disasters.",
+    "sentence2": "Force majeure excuses performance under the agreement.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "This Agreement may not be assigned by either party without the prior written consent of the other party.",
+    "sentence2": "Assignment of the agreement requires consent.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "Either party is free to assign this Agreement to any successor entity without notice or consent.",
+    "sentence2": "Assignment of the agreement requires consent.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "During the term of this Agreement and for twelve months thereafter, the Consultant shall not provide similar services to any competitor of the Client.",
+    "sentence2": "Non-compete restrictions apply after termination.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "The total liability of either party under this Agreement shall not exceed the total fees paid during the twelve months preceding the claim.",
+    "sentence2": "Liability is capped under the agreement.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "The Provider warrants that all services shall be performed in a professional and workmanlike manner consistent with generally accepted industry standards.",
+    "sentence2": "The provider gives a warranty on service quality.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "ALL SERVICES ARE PROVIDED 'AS IS' WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.",
+    "sentence2": "The provider gives a warranty on service quality.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "All intellectual property created by the Contractor in the course of performing services under this Agreement shall be the exclusive property of the Client.",
+    "sentence2": "The client owns intellectual property created under the agreement.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "The Contractor retains all rights, title, and interest in any pre-existing intellectual property and any improvements thereto.",
+    "sentence2": "The client owns all intellectual property created during the engagement.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "Any dispute arising under this Agreement shall be resolved by binding arbitration in accordance with the rules of the American Arbitration Association.",
+    "sentence2": "Disputes are resolved through arbitration.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "The parties agree that any dispute shall be resolved exclusively in the courts of competent jurisdiction.",
+    "sentence2": "Disputes are resolved through arbitration.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "All notices required under this Agreement shall be in writing and shall be deemed received when delivered personally, sent by certified mail return receipt requested, or sent by overnight courier.",
+    "sentence2": "Notices must be in writing.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "If any provision of this Agreement is found to be invalid or unenforceable, the remaining provisions shall continue in full force and effect.",
+    "sentence2": "Invalid provisions do not affect the rest of the agreement.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "This Agreement constitutes the entire agreement between the parties and supersedes all prior agreements, representations, and understandings.",
+    "sentence2": "The agreement supersedes all prior agreements.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "The Insurer shall be subrogated to the rights of the Insured against any third party responsible for a covered loss to the extent of any payment made under this Policy.",
+    "sentence2": "The insurer has subrogation rights.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "The Insured shall notify the Insurer of any claim or circumstance that may give rise to a claim as soon as reasonably practicable and in any event within thirty (30) days of becoming aware of such claim or circumstance.",
+    "sentence2": "Prompt claims notification is required.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "Premium is due and payable in full within thirty (30) days of inception. Failure to pay premium within the required period may result in cancellation of this Policy.",
+    "sentence2": "Late premium payment may lead to policy cancellation.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, all information disclosed by either party to the other party during the term of this Agreement shall be treated as confidential and shall not be disclosed to any third party without the prior written consent of the disclosing party.",
+    "sentence2": "Confidentiality obligations survive termination of the agreement.",
+    "gold_label": "not_mentioned"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, the Receiving Party agrees to keep all Confidential Information strictly confidential for a period of five (5) years following disclosure, including after termination of this Agreement.",
+    "sentence2": "Confidentiality obligations survive termination of the agreement.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, upon termination of this Agreement, all obligations of confidentiality shall immediately cease and the Receiving Party shall be free to use any information previously received.",
+    "sentence2": "Confidentiality obligations survive termination of the agreement.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, this Agreement shall be governed by and construed in accordance with the laws of the State of New York, without regard to its conflict of laws principles.",
+    "sentence2": "The agreement is governed by the laws of England.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, this Policy is governed by English law. Any dispute arising under this Policy shall be subject to the exclusive jurisdiction of the English courts.",
+    "sentence2": "The agreement is governed by the laws of England.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, either party may terminate this Agreement at any time by providing thirty (30) days written notice to the other party.",
+    "sentence2": "The agreement can be terminated for convenience.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, this Agreement shall continue in full force and effect unless terminated in accordance with the provisions herein. Neither party shall have the right to terminate without cause.",
+    "sentence2": "The agreement can be terminated for convenience.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, the Contractor shall indemnify and hold harmless the Client from any and all claims, damages, and expenses arising from the Contractor's performance of services under this Agreement.",
+    "sentence2": "The contractor must indemnify the client against third-party claims.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, neither party shall be liable to the other for any indirect, incidental, or consequential damages, regardless of the cause of action.",
+    "sentence2": "Consequential damages are excluded under the agreement.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, the Contractor shall maintain professional liability insurance with limits of not less than $5,000,000 per claim throughout the term of this Agreement.",
+    "sentence2": "The contractor is required to maintain insurance coverage.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, insurance requirements may be waived at the discretion of the project manager.",
+    "sentence2": "Insurance coverage is mandatory.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, neither party shall be liable for delays or failures in performance resulting from causes beyond that party's reasonable control, including but not limited to acts of God, war, strikes, and natural disasters.",
+    "sentence2": "Force majeure excuses performance under the agreement.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, this Agreement may not be assigned by either party without the prior written consent of the other party.",
+    "sentence2": "Assignment of the agreement requires consent.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, either party is free to assign this Agreement to any successor entity without notice or consent.",
+    "sentence2": "Assignment of the agreement requires consent.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, during the term of this Agreement and for twelve months thereafter, the Consultant shall not provide similar services to any competitor of the Client.",
+    "sentence2": "Non-compete restrictions apply after termination.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, the total liability of either party under this Agreement shall not exceed the total fees paid during the twelve months preceding the claim.",
+    "sentence2": "Liability is capped under the agreement.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, the Provider warrants that all services shall be performed in a professional and workmanlike manner consistent with generally accepted industry standards.",
+    "sentence2": "The provider gives a warranty on service quality.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, aLL SERVICES ARE PROVIDED 'AS IS' WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.",
+    "sentence2": "The provider gives a warranty on service quality.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, all intellectual property created by the Contractor in the course of performing services under this Agreement shall be the exclusive property of the Client.",
+    "sentence2": "The client owns intellectual property created under the agreement.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, the Contractor retains all rights, title, and interest in any pre-existing intellectual property and any improvements thereto.",
+    "sentence2": "The client owns all intellectual property created during the engagement.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, any dispute arising under this Agreement shall be resolved by binding arbitration in accordance with the rules of the American Arbitration Association.",
+    "sentence2": "Disputes are resolved through arbitration.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, the parties agree that any dispute shall be resolved exclusively in the courts of competent jurisdiction.",
+    "sentence2": "Disputes are resolved through arbitration.",
+    "gold_label": "contradiction"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, all notices required under this Agreement shall be in writing and shall be deemed received when delivered personally, sent by certified mail return receipt requested, or sent by overnight courier.",
+    "sentence2": "Notices must be in writing.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, if any provision of this Agreement is found to be invalid or unenforceable, the remaining provisions shall continue in full force and effect.",
+    "sentence2": "Invalid provisions do not affect the rest of the agreement.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, this Agreement constitutes the entire agreement between the parties and supersedes all prior agreements, representations, and understandings.",
+    "sentence2": "The agreement supersedes all prior agreements.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, the Insurer shall be subrogated to the rights of the Insured against any third party responsible for a covered loss to the extent of any payment made under this Policy.",
+    "sentence2": "The insurer has subrogation rights.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, the Insured shall notify the Insurer of any claim or circumstance that may give rise to a claim as soon as reasonably practicable and in any event within thirty (30) days of becoming aware of such claim or circumstance.",
+    "sentence2": "Prompt claims notification is required.",
+    "gold_label": "entailment"
+  },
+  {
+    "sentence1": "In accordance with the terms set forth herein, premium is due and payable in full within thirty (30) days of inception. Failure to pay premium within the required period may result in cancellation of this Policy.",
+    "sentence2": "Late premium payment may lead to policy cancellation.",
+    "gold_label": "entailment"
+  }
+]

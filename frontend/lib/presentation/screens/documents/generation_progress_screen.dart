@@ -86,32 +86,18 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
     super.dispose();
   }
 
+  String? _jobId;
+
   Future<void> _startGeneration() async {
-    _callGenerationAPI();
-
-    // Simulate agent progress while waiting (faster for 19 agents)
-    _progressTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) {
-      if (_isComplete || _hasError) {
-        timer.cancel();
-        return;
-      }
-      final allAgents = _allAgents;
-      if (_currentAgentIndex < allAgents.length - 1) {
-        setState(() {
-          allAgents[_currentAgentIndex].status = _AgentStatus.complete;
-          _currentAgentIndex++;
-          allAgents[_currentAgentIndex].status = _AgentStatus.running;
-        });
-      }
-    });
-
     setState(() {
       _allAgents[0].status = _AgentStatus.running;
     });
+    _callGenerationAPI();
   }
 
   Future<void> _callGenerationAPI() async {
     try {
+      // Step 1: POST to start generation — returns immediately with job_id
       final response = await authService.post(
         '/document-generation/generate',
         body: {
@@ -123,7 +109,98 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        _progressTimer?.cancel();
+        _jobId = data['job_id'];
+        if (_jobId == null) {
+          _handleError('No job_id returned from server');
+          return;
+        }
+        // Step 2: Start polling for real progress
+        _pollJobStatus();
+      } else {
+        _handleError('Generation failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      _handleError('Document generation failed: $e. Please try again.');
+    }
+  }
+
+  Future<void> _pollJobStatus() async {
+    _progressTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      if (_isComplete || _hasError) {
+        timer.cancel();
+        return;
+      }
+      try {
+        final response = await authService.get('/generation-jobs/$_jobId/status');
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          final status = data['status'] as String?;
+          final currentAgent = data['current_agent'] as String?;
+          final steps = data['steps'] as List?;
+
+          if (steps != null) {
+            _updateAgentProgress(steps);
+          } else if (currentAgent != null) {
+            _updateAgentByName(currentAgent);
+          }
+
+          if (status == 'completed') {
+            timer.cancel();
+            await _fetchCompletedJob();
+          } else if (status == 'failed') {
+            timer.cancel();
+            _handleError(data['error_message'] ?? 'Generation failed on server');
+          }
+        }
+      } catch (e) {
+        // Don't stop polling on transient errors
+      }
+    });
+  }
+
+  void _updateAgentProgress(List steps) {
+    final allAgents = _allAgents;
+    for (final step in steps) {
+      final agentName = step['agent'] as String?;
+      final stepStatus = step['status'] as String?;
+      if (agentName == null) continue;
+
+      final idx = allAgents.indexWhere((a) => a.name == agentName);
+      if (idx == -1) continue;
+
+      setState(() {
+        if (stepStatus == 'completed') {
+          allAgents[idx].status = _AgentStatus.complete;
+        } else if (stepStatus == 'running') {
+          allAgents[idx].status = _AgentStatus.running;
+          _currentAgentIndex = idx;
+        }
+        // pending stays pending
+      });
+    }
+  }
+
+  void _updateAgentByName(String currentAgent) {
+    final allAgents = _allAgents;
+    final idx = allAgents.indexWhere((a) => a.name == currentAgent);
+    if (idx == -1) return;
+
+    setState(() {
+      // Mark all before current as complete
+      for (int i = 0; i < idx; i++) {
+        allAgents[i].status = _AgentStatus.complete;
+      }
+      allAgents[idx].status = _AgentStatus.running;
+      _currentAgentIndex = idx;
+    });
+  }
+
+  Future<void> _fetchCompletedJob() async {
+    try {
+      final response = await authService.get('/generation-jobs/$_jobId');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final outputs = data['agent_outputs'] as Map<String, dynamic>?;
 
         setState(() {
           for (final agent in _allAgents) {
@@ -131,19 +208,31 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
           }
           _isComplete = true;
 
-          _generatedDocs = (data['documents'] as List?)
-              ?.map((d) => Map<String, dynamic>.from(d))
-              .toList() ?? [];
+          if (outputs != null) {
+            _generatedDocs = (outputs['documents'] as List?)
+                ?.map((d) => Map<String, dynamic>.from(d))
+                .toList() ?? [];
 
-          _userClauseCount = data['source_counts']?['user_uploaded'] ?? 0;
-          _acordClauseCount = data['source_counts']?['acord'] ?? 0;
-          _aiClauseCount = data['source_counts']?['ai_generated'] ?? 0;
+            // Build source counts from documents
+            int userCount = 0, acordCount = 0, aiCount = 0;
+            for (final doc in _generatedDocs) {
+              final attr = doc['source_attribution'] as Map<String, dynamic>?;
+              if (attr != null) {
+                userCount += (attr['user'] as num?)?.toInt() ?? 0;
+                acordCount += (attr['acord'] as num?)?.toInt() ?? 0;
+                aiCount += (attr['ai_generated'] as num?)?.toInt() ?? 0;
+              }
+            }
+            _userClauseCount = userCount;
+            _acordClauseCount = acordCount;
+            _aiClauseCount = aiCount;
+          }
         });
       } else {
-        _handleError('Generation failed: ${response.statusCode}');
+        _handleError('Failed to fetch generated documents');
       }
     } catch (e) {
-      _handleError('Document generation failed: $e. Please try again.');
+      _handleError('Failed to fetch results: $e');
     }
   }
 
@@ -501,7 +590,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  doc['name'] ?? 'Document',
+                  doc['title'] ?? doc['name'] ?? 'Document',
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -528,7 +617,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${doc['sections'] ?? 0} sections',
+                      '${doc['total_sections'] ?? (doc['sections'] is List ? (doc['sections'] as List).length : doc['sections'] ?? 0)} sections',
                       style: const TextStyle(fontSize: 11, color: AppTheme.textHint),
                     ),
                   ],
@@ -540,9 +629,21 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
+                icon: const Icon(Icons.edit_document, size: 20, color: AppTheme.primaryDark),
+                onPressed: () {
+                  final docId = doc['id']?.toString() ?? '';
+                  if (docId.isNotEmpty) {
+                    context.go('/documents/edit/$docId', extra: {
+                      'assessmentId': widget.assessmentId,
+                    });
+                  }
+                },
+                tooltip: 'Edit',
+              ),
+              IconButton(
                 icon: const Icon(Icons.visibility, size: 20, color: AppTheme.textSecondary),
                 onPressed: () {
-                  final docId = doc['id'] ?? '';
+                  final docId = doc['id']?.toString() ?? '';
                   if (docId.isNotEmpty) {
                     context.go('/documents/preview/$docId', extra: {
                       'assessmentId': widget.assessmentId,

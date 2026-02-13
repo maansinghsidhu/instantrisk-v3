@@ -5,10 +5,13 @@ Endpoints for generating insurance documents from assessments
 using the 5-agent AutoGen pipeline.
 """
 
+import logging
 import os
 import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -576,24 +579,42 @@ async def get_generation_status(
     if not job:
         raise HTTPException(404, "Job not found")
 
-    # Build steps array showing exact pipeline progress
+    # Build steps array showing real 19-agent pipeline progress
     progress = job.progress_percentage or 0
+    current_agent = job.current_agent
     pipeline_steps = [
-        ("Initializing", "Starting document generation pipeline...", 5),
-        ("DocumentRequirementAnalyzer", "Analyzing assessment data and identifying document requirements...", 10),
-        ("TemplateSelector", "Selecting optimal templates for requested documents...", 30),
-        ("DataMapper", "Mapping assessment data to template fields...", 50),
-        ("DocumentDrafter", "Drafting document content with AI assistance...", 70),
-        ("ComplianceChecker", "Verifying compliance and validating document content...", 90),
-        ("Complete", "Document generation completed successfully", 100),
+        ("RiskResearcher", "Searching knowledge base for relevant clauses", 5),
+        ("ClauseExtractor", "Extracting key provisions from found clauses", 10),
+        ("GapAnalyzer", "Identifying coverage gaps and missing clauses", 15),
+        ("ClauseManager", "Mapping clause IDs to standard wordings", 20),
+        ("StructurePlanner", "Planning document sections using CUAD patterns", 25),
+        ("LloydFormatter", "Applying London market formatting standards", 30),
+        ("SectionDrafter", "Drafting each section with selected clauses", 40),
+        ("ConsistencyChecker", "Verifying values match across all sections", 45),
+        ("ToneUnifier", "Ensuring consistent legal language throughout", 50),
+        ("RiskChallenger", "Challenging coverage adequacy", 55),
+        ("ClauseVerifier", "Verifying all clause IDs are valid standards", 60),
+        ("ComplianceReviewer", "Lloyd's compliance and regulatory check", 65),
+        ("HouseStyleAgent", "Matching your uploaded document style", 70),
+        ("LanguageVarier", "Varying legal phrasing to avoid repetition", 75),
+        ("ProofReader", "Grammar, numbering, and cross-references", 80),
+        ("ClauseCompiler", "Inserting full ACORD standard wordings", 85),
+        ("ScheduleBuilder", "Building schedules, appendices, and tables", 90),
+        ("PDFExporter", "Generating PDF with Lloyd's formatting", 93),
+        ("QualityGate", "Final quality checklist before delivery", 95),
     ]
 
+    # Determine which agents are completed based on current_agent
+    found_current = False
     steps = []
     for agent, description, threshold in pipeline_steps:
-        if progress >= threshold:
+        if job.status == "completed":
             status = "completed"
-        elif job.current_agent == agent:
+        elif agent == current_agent:
             status = "running"
+            found_current = True
+        elif not found_current:
+            status = "completed"  # agents before the current one are done
         else:
             status = "pending"
         steps.append(GenerationStepProgress(
@@ -639,7 +660,10 @@ async def get_generation_job(
         progress_percentage=job.progress_percentage,
         current_agent=job.current_agent,
         current_agent_description=job.current_agent_description,
+        agent_outputs=job.agent_outputs,
+        error_message=job.error_message,
         created_at=job.created_at,
+        started_at=job.started_at,
         completed_at=job.completed_at
     )
 
@@ -1654,7 +1678,7 @@ async def suggest_clauses(
 # AI-Driven Document Generation (OpenDraft Pipeline)
 # =============================================================================
 
-@router.post("/ai-recommend")
+@router.post("/document-generation/ai-recommend")
 async def ai_recommend_documents(
     request: dict,
     db: AsyncSession = Depends(get_db),
@@ -1712,7 +1736,7 @@ async def ai_recommend_documents(
         return {"recommended_documents": fallback, "is_fallback": True}
 
 
-@router.post("/ai-clauses")
+@router.post("/document-generation/ai-clauses")
 async def ai_clause_search(
     request: dict,
     db: AsyncSession = Depends(get_db),
@@ -1760,7 +1784,7 @@ async def ai_clause_search(
         return {"clauses_by_document": clauses_by_doc, "is_fallback": True}
 
 
-@router.post("/generate")
+@router.post("/document-generation/generate")
 async def generate_documents_opendraft(
     request: dict,
     background_tasks: BackgroundTasks,
@@ -1768,7 +1792,8 @@ async def generate_documents_opendraft(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Generate documents using OpenDraft 7-agent pipeline.
+    Generate documents using OpenDraft 19-agent pipeline (async).
+    Returns a job_id immediately. Frontend polls /generation-jobs/{job_id}/status for progress.
     """
     assessment_id = request.get("assessment_id")
     documents = request.get("documents", [])
@@ -1787,49 +1812,136 @@ async def generate_documents_opendraft(
     if not assessment:
         raise HTTPException(404, "Assessment not found")
 
-    try:
-        from app.services.opendraft_generator import opendraft_generator
-        assessment_data = {
-            "id": assessment.id,
-            "reference_number": assessment.reference_number,
-            "title": assessment.title,
-            "risk_category": assessment.risk_category.value if assessment.risk_category else "general",
-            "insured_name": assessment.insured_name,
-            "territory": assessment.territory or "",
-            "premium": assessment.premium,
-            "sum_insured": assessment.sum_insured,
-            "ai_analysis": assessment.ai_analysis or {},
-            "rapidrate_results": assessment.rapidrate_results or {},
-        }
+    # Create job record
+    import uuid
+    job_id = str(uuid.uuid4())[:8]
+    job = DocumentGenerationJob(
+        id=job_id,
+        assessment_id=assessment_id,
+        status="pending",
+        total_documents=len(documents),
+    )
+    db.add(job)
+    await db.commit()
 
-        result = await opendraft_generator.generate(
-            assessment_data=assessment_data,
-            user_id=str(current_user.id),
-            doc_types=documents,
-        )
+    assessment_data = {
+        "id": assessment.id,
+        "reference_number": assessment.reference_number,
+        "title": assessment.title,
+        "risk_category": assessment.risk_category.value if assessment.risk_category else "general",
+        "insured_name": assessment.insured_name,
+        "territory": assessment.territory or "",
+        "premium": assessment.premium,
+        "sum_insured": assessment.sum_insured,
+        "ai_analysis": assessment.ai_analysis or {},
+        "rapidrate_results": assessment.rapidrate_results or {},
+    }
 
-        return result
-    except Exception as e:
-        logger.error(f"Document generation failed: {e}", exc_info=True)
-        return {
-            "is_fallback": True,
-            "error": str(e),
-            "documents": [
-                {
-                    "id": f"gen_{assessment_id}_{doc_type}",
-                    "name": doc_type.replace("_", " ").title(),
-                    "type": doc_type,
-                    "status": "draft",
-                    "sections": 10,
-                }
-                for doc_type in documents
-            ],
-            "source_counts": {
-                "user_uploaded": 0,
-                "acord": 3,
-                "ai_generated": len(documents) * 5,
-            },
-        }
+    # Queue background task — returns immediately
+    background_tasks.add_task(
+        _run_opendraft_job,
+        job_id,
+        assessment_data,
+        str(current_user.id),
+        documents,
+    )
+
+    return {"job_id": job_id, "status": "pending"}
+
+
+async def _run_opendraft_job(job_id: str, assessment_data: dict, user_id: str, doc_types: list):
+    """Background task that runs the 19-agent pipeline and updates job progress in DB."""
+    from app.core.database import AsyncSessionLocal
+    from app.services.opendraft_generator import opendraft_generator
+
+    async with AsyncSessionLocal() as db:
+        try:
+            # Mark as processing
+            job = await db.get(DocumentGenerationJob, job_id)
+            if job:
+                job.start_processing()
+                await db.commit()
+
+            # Progress callback updates the DB so the frontend can poll
+            async def progress_callback(progress):
+                async with AsyncSessionLocal() as cb_db:
+                    cb_job = await cb_db.get(DocumentGenerationJob, job_id)
+                    if cb_job:
+                        agent_num = progress.get("step", 0)
+                        agent_name = progress.get("agent", "")
+                        status = progress.get("status", "running")
+                        phase = progress.get("phase", "")
+                        percentage = min(int((agent_num / 19) * 95), 95)  # cap at 95% until truly done
+                        if status == "running":
+                            cb_job.update_progress(agent_name, f"{phase}: {agent_name}", percentage)
+                            await cb_db.commit()
+
+            result = await opendraft_generator.generate(
+                assessment_data=assessment_data,
+                user_id=user_id,
+                doc_types=doc_types,
+                progress_callback=progress_callback,
+            )
+
+            # Store result and mark complete (convert UUIDs to strings for JSONB)
+            import json as _json
+            def _default(o):
+                if hasattr(o, 'hex'):  # UUID
+                    return str(o)
+                raise TypeError(f"Object of type {type(o).__name__} is not JSON serializable")
+            safe_result = _json.loads(_json.dumps(result, default=_default))
+
+            job = await db.get(DocumentGenerationJob, job_id)
+            if job:
+                job.completed_documents = len(result.get("documents", []))
+                job.complete()
+
+                # Create individual GeneratedDocument records for each document
+                from app.models.generated_document import GeneratedDocument
+                from sqlalchemy.orm.attributes import flag_modified
+                doc_ids = []
+                for doc_data in safe_result.get("documents", []):
+                    gen_doc = GeneratedDocument(
+                        assessment_id=job.assessment_id,
+                        generation_job_id=job_id,
+                        document_type=doc_data.get("document_type", "unknown"),
+                        title=doc_data.get("title", "Untitled Document"),
+                        status="draft",
+                        draft_content={
+                            "sections": doc_data.get("sections", []),
+                            "schedules": doc_data.get("schedules", []),
+                            "appendices": doc_data.get("appendices", []),
+                        },
+                        ai_suggestions={
+                            "compliance": doc_data.get("compliance", {}),
+                            "risk_challenge": doc_data.get("risk_challenge", {}),
+                            "quality_gate": doc_data.get("quality_gate", {}),
+                            "gap_analysis": doc_data.get("gap_analysis", {}),
+                            "source_attribution": doc_data.get("source_attribution", {}),
+                        },
+                        ai_confidence=0.85,
+                        generation_method="ai_prefill",
+                    )
+                    db.add(gen_doc)
+                    await db.flush()  # get the auto-generated id
+                    doc_ids.append(gen_doc.id)
+                    doc_data["id"] = gen_doc.id  # add DB id back to agent_outputs
+
+                # Set agent_outputs AFTER adding document IDs and flag as modified
+                job.agent_outputs = safe_result
+                flag_modified(job, "agent_outputs")
+                await db.commit()
+                logger.info(f"OpenDraft job {job_id} completed: {len(doc_ids)} documents created (IDs: {doc_ids})")
+
+        except Exception as e:
+            logger.error(f"OpenDraft job {job_id} failed: {e}", exc_info=True)
+            try:
+                job = await db.get(DocumentGenerationJob, job_id)
+                if job:
+                    job.fail(str(e))
+                    await db.commit()
+            except Exception:
+                pass
 
 
 def _get_fallback_recommendations(risk_category: str) -> list:
