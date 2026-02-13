@@ -103,8 +103,8 @@ class Settings(BaseSettings):
 
     # AWS Bedrock Settings
     AWS_BEDROCK_REGION: str = "us-east-1"
-    BEDROCK_MODEL_ID: str = "anthropic.claude-sonnet-4-5-20250929-v1:0"
-    BEDROCK_FALLBACK_MODEL: str = "anthropic.claude-haiku-4-5-20251001-v1:0"
+    BEDROCK_MODEL_ID: str = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    BEDROCK_FALLBACK_MODEL: str = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
     BEDROCK_ENABLED: bool = True
 
     # ClaimSense Settings

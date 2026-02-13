@@ -429,10 +429,12 @@ Return ONLY valid JSON:
         selected_clauses: List[Dict],
         assessment_data: Dict,
         formatting: Dict,
+        user_id: str = None,
     ) -> List[Dict]:
-        """Agent 7: SectionDrafter — drafts each section using selected clauses + house style."""
+        """Agent 7: SectionDrafter — drafts each section using selected clauses + RAG context."""
         clause_map = {c["clause_id"]: c for c in selected_clauses}
         drafted_sections = []
+        risk_category = assessment_data.get("risk_category", "property")
 
         for section in structure.get("sections", []):
             section_clauses = []
@@ -456,20 +458,35 @@ Return ONLY valid JSON:
                     ],
                 })
             else:
+                # Search RAG for relevant clause examples and standard wordings
+                rag_context = ""
+                try:
+                    results = await self.unified_rag.search(
+                        query=f"{section['title']} {risk_category} insurance clause wording Lloyd's",
+                        user_id=user_id,
+                        top_k=5,
+                        min_score=0.3,
+                    )
+                    rag_context = self.unified_rag.format_as_context(results, max_chars=3000)
+                except Exception as e:
+                    logger.warning(f"SectionDrafter RAG search failed for '{section['title']}': {e}")
+
+                rag_block = f"\nREFERENCE WORDINGS (ACORD/CUAD/standard clauses):\n{rag_context}\n" if rag_context else ""
+
                 response = await self._run_agent(
                     "SectionDrafter",
-                    "You are a Lloyd's insurance document drafter. Write professional insurance wording using London market standard language.",
+                    "You are a Lloyd's insurance document drafter. Write professional insurance wording using London market standard language. Use reference wordings as a guide for professional clause language.",
                     f"""Draft the '{section['title']}' section for a {structure.get('document_type', 'policy')} document.
 
 Assessment details:
-- Risk category: {assessment_data.get('risk_category', '')}
+- Risk category: {risk_category}
 - Insured: {assessment_data.get('insured_name', '')}
 - Territory: {assessment_data.get('territory', '')}
 - Premium: {assessment_data.get('premium', '')}
 - Sum insured: {assessment_data.get('sum_insured', '')}
 - Deductible: {assessment_data.get('deductible', '')}
-
-Draft professional insurance wording. Use Lloyd's market standard language and conventions.""",
+{rag_block}
+Draft professional insurance wording. Use Lloyd's market standard language and conventions. Draw from the reference wordings where applicable.""",
                     temperature=0.2,
                 )
 
@@ -562,16 +579,36 @@ Return ONLY valid JSON:
         self,
         drafted_sections: List[Dict],
         assessment_data: Dict,
+        user_id: str = None,
     ) -> Dict:
         """Agent 10: RiskChallenger — challenges coverage adequacy, finds exclusion gaps."""
+        risk_category = assessment_data.get('risk_category', '')
+        territory = assessment_data.get('territory', '')
+
+        # Search RAG for similar risk precedents and coverage standards
+        rag_context = ""
+        try:
+            results = await self.unified_rag.search(
+                query=f"{risk_category} insurance coverage gaps exclusions {territory} Lloyd's underwriting",
+                user_id=user_id,
+                top_k=5,
+                min_score=0.3,
+            )
+            rag_context = self.unified_rag.format_as_context(results, max_chars=2000)
+        except Exception as e:
+            logger.warning(f"RiskChallenger RAG search failed: {e}")
+
+        rag_block = f"\nMARKET PRECEDENTS AND STANDARDS:\n{rag_context}\n" if rag_context else ""
+
         result = await self._run_agent_json(
             "RiskChallenger",
-            "You are a senior Lloyd's underwriter reviewing a placement. Challenge the coverage adequacy and identify potential gaps or weaknesses.",
+            "You are a senior Lloyd's underwriter reviewing a placement. Challenge the coverage adequacy and identify potential gaps or weaknesses. Use market precedents to inform your review.",
             f"""Challenge this insurance document's coverage adequacy.
 
-Risk: {assessment_data.get('risk_category', '')} in {assessment_data.get('territory', '')}
+Risk: {risk_category} in {territory}
 Sum insured: {assessment_data.get('sum_insured', '')}
 Sections: {', '.join(s['title'] for s in drafted_sections[:20])}
+{rag_block}
 
 Key content:
 {chr(10).join(f"[{s['title']}]: {s.get('content', '')[:400]}" for s in drafted_sections[:10])}
@@ -635,16 +672,36 @@ Return ONLY valid JSON:
         self,
         drafted_sections: List[Dict],
         assessment_data: Dict,
+        user_id: str = None,
     ) -> Dict:
         """Agent 12: ComplianceReviewer — simulates Lloyd's compliance review."""
+        risk_category = assessment_data.get('risk_category', '')
+        territory = assessment_data.get('territory', '')
+
+        # Search RAG for regulatory requirements and compliance standards
+        rag_context = ""
+        try:
+            results = await self.unified_rag.search(
+                query=f"Lloyd's compliance mandatory clauses sanctions PRA FCA regulatory {territory} {risk_category}",
+                user_id=user_id,
+                top_k=5,
+                min_score=0.3,
+            )
+            rag_context = self.unified_rag.format_as_context(results, max_chars=2000)
+        except Exception as e:
+            logger.warning(f"ComplianceReviewer RAG search failed: {e}")
+
+        rag_block = f"\nREGULATORY REFERENCE MATERIAL:\n{rag_context}\n" if rag_context else ""
+
         result = await self._run_agent_json(
             "ComplianceReviewer",
-            "You are a Lloyd's compliance officer. Review this document for regulatory compliance including sanctions, PRA/FCA requirements, and market standards.",
+            "You are a Lloyd's compliance officer. Review this document for regulatory compliance including sanctions, PRA/FCA requirements, and market standards. Use reference material to verify requirements.",
             f"""Review this insurance document for Lloyd's compliance.
 
 Document sections: {', '.join(s['title'] for s in drafted_sections[:20])}
-Risk category: {assessment_data.get('risk_category', '')}
-Territory: {assessment_data.get('territory', '')}
+Risk category: {risk_category}
+Territory: {territory}
+{rag_block}
 
 Check for:
 1. Missing mandatory Lloyd's clauses (Several Liability, Sanctions, etc.)
@@ -776,20 +833,40 @@ Return ONLY valid JSON:
         self,
         drafted_sections: List[Dict],
         selected_clauses: List[Dict],
+        user_id: str = None,
     ) -> List[Dict]:
-        """Agent 16: ClauseCompiler — replaces clause IDs with full ACORD standard wordings."""
+        """Agent 16: ClauseCompiler — replaces clause IDs with full ACORD standard wordings from RAG."""
         clause_map = {c["clause_id"]: c for c in selected_clauses}
 
         for section in drafted_sections:
             content = section.get("content", "")
             for clause_id, clause in clause_map.items():
-                if clause_id in content and clause.get("selected_text"):
-                    # Append full clause text after the reference
-                    if f"[{clause_id}]" in content:
-                        content = content.replace(
-                            f"[{clause_id}]",
-                            f"{clause_id}: {clause['selected_text'][:500]}"
-                        )
+                if clause_id in content:
+                    if clause.get("selected_text"):
+                        # Use existing clause text
+                        if f"[{clause_id}]" in content:
+                            content = content.replace(
+                                f"[{clause_id}]",
+                                f"{clause_id}: {clause['selected_text'][:500]}"
+                            )
+                    else:
+                        # Search RAG for the full clause wording
+                        try:
+                            results = await self.unified_rag.search(
+                                query=f"{clause_id} {clause.get('name', '')} full clause wording",
+                                user_id=user_id,
+                                top_k=1,
+                                min_score=0.4,
+                            )
+                            if results:
+                                full_text = results[0].get("text", "")[:500]
+                                if f"[{clause_id}]" in content:
+                                    content = content.replace(
+                                        f"[{clause_id}]",
+                                        f"{clause_id}: {full_text}"
+                                    )
+                        except Exception as e:
+                            logger.warning(f"ClauseCompiler RAG lookup failed for {clause_id}: {e}")
             section["content"] = content
 
         return drafted_sections
@@ -1009,7 +1086,7 @@ Return ONLY valid JSON:
 
             # ── PHASE 3: COMPOSE ──
             await step(7, "SectionDrafter")
-            drafted_sections = await self.agent_section_drafter(structure, selected_clauses, assessment_data, formatting)
+            drafted_sections = await self.agent_section_drafter(structure, selected_clauses, assessment_data, formatting, user_id=user_id)
             results["pipeline_steps"].append({"agent": "SectionDrafter", "status": "completed", "doc_type": doc_type})
             await step(7, "SectionDrafter", "completed")
 
@@ -1025,7 +1102,7 @@ Return ONLY valid JSON:
 
             # ── PHASE 4: VALIDATE ──
             await step(10, "RiskChallenger")
-            risk_challenge = await self.agent_risk_challenger(drafted_sections, assessment_data)
+            risk_challenge = await self.agent_risk_challenger(drafted_sections, assessment_data, user_id=user_id)
             results["pipeline_steps"].append({"agent": "RiskChallenger", "status": "completed", "doc_type": doc_type})
             await step(10, "RiskChallenger", "completed")
 
@@ -1035,7 +1112,7 @@ Return ONLY valid JSON:
             await step(11, "ClauseVerifier", "completed")
 
             await step(12, "ComplianceReviewer")
-            compliance = await self.agent_compliance_reviewer(drafted_sections, assessment_data)
+            compliance = await self.agent_compliance_reviewer(drafted_sections, assessment_data, user_id=user_id)
             results["pipeline_steps"].append({"agent": "ComplianceReviewer", "status": "completed", "doc_type": doc_type})
             await step(12, "ComplianceReviewer", "completed")
 
@@ -1056,7 +1133,7 @@ Return ONLY valid JSON:
             await step(15, "ProofReader", "completed")
 
             await step(16, "ClauseCompiler")
-            drafted_sections = await self.agent_clause_compiler(drafted_sections, selected_clauses)
+            drafted_sections = await self.agent_clause_compiler(drafted_sections, selected_clauses, user_id=user_id)
             results["pipeline_steps"].append({"agent": "ClauseCompiler", "status": "completed", "doc_type": doc_type})
             await step(16, "ClauseCompiler", "completed")
 

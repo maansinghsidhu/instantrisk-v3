@@ -140,7 +140,7 @@ class ClausesLibraryService:
             return
 
         try:
-            with open(lma_path, "r") as f:
+            with open(lma_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             for clause_data in data.get("clauses", []):
@@ -174,7 +174,7 @@ class ClausesLibraryService:
                 continue
 
             try:
-                with open(filepath, "r") as f:
+                with open(filepath, "r", encoding="utf-8") as f:
                     data_list = json.load(f)
 
                 for data in data_list:
@@ -213,39 +213,51 @@ class ClausesLibraryService:
         """Load CUAD clauses (12,422 clauses with 41 types)."""
         cuad_path = os.path.join(self.INSURANCE_DATA_PATH, "contract_clauses", "cuad")
 
-        for filename in ["train.json", "test.json"]:
+        for filename in ["train.json", "test.json", "train_full.json"]:
             filepath = os.path.join(cuad_path, filename)
             if not os.path.exists(filepath):
                 continue
 
+            is_full = filename == "train_full.json"
+
             try:
-                with open(filepath, "r") as f:
+                with open(filepath, "r", encoding="utf-8") as f:
                     data_list = json.load(f)
 
                 for data in data_list:
                     try:
-                        context = data.get("context", "")
-                        question = data.get("question", "")
-                        title = data.get("title", "")
+                        if is_full:
+                            # train_full.json format: text, category, source, name, contract_title, clause_types
+                            text = data.get("text", "")
+                            clause_type = data.get("category", "General")
+                            name = data.get("name", clause_type)
+                        else:
+                            # Original SQuAD format: context, question, title
+                            text = data.get("context", "")
+                            question = data.get("question", "")
+                            title = data.get("title", "")
 
-                        # Extract clause type from question
-                        clause_type = "General"
-                        for ct in self.CUAD_TYPES:
-                            if ct.lower() in question.lower():
-                                clause_type = ct
-                                break
+                            clause_type = "General"
+                            for ct in self.CUAD_TYPES:
+                                if ct.lower() in question.lower():
+                                    clause_type = ct
+                                    break
+                            name = f"{clause_type} - {title[:50]}" if title else clause_type
+
+                        if not text:
+                            continue
 
                         # Generate unique ID
-                        clause_id = f"cuad_{hashlib.md5(context.encode()).hexdigest()[:12]}"
+                        clause_id = f"cuad_{hashlib.md5(text.encode()).hexdigest()[:12]}"
 
                         clause = Clause(
                             id=clause_id,
-                            name=f"{clause_type} - {title[:50]}" if title else clause_type,
-                            text=context[:2000] if len(context) > 2000 else context,
+                            name=name,
+                            text=text[:2000] if len(text) > 2000 else text,
                             category=clause_type.lower().replace(" ", "_").replace("/", "_"),
                             source="cuad",
                             clause_type=clause_type,
-                            keywords=self._extract_keywords(context[:500])
+                            keywords=self._extract_keywords(text[:500])
                         )
                         self._clauses.append(clause)
                         self._categories[clause.category] += 1
@@ -263,38 +275,48 @@ class ClausesLibraryService:
         """Load ContractNLI clauses (10,319 clauses)."""
         nli_path = os.path.join(self.INSURANCE_DATA_PATH, "contract_clauses", "contract_nli")
 
-        for filename in ["train.json", "dev.json", "test.json"]:
+        for filename in ["train.json", "dev.json", "test.json", "train_full.json"]:
             filepath = os.path.join(nli_path, filename)
             if not os.path.exists(filepath):
                 continue
 
+            is_full = filename == "train_full.json"
+
             try:
-                with open(filepath, "r") as f:
+                with open(filepath, "r", encoding="utf-8") as f:
                     data_list = json.load(f)
 
                 for data in data_list:
                     try:
-                        sentence1 = data.get("sentence1", "")
-                        sentence2 = data.get("sentence2", "")
-                        label = data.get("gold_label", "")
+                        if is_full:
+                            # train_full.json format: text, category, source, name, hypothesis, label
+                            text = data.get("text", "")
+                            category = data.get("category", "general")
+                            label = data.get("label", "")
+                            name = data.get("name", f"Contract NLI - {category.title()}")
+                        else:
+                            # Original format: sentence1, sentence2, gold_label
+                            sentence1 = data.get("sentence1", "")
+                            sentence2 = data.get("sentence2", "")
+                            label = data.get("gold_label", "")
+                            text = f"{sentence1}\n\nRelated: {sentence2}"
+                            category = self._infer_category(sentence1)
+                            name = f"Contract NLI - {category.title()}"
 
-                        # Combine sentences for context
-                        text = f"{sentence1}\n\nRelated: {sentence2}"
+                        if not text:
+                            continue
 
                         # Generate unique ID
                         clause_id = f"nli_{hashlib.md5(text.encode()).hexdigest()[:12]}"
 
-                        # Determine category from content
-                        category = self._infer_category(sentence1)
-
                         clause = Clause(
                             id=clause_id,
-                            name=f"Contract NLI - {category.title()}",
+                            name=name,
                             text=text[:2000] if len(text) > 2000 else text,
                             category=category,
                             source="contract_nli",
                             clause_type=label,
-                            keywords=self._extract_keywords(sentence1)
+                            keywords=self._extract_keywords(text[:500])
                         )
                         self._clauses.append(clause)
                         self._categories[clause.category] += 1
@@ -324,7 +346,7 @@ class ClausesLibraryService:
 
                 filepath = os.path.join(dirpath, filename)
                 try:
-                    with open(filepath, "r") as f:
+                    with open(filepath, "r", encoding="utf-8") as f:
                         data = json.load(f)
 
                     source_category = data.get("type", data.get("category", filename.replace(".json", "")))

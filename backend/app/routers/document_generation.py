@@ -1782,34 +1782,89 @@ async def ai_clause_search(
         raise HTTPException(400, "assessment_id is required")
 
     try:
-        from app.services.opendraft_generator import opendraft_generator
-        clauses = await opendraft_generator.search_clauses(
-            document_types, str(current_user.id)
-        )
-        return {"clauses_by_document": clauses}
+        from app.services.clauses_library_service import clauses_library_service
+
+        # Build clauses from the real clause library (6,904 clauses)
+        clauses_by_doc = {}
+
+        # Mandatory LMA clauses for all document types
+        mandatory_ids = ["LMA5021", "LMA5390", "LMA5400", "LMA5027", "LMA5515", "LMA5406"]
+
+        for doc_type in (document_types or ["policy_wording"]):
+            doc_clauses = []
+
+            # 1. Add mandatory LMA clauses with real text
+            for clause_id in mandatory_ids:
+                clause_data = clauses_library_service.get_clause_by_id(clause_id)
+                if clause_data:
+                    doc_clauses.append({
+                        "clause_id": clause_data["id"],
+                        "name": clause_data["name"],
+                        "source": clause_data.get("source", "lma"),
+                        "content_preview": (clause_data.get("text", "") or clause_data.get("name", ""))[:200] + "...",
+                        "is_mandatory": True,
+                    })
+
+            # 2. Search for document-type-relevant clauses
+            type_searches = {
+                "policy_wording": ["insurance policy wording", "indemnification"],
+                "endorsement": ["endorsement amendment", "policy extension"],
+                "mrc_slip": ["market reform contract", "slip agreement"],
+                "certificate": ["certificate insurance", "evidence coverage"],
+                "schedule": ["schedule premium", "property schedule"],
+                "cover_note": ["cover note interim", "binding authority"],
+            }
+            search_terms = type_searches.get(doc_type, ["insurance clause"])
+
+            existing_ids = {c["clause_id"] for c in doc_clauses}
+            for term in search_terms:
+                results, _ = clauses_library_service.search(query=term, page_size=8)
+                for r in results:
+                    if r["id"] not in existing_ids and len(doc_clauses) < 20:
+                        doc_clauses.append({
+                            "clause_id": r["id"],
+                            "name": r["name"],
+                            "source": r.get("source", "library"),
+                            "content_preview": (r.get("text", "") or r.get("name", ""))[:200] + "...",
+                            "is_mandatory": False,
+                        })
+                        existing_ids.add(r["id"])
+
+            # 3. Also search RAG for user-specific docs if available
+            try:
+                from app.services.unified_rag import unified_rag
+                rag_results = await unified_rag.search(
+                    query=f"{doc_type} insurance clauses",
+                    user_id=str(current_user.id),
+                    top_k=5,
+                    source_tiers=["user"],
+                )
+                for r in rag_results:
+                    doc_clauses.append({
+                        "clause_id": f"user_{hash(r.get('text',''))%100000}",
+                        "name": r.get("source_label", "User Document"),
+                        "source": "user_uploaded",
+                        "content_preview": (r.get("text", ""))[:200] + "...",
+                        "is_mandatory": False,
+                    })
+            except Exception:
+                pass
+
+            clauses_by_doc[doc_type] = doc_clauses
+
+        return {"clauses_by_document": clauses_by_doc}
     except Exception as e:
         logger.error(f"AI clause search failed: {e}", exc_info=True)
-        # Rich fallback with document-type-appropriate clauses
+        # Minimal fallback
         clauses_by_doc = {}
-        for doc_type in document_types:
-            base_clauses = [
-                {"clause_id": "preamble", "name": "Preamble & Recitals", "source": "template", "content_preview": "Standard opening recitals and parties identification...", "is_mandatory": True},
-                {"clause_id": "insuring_agreement", "name": "Insuring Agreement", "source": "template", "content_preview": "The Insurer agrees to indemnify the Insured against...", "is_mandatory": True},
-                {"clause_id": "exclusions", "name": "General Exclusions", "source": "template", "content_preview": "War, nuclear, sanctions and other standard exclusions...", "is_mandatory": True},
-                {"clause_id": "conditions", "name": "General Conditions", "source": "template", "content_preview": "Duty of utmost good faith, claims notification, premium payment...", "is_mandatory": True},
-                {"clause_id": "claims", "name": "Claims Procedure", "source": "template", "content_preview": "Claims notification requirements and procedure...", "is_mandatory": True},
-                {"clause_id": "cancellation", "name": "Cancellation & Termination", "source": "template", "content_preview": "Cancellation rights, notice periods, return premium...", "is_mandatory": True},
-                {"clause_id": "law_jurisdiction", "name": "Law & Jurisdiction", "source": "template", "content_preview": "English law and exclusive jurisdiction of English courts...", "is_mandatory": True},
+        for doc_type in (document_types or ["policy_wording"]):
+            clauses_by_doc[doc_type] = [
+                {"clause_id": "preamble", "name": "Preamble & Recitals", "source": "template", "content_preview": "Standard opening recitals...", "is_mandatory": True},
+                {"clause_id": "insuring_agreement", "name": "Insuring Agreement", "source": "template", "content_preview": "The Insurer agrees to indemnify...", "is_mandatory": True},
+                {"clause_id": "exclusions", "name": "General Exclusions", "source": "template", "content_preview": "Standard exclusions...", "is_mandatory": True},
+                {"clause_id": "conditions", "name": "General Conditions", "source": "template", "content_preview": "General conditions...", "is_mandatory": True},
+                {"clause_id": "law_jurisdiction", "name": "Law & Jurisdiction", "source": "template", "content_preview": "English law...", "is_mandatory": True},
             ]
-            if doc_type in ("policy_wording", "endorsement"):
-                base_clauses.extend([
-                    {"clause_id": "definitions", "name": "Definitions", "source": "template", "content_preview": "Key terms and definitions used throughout this policy...", "is_mandatory": True},
-                    {"clause_id": "premium", "name": "Premium & Payment", "source": "template", "content_preview": "Premium amount, payment schedule, and terms...", "is_mandatory": False},
-                    {"clause_id": "subrogation", "name": "Subrogation", "source": "template", "content_preview": "Subrogation rights following claim settlement...", "is_mandatory": False},
-                    {"clause_id": "lma5021", "name": "Several Liability Notice (LMA5021)", "source": "template", "content_preview": "Lloyd's several liability clause per LMA5021...", "is_mandatory": True},
-                    {"clause_id": "sanctions", "name": "Sanctions Limitation (LMA5173)", "source": "template", "content_preview": "Sanctions compliance and limitation clause...", "is_mandatory": True},
-                ])
-            clauses_by_doc[doc_type] = base_clauses
         return {"clauses_by_document": clauses_by_doc, "is_fallback": True}
 
 
