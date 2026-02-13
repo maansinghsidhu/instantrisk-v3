@@ -2592,7 +2592,7 @@ ASSESSMENT DETAILS:
         ]
 
         try:
-            response = await self._call_llm_with_retry(messages, temperature=0.2, max_tokens=4000, progress=progress)
+            response = await self._call_llm_with_retry(messages, temperature=0.2, max_tokens=16000, progress=progress)
             result = self._parse_json_with_retry(response, f"document_draft_{document_type}")
 
             # Validate result has required structure

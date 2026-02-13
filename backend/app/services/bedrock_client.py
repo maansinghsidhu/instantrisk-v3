@@ -14,13 +14,18 @@ import json
 import logging
 import asyncio
 from typing import List, Dict, Any, Optional, AsyncGenerator
+from dotenv import load_dotenv
+
+# Load .env file so credentials and config are available via os.getenv
+# override=True ensures .env values take precedence over stale env vars
+load_dotenv(override=True)
 
 logger = logging.getLogger(__name__)
 
-# Bedrock configuration
+# Bedrock configuration - use inference profile IDs (us. prefix) for newer models
 BEDROCK_REGION = os.getenv("AWS_BEDROCK_REGION", "us-east-1")
-BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-5-20250929-v1:0")
-BEDROCK_FALLBACK_MODEL = os.getenv("BEDROCK_FALLBACK_MODEL", "anthropic.claude-haiku-4-5-20251001-v1:0")
+BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-5-20250929-v1:0")
+BEDROCK_FALLBACK_MODEL = os.getenv("BEDROCK_FALLBACK_MODEL", "anthropic.claude-3-haiku-20240307-v1:0")
 BEDROCK_ENABLED = os.getenv("BEDROCK_ENABLED", "true").lower() == "true"
 
 
@@ -36,9 +41,9 @@ class BedrockClient:
         self._client = None
         self._runtime_client = None
 
-    def _get_client(self):
+    def _get_client(self, force_new: bool = False):
         """Get or create boto3 Bedrock runtime client."""
-        if self._runtime_client is None:
+        if self._runtime_client is None or force_new:
             import boto3
             profile = os.getenv("AWS_PROFILE", "")
             try:
@@ -151,8 +156,13 @@ class BedrockClient:
                 logger.warning(f"Bedrock API error (attempt {attempt + 1}/{self.max_retries}): {error_str}")
                 last_error = error_str
 
+                # On credential/token errors, force new client on next attempt
+                if "expired" in error_str.lower() or "credential" in error_str.lower():
+                    logger.info("Credential error - refreshing boto3 client")
+                    self._runtime_client = None
+
                 # Try fallback model on model-specific errors
-                if attempt == 0 and "model" in error_str.lower():
+                if attempt == 0 and ("model" in error_str.lower() or "validation" in error_str.lower()):
                     logger.info(f"Trying fallback model: {self.fallback_model_id}")
                     model_id = self.fallback_model_id
 
