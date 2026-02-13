@@ -44,16 +44,28 @@ class Settings(BaseSettings):
     postgres_password: str = ""
     postgres_db: str = "instantrisk"
     DATABASE_ECHO: bool = False
+    DATABASE_URL: str = ""
 
     @property
     def database_url(self) -> str:
-        """Generate async database URL with SSL for RDS."""
-        return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}?ssl=require"
+        """Generate async database URL. Adds SSL for non-development environments."""
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
+        base = f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        if self.environment != "development":
+            base += "?ssl=require"
+        return base
 
     @property
     def sync_database_url(self) -> str:
-        """Generate sync database URL for migrations with SSL."""
-        return f"postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}?sslmode=require"
+        """Generate sync database URL for migrations. Adds SSL for non-development environments."""
+        if self.DATABASE_URL:
+            url = self.DATABASE_URL.replace("+asyncpg", "")
+            return url
+        base = f"postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        if self.environment != "development":
+            base += "?sslmode=require"
+        return base
 
     # Redis Settings
     redis_host: str = "localhost"

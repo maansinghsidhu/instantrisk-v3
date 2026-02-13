@@ -34,7 +34,12 @@ String getPlatformBaseUrl() {
     return "https://d2f065h47nuk0c.cloudfront.net/api/v1";
   }
 
-  // Otherwise use same host (localhost or ALB direct access)
+  // Local dev: frontend on :3000, backend on :8000
+  if (host.contains('localhost') || host.contains('127.0.0.1')) {
+    return "http://localhost:8000/api/v1";
+  }
+
+  // Otherwise use same host (ALB direct access)
   final protocol = location.protocol;
   return "$protocol//$host/api/v1";
 }

@@ -244,6 +244,10 @@ async def lifespan(app: FastAPI):
                 "CREATE INDEX IF NOT EXISTS idx_documents_assessment ON documents(assessment_id)",
                 # Add missing reference_number to existing assessments table (if exists without it)
                 "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS reference_number VARCHAR(50)",
+                # Fix: Upgrade generated_documents.id from INTEGER to BIGINT (timestamp IDs overflow int32)
+                "ALTER TABLE generated_documents ALTER COLUMN id TYPE BIGINT",
+                # Fix: Cast risk_score to INTEGER if it's VARCHAR (EC2 migration issue)
+                "ALTER TABLE assessments ALTER COLUMN risk_score TYPE INTEGER USING NULLIF(risk_score, '')::INTEGER",
         ]
         # Run each migration in its own transaction
         for sql in migrations:

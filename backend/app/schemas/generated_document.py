@@ -8,7 +8,7 @@ operations and API responses.
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from uuid import UUID
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_serializer
 
 
 # ===== Document Suggestions =====
@@ -86,7 +86,7 @@ class GenerationJobResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
-    assessment_id: UUID
+    assessment_id: Any
     status: str
     total_documents: Optional[int] = None
     completed_documents: int = 0
@@ -99,6 +99,10 @@ class GenerationJobResponse(BaseModel):
     created_at: datetime
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
+
+    @field_serializer('assessment_id')
+    def serialize_assessment_id(self, v):
+        return str(v) if v else None
 
 
 # ===== Generated Document =====
@@ -127,7 +131,11 @@ class GeneratedDocumentResponse(GeneratedDocumentBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    assessment_id: UUID
+    assessment_id: Any
+
+    @field_serializer('assessment_id')
+    def serialize_assessment_id(self, v):
+        return str(v) if v else None
     generation_job_id: Optional[str] = None
     template_id: Optional[int] = None
     version: int = 1

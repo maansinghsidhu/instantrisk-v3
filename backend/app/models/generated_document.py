@@ -6,7 +6,7 @@ SQLAlchemy models for tracking AI-generated documents from assessments.
 """
 
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Float, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, Text, Float, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
@@ -149,7 +149,7 @@ class GeneratedDocument(Base):
 
     __tablename__ = "generated_documents"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(BigInteger, primary_key=True, index=True)
 
     # Relationships
     assessment_id = Column(PgUUID(as_uuid=True), ForeignKey("assessments.id"), nullable=False, index=True)

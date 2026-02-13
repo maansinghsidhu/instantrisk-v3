@@ -58,6 +58,7 @@ def _safe_float(val):
     return None
 
 @router.post("/")
+@router.post("/create")
 async def create_session(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     token = UploadSession.generate_token()
     session = UploadSession(token=token, user_id=current_user.id, status="waiting",
