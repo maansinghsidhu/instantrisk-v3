@@ -422,7 +422,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
             child: _buildEmptyState(
               icon: Icons.description_outlined,
               title: 'No Generated Documents',
-              subtitle: 'AI-generated documents will appear here\nPull to refresh',
+              subtitle: 'Generated documents will appear here\nPull to refresh',
               actionLabel: 'Generate Documents',
               onAction: () {
                 context.push('/reports/generate/${widget.assessmentId}');

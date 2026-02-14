@@ -1,5 +1,5 @@
 name: instantrisk_app
-description: InstantRisk V2 - AI-Powered Lloyd's Underwriting Platform
+description: InstantRisk - Lloyd's Underwriting Platform powered by InstantRisk Engine
 publish_to: 'none'
 version: 3.2.0+34
 

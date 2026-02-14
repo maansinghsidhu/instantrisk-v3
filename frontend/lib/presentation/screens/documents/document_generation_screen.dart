@@ -261,7 +261,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '19-agent AI pipeline will generate, validate, and refine your documents.',
+                        'InstantRisk Engine will generate, validate, and refine your documents.',
                         style: TextStyle(fontSize: 12, color: AppTheme.info),
                       ),
                     ),

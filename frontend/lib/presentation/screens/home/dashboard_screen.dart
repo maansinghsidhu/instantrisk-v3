@@ -508,7 +508,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      // Powered by Zeus Engine badge
+                      // Powered by InstantRisk Engine badge
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         decoration: BoxDecoration(
@@ -535,7 +535,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Powered by Zeus Engine v2',
+                              'Powered by InstantRisk Engine',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -665,7 +665,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Upload documents for Zeus Engine analysis',
+                                    'Upload documents for InstantRisk Engine analysis',
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: Colors.white.withValues(alpha: 0.85),

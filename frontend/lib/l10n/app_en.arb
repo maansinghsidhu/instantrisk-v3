@@ -195,7 +195,7 @@
     "description": "Pricing engine title"
   },
 
-  "pricingEngineSubtitle": "AI-powered pricing models",
+  "pricingEngineSubtitle": "InstantRisk Engine pricing models",
   "@pricingEngineSubtitle": {
     "description": "Pricing engine subtitle"
   },
@@ -886,9 +886,9 @@
     "description": "Generate documents screen title"
   },
 
-  "aiRecommendedDocuments": "AI Recommended Documents",
+  "aiRecommendedDocuments": "Recommended Documents",
   "@aiRecommendedDocuments": {
-    "description": "AI recommended documents title"
+    "description": "Recommended documents title"
   },
 
   "selectDocumentsToGenerate": "Select the documents you want to generate",
@@ -916,9 +916,9 @@
     "description": "Generating documents title"
   },
 
-  "aiAgentsWorking": "AI agents are working on your documents",
+  "aiAgentsWorking": "InstantRisk Engine is generating your documents",
   "@aiAgentsWorking": {
-    "description": "AI agents working message"
+    "description": "Engine working message"
   },
 
   "complete": "Complete",
@@ -1041,9 +1041,9 @@
     "description": "New chat title"
   },
 
-  "aiAssistant": "AI Assistant",
+  "aiAssistant": "InstantRisk Assistant",
   "@aiAssistant": {
-    "description": "AI assistant title"
+    "description": "InstantRisk assistant title"
   },
 
   "knowledgeSources": "Knowledge Sources",
@@ -1296,12 +1296,12 @@
     "description": "New assessment title"
   },
 
-  "aiPoweredAnalysis": "AI-Powered Analysis",
+  "aiPoweredAnalysis": "InstantRisk Engine Analysis",
   "@aiPoweredAnalysis": {
-    "description": "AI-powered analysis label"
+    "description": "InstantRisk Engine analysis label"
   },
 
-  "riskTypeAutoDetected": "Risk type will be automatically detected from your documents using OCR & AI",
+  "riskTypeAutoDetected": "Risk type will be automatically detected from your documents using the InstantRisk Engine",
   "@riskTypeAutoDetected": {
     "description": "Risk type auto detection description"
   },
@@ -1541,9 +1541,9 @@
     "description": "Contract generations label"
   },
 
-  "aiChatMessages": "AI Chat Messages",
+  "aiChatMessages": "Engine Chat Messages",
   "@aiChatMessages": {
-    "description": "AI chat messages label"
+    "description": "Engine chat messages label"
   },
 
   "documentStorage": "Document Storage",
@@ -1996,12 +1996,12 @@
     "description": "Please accept terms validation"
   },
 
-  "onboardingTitle1": "AI-Powered Risk Assessment",
+  "onboardingTitle1": "InstantRisk Engine Assessment",
   "@onboardingTitle1": {
     "description": "First onboarding screen title"
   },
 
-  "onboardingDesc1": "Upload insurance documents and get instant AI-powered risk analysis with GO/NO-GO recommendations",
+  "onboardingDesc1": "Upload insurance documents and get instant risk analysis with GO/NO-GO recommendations powered by the InstantRisk Engine",
   "@onboardingDesc1": {
     "description": "First onboarding screen description"
   },
@@ -2016,12 +2016,12 @@
     "description": "Second onboarding screen description"
   },
 
-  "onboardingTitle3": "24/7 Insurance AI Assistant",
+  "onboardingTitle3": "24/7 InstantRisk Assistant",
   "@onboardingTitle3": {
     "description": "Third onboarding screen title"
   },
 
-  "onboardingDesc3": "Get instant answers to insurance questions from our AI trained on 20GB+ of Lloyd's market knowledge",
+  "onboardingDesc3": "Get instant answers to insurance questions from the InstantRisk Engine trained on Lloyd's market knowledge",
   "@onboardingDesc3": {
     "description": "Third onboarding screen description"
   },

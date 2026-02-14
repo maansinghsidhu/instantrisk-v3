@@ -1,11 +1,10 @@
 """
-InstantRisk V3 - Comprehensive Clauses Library Service
+InstantRisk Engine - Comprehensive Clauses Library Service
 
-Provides access to 102,000+ insurance and contract clauses from multiple sources:
-- CUAD: 12,422 contract clauses with 41 clause types
-- LEDGAR: 80,000 contract provisions in 100 categories
-- ContractNLI: 10,319 NLI clauses
-- LMA: 33 Lloyd's Market Association clauses with full text
+Provides access to 11,000+ insurance and contract clauses from multiple sources:
+- CUAD: Contract clauses with 41 clause types
+- LEDGAR: Contract provisions in 100 categories
+- ContractNLI: NLI clauses
 
 Features:
 - Fast in-memory indexing for quick search
@@ -31,7 +30,7 @@ class Clause:
     name: str
     text: str
     category: str
-    source: str  # cuad, ledgar, contract_nli, lma, templates
+    source: str  # cuad, ledgar, contract_nli, templates
     clause_type: Optional[str] = None
     line_of_business: Optional[str] = None
     typical_use: Optional[str] = None
@@ -115,10 +114,9 @@ class ClausesLibraryService:
         if self._loaded:
             return
 
-        print("Loading comprehensive clauses library...")
+        print("Loading InstantRisk Engine clauses library...")
 
-        # Load from each source
-        self._load_lma_clauses()
+        # Load from each source (LMA removed — stubs were incomplete)
         self._load_ledgar_clauses()
         self._load_cuad_clauses()
         self._load_contract_nli_clauses()
@@ -130,40 +128,6 @@ class ClausesLibraryService:
         self._loaded = True
         print(f"Loaded {len(self._clauses)} clauses from {len(self._sources)} sources")
         print(f"Categories: {len(self._categories)}")
-
-    def _load_lma_clauses(self) -> None:
-        """Load LMA clauses with full text."""
-        lma_path = os.path.join(self.INSURANCE_DATA_PATH, "lma", "all_lma_clauses.json")
-
-        if not os.path.exists(lma_path):
-            print(f"LMA clauses file not found: {lma_path}")
-            return
-
-        try:
-            with open(lma_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-
-            for clause_data in data.get("clauses", []):
-                clause = Clause(
-                    id=clause_data.get("id", ""),
-                    name=clause_data.get("name", ""),
-                    text=clause_data.get("text", ""),
-                    category=clause_data.get("category", "lma"),
-                    source="lma",
-                    form_number=clause_data.get("id"),
-                    is_mandatory=clause_data.get("id", "") in {
-                        "LMA5390", "LMA5400", "LMA5021", "LMA5027", "LMA5515", "LMA5406"
-                    },
-                    keywords=self._extract_keywords(clause_data.get("text", ""))
-                )
-                self._clauses.append(clause)
-                self._categories[clause.category] += 1
-                self._sources["lma"] += 1
-
-            print(f"Loaded {self._sources['lma']} LMA clauses")
-
-        except Exception as e:
-            print(f"Error loading LMA clauses: {e}")
 
     def _load_ledgar_clauses(self) -> None:
         """Load LEDGAR clauses (80,000 provisions in 100 categories)."""
@@ -512,7 +476,7 @@ class ClausesLibraryService:
             candidates &= lob_matches if lob_matches else candidates
 
         # Sort by relevance (source priority)
-        source_priority = {"lma": 0, "templates": 1, "cuad": 2, "ledgar": 3, "contract_nli": 4}
+        source_priority = {"templates": 0, "cuad": 1, "ledgar": 2, "contract_nli": 3}
         sorted_indices = sorted(candidates, key=lambda i: (
             source_priority.get(self._clauses[i].source, 5),
             self._clauses[i].name

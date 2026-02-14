@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#0a0618",
     "theme_color": "#1a0a2e",
-    "description": "AI-Powered Lloyd's Underwriting Platform",
+    "description": "Lloyd's Underwriting Platform powered by InstantRisk Engine",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

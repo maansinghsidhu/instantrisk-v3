@@ -48,7 +48,7 @@ class DocumentTypeSelectionScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Select a document type to get started with AI-powered generation',
+              'Select a document type to get started with InstantRisk Engine generation',
               style: TextStyle(
                 fontSize: 15,
                 color: AppTheme.textSecondary,

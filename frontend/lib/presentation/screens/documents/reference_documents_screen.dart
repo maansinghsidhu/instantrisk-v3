@@ -532,7 +532,7 @@ class _ReferenceDocumentsScreenState extends State<ReferenceDocumentsScreen>
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 48),
             child: Text(
-              'Upload policy wordings, guidelines, and other documents to enhance AI-powered document generation.',
+              'Upload policy wordings, guidelines, and other documents to enhance InstantRisk Engine document generation.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,

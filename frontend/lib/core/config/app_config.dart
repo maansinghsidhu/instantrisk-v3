@@ -3,7 +3,7 @@ class AppConfig {
   // App Info
   static const String appName = 'InstantRisk';
   static const String appVersion = '5.0.0';
-  static const String appTagline = 'Enterprise-grade risk analysis with AI-powered underwriting.';
+  static const String appTagline = 'Enterprise-grade risk analysis powered by the InstantRisk Engine.';
 
   // API Configuration
   static const String apiBaseUrl = '/api/v1';
@@ -34,14 +34,14 @@ class AppConfig {
       'price': 600,
       'currency': 'GBP',
       'queries': 500,
-      'features': ['GO/NO-GO', 'Analysis', 'Advice', 'Pricing', 'AI Chat', 'Fine-tuning'],
+      'features': ['GO/NO-GO', 'Analysis', 'Advice', 'Pricing', 'Engine Chat', 'Fine-tuning'],
     },
     'premium': {
       'name': 'Premium',
       'price': 700,
       'currency': 'GBP',
       'queries': 2000,
-      'features': ['GO/NO-GO', 'Analysis', 'Advice', 'Pricing', 'AI Chat', 'Fine-tuning', 'Contract Generation', 'Lloyd\'s Submission'],
+      'features': ['GO/NO-GO', 'Analysis', 'Advice', 'Pricing', 'Engine Chat', 'Fine-tuning', 'Contract Generation', 'Lloyd\'s Submission'],
     },
     'enterprise': {
       'name': 'Enterprise',

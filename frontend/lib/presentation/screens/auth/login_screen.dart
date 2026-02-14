@@ -48,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   '1. Acceptance of Terms\n\n'
                   'By accessing and using InstantRisk, you agree to be bound by these Terms of Service and all applicable laws and regulations.\n\n'
                   '2. Use of Service\n\n'
-                  'InstantRisk provides AI-powered insurance underwriting assessment tools. You agree to use the service only for lawful purposes and in accordance with these terms.\n\n'
+                  'InstantRisk provides insurance underwriting assessment tools powered by the InstantRisk Engine. You agree to use the service only for lawful purposes and in accordance with these terms.\n\n'
                   '3. Data and Privacy\n\n'
                   'Your use of InstantRisk is also governed by our Privacy Policy. You consent to the collection and use of information as described therein.\n\n'
                   '4. Intellectual Property\n\n'

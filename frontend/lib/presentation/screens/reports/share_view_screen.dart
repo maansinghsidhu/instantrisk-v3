@@ -180,7 +180,7 @@ class _ShareViewScreenState extends State<ShareViewScreen> {
               children: [
                 Image.asset('assets/images/logo-icon.png', height: 32),
                 const SizedBox(height: 8),
-                Text('InstantRisk V2 · AI Underwriting Platform',
+                Text('InstantRisk Engine · Underwriting Platform',
                     style: TextStyle(color: Colors.grey[600], fontSize: 12)),
               ],
             ),

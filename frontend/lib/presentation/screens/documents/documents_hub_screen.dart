@@ -842,7 +842,7 @@ class _DocumentsHubScreenState extends State<DocumentsHubScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Upload documents to create assessments and generate AI-powered documents',
+              'Upload documents to create assessments and generate documents with InstantRisk Engine',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,

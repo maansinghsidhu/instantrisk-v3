@@ -1,15 +1,15 @@
 """
-InstantRisk V3 - Clauses Library API Router
+InstantRisk Engine - Clauses Library API Router
 
 Provides RESTful endpoints for accessing the comprehensive clauses library
-with 102,000+ insurance and contract clauses.
+with 11,000+ insurance and contract clauses.
 
 Endpoints:
 - GET /clauses/library - Search and browse clauses with pagination
 - GET /clauses/categories - Get all clause categories with counts
 - GET /clauses/{clause_id} - Get a single clause by ID
 - GET /clauses/statistics - Get library statistics
-- POST /clauses/recommend/{assessment_id} - Get AI-recommended clauses for an assessment
+- POST /clauses/recommend/{assessment_id} - Get recommended clauses for an assessment
 """
 
 from typing import List, Optional
@@ -102,19 +102,18 @@ class ClauseRecommendationsResponse(BaseModel):
 async def get_clauses_library(
     search: Optional[str] = Query(None, description="Search query for clause name or text"),
     category: Optional[str] = Query(None, description="Filter by category"),
-    source: Optional[str] = Query(None, description="Filter by source (lma, ledgar, cuad, contract_nli, templates)"),
+    source: Optional[str] = Query(None, description="Filter by source (ledgar, cuad, contract_nli, templates)"),
     line_of_business: Optional[str] = Query(None, description="Filter by line of business"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(50, ge=1, le=200, description="Items per page"),
 ):
     """
-    Search and browse the clauses library.
+    Search and browse the InstantRisk Engine clauses library.
 
-    Provides access to 102,000+ clauses from multiple sources:
-    - LMA: 33 Lloyd's Market Association clauses
-    - LEDGAR: 80,000 legal provisions in 100 categories
-    - CUAD: 12,422 contract clauses with 41 types
-    - ContractNLI: 10,319 contract NLI clauses
+    Provides access to 11,000+ clauses from multiple sources:
+    - LEDGAR: Legal provisions in 100 categories
+    - CUAD: Contract clauses with 41 types
+    - ContractNLI: Contract NLI clauses
     - Templates: Curated insurance clause templates
 
     Supports full-text search, category filtering, and pagination.
@@ -203,10 +202,10 @@ async def recommend_clauses_for_assessment(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Get AI-recommended clauses for an assessment.
+    Get InstantRisk Engine recommended clauses for an assessment.
 
     Analyzes the assessment data and recommends relevant clauses with explanations.
-    Returns mandatory clauses first, then recommended optional clauses.
+    Searches 11,000+ real clauses from LEDGAR, CUAD, and ContractNLI datasets.
     """
     try:
         # Get assessment
@@ -239,19 +238,7 @@ async def recommend_clauses_for_assessment(
                     is_mandatory=mandatory
                 ))
 
-        # 1. ALL LMA clauses — these are core Lloyd's market clauses
-        # Mandatory ones first, then recommended
-        mandatory_lma = {"LMA5390", "LMA5400", "LMA5021", "LMA5027", "LMA5515", "LMA5406"}
-        lma_clauses, _ = clauses_library_service.search(source="lma", page_size=50)
-        for clause in lma_clauses:
-            is_mandatory = clause["id"] in mandatory_lma
-            add_rec(
-                clause, 1.0 if is_mandatory else 0.95,
-                "Mandatory Lloyd's market clause" if is_mandatory else "Recommended Lloyd's market clause",
-                mandatory=is_mandatory
-            )
-
-        # 2. Risk-category specific searches (search by TEXT, not by category field)
+        # 1. Risk-category specific searches (search by TEXT, not by category field)
         risk_search_map = {
             "cyber": ["cyber liability", "data breach", "network security", "privacy"],
             "marine": ["marine cargo", "hull", "maritime", "voyage"],

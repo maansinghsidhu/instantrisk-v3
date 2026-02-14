@@ -205,7 +205,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                     child: const Icon(Icons.chat_bubble_outline, size: 48, color: AppTheme.accentBright),
                   ),
                   const SizedBox(height: 24),
-                  const Text('AI Chat Assistant', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700, fontFamily: 'Inter')),
+                  const Text('InstantRisk Assistant', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700, fontFamily: 'Inter')),
                   const SizedBox(height: 12),
                   Text('Get instant answers about insurance policies, risk analysis, and underwriting decisions.',
                       textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14, height: 1.5)),

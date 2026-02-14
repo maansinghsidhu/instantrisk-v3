@@ -169,7 +169,7 @@ class _PricingScreenState extends State<PricingScreen>
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('AI Pricing Engine'),
+        title: const Text('InstantRisk Pricing Engine'),
         backgroundColor: const Color(0xFF1a237e),
         foregroundColor: Colors.white,
         bottom: TabBar(

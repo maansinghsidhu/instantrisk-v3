@@ -168,7 +168,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'AI UNDERWRITING PLATFORM',
+                        'INSTANTRISK ENGINE',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 12,

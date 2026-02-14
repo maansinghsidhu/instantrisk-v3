@@ -126,7 +126,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pricingEngine => 'Pricing Engine';
 
   @override
-  String get pricingEngineSubtitle => 'AI-powered pricing models';
+  String get pricingEngineSubtitle => 'InstantRisk Engine pricing models';
 
   @override
   String get dataQuality => 'Data Quality';
@@ -780,7 +780,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newAssessment => 'New Assessment';
 
   @override
-  String get aiPoweredAnalysis => 'AI-Powered Analysis';
+  String get aiPoweredAnalysis => 'InstantRisk Engine Analysis';
 
   @override
   String get riskTypeAutoDetected => 'Risk type will be automatically detected from your documents using OCR & AI';
@@ -1188,10 +1188,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pleaseAcceptTerms => 'Please accept the terms and conditions';
 
   @override
-  String get onboardingTitle1 => 'AI-Powered Risk Assessment';
+  String get onboardingTitle1 => 'InstantRisk Engine Assessment';
 
   @override
-  String get onboardingDesc1 => 'Upload insurance documents and get instant AI-powered risk analysis with GO/NO-GO recommendations';
+  String get onboardingDesc1 => 'Upload insurance documents and get instant risk analysis with GO/NO-GO recommendations powered by the InstantRisk Engine';
 
   @override
   String get onboardingTitle2 => 'Smart Document Generation';

@@ -236,7 +236,7 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
           children: [
             if (userCount > 0) _buildSourceChip('$userCount Your Wording', AppTheme.phaseCompose),
             if (acordCount > 0) _buildSourceChip('$acordCount ACORD', AppTheme.phaseResearch),
-            if (aiCount > 0) _buildSourceChip('$aiCount AI Generated', AppTheme.textSecondary),
+            if (aiCount > 0) _buildSourceChip('$aiCount Engine Generated', AppTheme.textSecondary),
           ],
         ),
       ],
@@ -440,7 +440,7 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
         break;
       default:
         color = AppTheme.textSecondary;
-        label = 'AI Generated';
+        label = 'Engine Generated';
     }
 
     return Container(
