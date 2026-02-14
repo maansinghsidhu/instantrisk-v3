@@ -176,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
-                      child: Image.asset('assets/images/logo-full.png', fit: BoxFit.contain),
+                      child: Image.asset('assets/images/logo-icon.png', fit: BoxFit.contain),
                     ),
                   ),
                 ),
@@ -441,7 +441,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // Logo at bottom
                 Center(
-                  child: Image.asset('assets/images/logo-full.png', height: 32),
+                  child: Image.asset('assets/images/logo-icon.png', height: 32),
                 ),
               ],
             ),

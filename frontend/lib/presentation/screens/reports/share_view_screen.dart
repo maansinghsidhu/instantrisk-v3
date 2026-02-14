@@ -62,7 +62,7 @@ class _ShareViewScreenState extends State<ShareViewScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset('assets/images/logo-full.png', height: 28),
+            Image.asset('assets/images/logo-icon.png', height: 28),
             const SizedBox(width: 10),
             const Text('Shared Assessment',
                 style: TextStyle(color: Colors.white, fontSize: 16, fontFamily: 'Inter')),
@@ -178,7 +178,7 @@ class _ShareViewScreenState extends State<ShareViewScreen> {
           Center(
             child: Column(
               children: [
-                Image.asset('assets/images/logo-full.png', height: 32),
+                Image.asset('assets/images/logo-icon.png', height: 32),
                 const SizedBox(height: 8),
                 Text('InstantRisk V2 · AI Underwriting Platform',
                     style: TextStyle(color: Colors.grey[600], fontSize: 12)),

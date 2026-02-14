@@ -151,8 +151,9 @@ class ClausesLibraryService:
                     category=clause_data.get("category", "lma"),
                     source="lma",
                     form_number=clause_data.get("id"),
-                    is_mandatory="sanction" in clause_data.get("name", "").lower() or
-                                 "several liability" in clause_data.get("name", "").lower(),
+                    is_mandatory=clause_data.get("id", "") in {
+                        "LMA5390", "LMA5400", "LMA5021", "LMA5027", "LMA5515", "LMA5406"
+                    },
                     keywords=self._extract_keywords(clause_data.get("text", ""))
                 )
                 self._clauses.append(clause)

@@ -227,88 +227,74 @@ async def recommend_clauses_for_assessment(
 
         # Build search queries based on assessment
         recommendations = []
+        seen_ids = set()
 
-        # 1. Get mandatory clauses (sanctions, several liability, etc.)
-        # Search for sanctions clauses
-        sanctions_clauses, _ = clauses_library_service.search(
-            query="sanction",
-            source="lma",
-            page_size=10
-        )
-        for clause in sanctions_clauses:
-            if clause.get("is_mandatory"):
+        def add_rec(clause, score, reason, mandatory=False):
+            if clause["id"] not in seen_ids:
+                seen_ids.add(clause["id"])
                 recommendations.append(RecommendedClause(
                     clause=ClauseSummary(**clause),
-                    relevance_score=1.0,
-                    reason="Mandatory sanctions clause required for Lloyd's policies",
-                    is_mandatory=True
+                    relevance_score=score,
+                    reason=reason,
+                    is_mandatory=mandatory
                 ))
 
-        # Search for several liability clause
-        liability_clauses, _ = clauses_library_service.search(
-            query="several liability",
-            source="lma",
-            page_size=5
-        )
-        for clause in liability_clauses:
-            if clause.get("is_mandatory") and clause["id"] not in [r.clause.id for r in recommendations]:
-                recommendations.append(RecommendedClause(
-                    clause=ClauseSummary(**clause),
-                    relevance_score=1.0,
-                    reason="Mandatory several liability clause required for Lloyd's policies",
-                    is_mandatory=True
-                ))
-
-        # 2. Get risk-category specific clauses
-        if risk_category:
-            category_clauses, _ = clauses_library_service.search(
-                category=risk_category,
-                page_size=10
+        # 1. ALL LMA clauses — these are core Lloyd's market clauses
+        # Mandatory ones first, then recommended
+        mandatory_lma = {"LMA5390", "LMA5400", "LMA5021", "LMA5027", "LMA5515", "LMA5406"}
+        lma_clauses, _ = clauses_library_service.search(source="lma", page_size=50)
+        for clause in lma_clauses:
+            is_mandatory = clause["id"] in mandatory_lma
+            add_rec(
+                clause, 1.0 if is_mandatory else 0.95,
+                "Mandatory Lloyd's market clause" if is_mandatory else "Recommended Lloyd's market clause",
+                mandatory=is_mandatory
             )
-            for clause in category_clauses:
-                if clause["id"] not in [r.clause.id for r in recommendations]:
-                    recommendations.append(RecommendedClause(
-                        clause=ClauseSummary(**clause),
-                        relevance_score=0.9,
-                        reason=f"Recommended for {risk_category} risks",
-                        is_mandatory=False
-                    ))
 
-        # 3. Search for relevant clauses based on summary
+        # 2. Risk-category specific searches (search by TEXT, not by category field)
+        risk_search_map = {
+            "cyber": ["cyber liability", "data breach", "network security", "privacy"],
+            "marine": ["marine cargo", "hull", "maritime", "voyage"],
+            "property": ["property damage", "fire", "natural disaster", "building"],
+            "casualty": ["casualty", "bodily injury", "personal injury"],
+            "professional": ["professional indemnity", "errors omissions", "malpractice"],
+            "aviation": ["aviation", "aircraft", "hull war"],
+            "energy": ["energy", "offshore", "oil gas"],
+            "financial": ["financial loss", "fidelity", "crime"],
+            "motor": ["motor vehicle", "automobile", "fleet"],
+            "liability": ["general liability", "public liability", "product liability"],
+        }
+        search_terms = risk_search_map.get(risk_category, [risk_category]) if risk_category else []
+        for term in search_terms[:3]:
+            results, _ = clauses_library_service.search(query=term, page_size=5)
+            for clause in results:
+                add_rec(clause, 0.85, f"Relevant to {risk_category} insurance: '{term}'")
+
+        # 3. Standard insurance clauses every policy needs
+        standard_searches = [
+            ("indemnification", 0.8, "Standard indemnification provision"),
+            ("limitation of liability", 0.8, "Liability limitation clause"),
+            ("termination", 0.75, "Contract termination provisions"),
+            ("governing law", 0.75, "Governing law and jurisdiction"),
+            ("confidentiality", 0.7, "Confidentiality obligations"),
+            ("warranties", 0.7, "Warranty provisions"),
+            ("notice", 0.65, "Notice requirements"),
+            ("assignment", 0.65, "Assignment and transfer provisions"),
+        ]
+        for query, score, reason in standard_searches:
+            results, _ = clauses_library_service.search(query=query, page_size=3)
+            for clause in results:
+                add_rec(clause, score, reason)
+
+        # 4. Search terms from summary/extracted data
         if summary:
-            # Extract key terms from summary
-            key_terms = []
-            for term in ["cyber", "marine", "property", "liability", "professional", "terrorism", "war"]:
+            for term in ["cyber", "marine", "property", "liability", "professional",
+                         "terrorism", "war", "flood", "earthquake", "pandemic",
+                         "directors", "officers", "employment", "trade credit"]:
                 if term in summary.lower():
-                    key_terms.append(term)
-
-            for term in key_terms:
-                term_clauses, _ = clauses_library_service.search(
-                    query=term,
-                    page_size=5
-                )
-                for clause in term_clauses:
-                    if clause["id"] not in [r.clause.id for r in recommendations]:
-                        recommendations.append(RecommendedClause(
-                            clause=ClauseSummary(**clause),
-                            relevance_score=0.7,
-                            reason=f"Related to '{term}' mentioned in assessment",
-                            is_mandatory=False
-                        ))
-
-        # 4. Get exclusion clauses
-        exclusion_clauses, _ = clauses_library_service.search(
-            query="exclusion",
-            page_size=5
-        )
-        for clause in exclusion_clauses:
-            if clause["id"] not in [r.clause.id for r in recommendations] and clause.get("is_exclusion"):
-                recommendations.append(RecommendedClause(
-                    clause=ClauseSummary(**clause),
-                    relevance_score=0.6,
-                    reason="Standard exclusion clause",
-                    is_mandatory=False
-                ))
+                    results, _ = clauses_library_service.search(query=term, page_size=3)
+                    for clause in results:
+                        add_rec(clause, 0.7, f"Related to '{term}' in assessment")
 
         # Limit to max_recommendations
         recommendations = recommendations[:max_recommendations]

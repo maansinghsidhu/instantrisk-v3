@@ -56,7 +56,7 @@ class _MainShellState extends State<MainShell> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.asset('assets/images/logo-full.png', width: 32, height: 32, fit: BoxFit.contain),
+                child: Image.asset('assets/images/logo-icon.png', width: 32, height: 32, fit: BoxFit.contain),
               ),
               const SizedBox(width: 10),
               Text(
@@ -191,7 +191,7 @@ class _Sidebar extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.asset('assets/images/logo-full.png', width: 44, height: 44, fit: BoxFit.contain),
+                    child: Image.asset('assets/images/logo-icon.png', width: 44, height: 44, fit: BoxFit.contain),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -216,7 +216,7 @@ class _Sidebar extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.asset('assets/images/logo-full.png', width: 44, height: 44, fit: BoxFit.contain),
+                    child: Image.asset('assets/images/logo-icon.png', width: 44, height: 44, fit: BoxFit.contain),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
