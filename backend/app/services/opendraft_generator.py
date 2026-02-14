@@ -1150,7 +1150,7 @@ Return ONLY valid JSON:
         if insurance_model_service.is_available:
             try:
                 risk_text = insurance_model_service.build_risk_description(assessment_data)
-                ml_context = insurance_model_service.predict_all(risk_text)
+                ml_context = insurance_model_service.predict_all(risk_text, user_id=user_id)
                 logger.info(f"InstantRisk Engine predictions: appetite={ml_context.get('appetite', {}).get('decision')}, "
                             f"pricing={ml_context.get('pricing', {}).get('band')}, "
                             f"clauses={len(ml_context.get('clauses', []))}")

@@ -7,13 +7,17 @@ Provides intelligent recommendations using the fine-tuned insurance-BERT model:
 - Insurance intent classification
 - Pricing signal classification
 - Semantic search via fine-tuned embeddings
+- Per-user personalized predictions via lightweight adapters
 
 Falls back to keyword search if model is not available.
 """
 
 import os
 import json
+import logging
 from typing import List, Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 try:
     import torch
@@ -181,14 +185,38 @@ class InsuranceModelService:
 
         return np.concatenate(all_embeddings, axis=0)
 
+    def _get_user_adapter(self, user_id: Optional[str]):
+        """Load user adapter if available. Returns (adapter, shared_features_fn) or (None, None)."""
+        if not user_id:
+            return None
+        try:
+            from app.services.user_model_service import user_model_service
+            return user_model_service.load_adapter(user_id)
+        except Exception as e:
+            logger.debug(f"No user adapter for {user_id}: {e}")
+            return None
+
+    def _get_shared_features(self, inputs):
+        """Get shared projection features from the base model (for adapter use)."""
+        outputs = self._model.encoder(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+        )
+        cls_output = outputs.last_hidden_state[:, 0, :]
+        return self._model.shared_proj(cls_output)
+
     def recommend_clause_categories(
         self,
         risk_description: str,
         top_k: int = 15,
-        threshold: float = 0.3
+        threshold: float = 0.3,
+        user_id: Optional[str] = None,
     ) -> List[Dict]:
         """
         Recommend clause categories for a risk description.
+
+        If user_id is provided and user has a trained adapter,
+        predictions are personalized to the user's portfolio.
 
         Returns list of {category, score} sorted by relevance.
         """
@@ -202,6 +230,13 @@ class InsuranceModelService:
                 inputs["attention_mask"],
                 task="clause"
             )
+
+            # Apply user adapter if available
+            adapter = self._get_user_adapter(user_id)
+            if adapter is not None:
+                shared = self._get_shared_features(inputs)
+                logits = adapter.forward(shared, logits, task="clause")
+
             probs = torch.sigmoid(logits).cpu().numpy().flatten()
 
         categories = self._config.get("clause_labels", [])
@@ -213,7 +248,7 @@ class InsuranceModelService:
         results.sort(key=lambda x: x["score"], reverse=True)
         return results[:top_k]
 
-    def assess_appetite(self, risk_description: str) -> Dict:
+    def assess_appetite(self, risk_description: str, user_id: Optional[str] = None) -> Dict:
         """
         Assess risk appetite for a given risk description.
 
@@ -230,6 +265,12 @@ class InsuranceModelService:
                 inputs["attention_mask"],
                 task="appetite"
             )
+
+            adapter = self._get_user_adapter(user_id)
+            if adapter is not None:
+                shared = self._get_shared_features(inputs)
+                logits = adapter.forward(shared, logits, task="appetite")
+
             probs = torch.softmax(logits, dim=1).cpu().numpy().flatten()
 
         labels = self._config.get("appetite_labels", ["accept", "refer", "decline"])
@@ -241,7 +282,7 @@ class InsuranceModelService:
             "scores": {label: round(float(p), 4) for label, p in zip(labels, probs)},
         }
 
-    def classify_pricing(self, risk_description: str) -> Dict:
+    def classify_pricing(self, risk_description: str, user_id: Optional[str] = None) -> Dict:
         """
         Classify pricing signal for a risk description.
 
@@ -258,6 +299,12 @@ class InsuranceModelService:
                 inputs["attention_mask"],
                 task="pricing"
             )
+
+            adapter = self._get_user_adapter(user_id)
+            if adapter is not None:
+                shared = self._get_shared_features(inputs)
+                logits = adapter.forward(shared, logits, task="pricing")
+
             probs = torch.softmax(logits, dim=1).cpu().numpy().flatten()
 
         labels = self._config.get("pricing_labels", ["low", "medium", "high"])
@@ -269,7 +316,7 @@ class InsuranceModelService:
             "scores": {label: round(float(p), 4) for label, p in zip(labels, probs)},
         }
 
-    def classify_intent(self, text: str) -> Dict:
+    def classify_intent(self, text: str, user_id: Optional[str] = None) -> Dict:
         """
         Classify insurance intent of a text.
 
@@ -285,6 +332,12 @@ class InsuranceModelService:
                 inputs["attention_mask"],
                 task="intent"
             )
+
+            adapter = self._get_user_adapter(user_id)
+            if adapter is not None:
+                shared = self._get_shared_features(inputs)
+                logits = adapter.forward(shared, logits, task="intent")
+
             probs = torch.softmax(logits, dim=1).cpu().numpy().flatten()
 
         intents = self._config.get("intent_labels", [])
@@ -300,11 +353,14 @@ class InsuranceModelService:
             ]
         }
 
-    def predict_all(self, text: str) -> Dict:
+    def predict_all(self, text: str, user_id: Optional[str] = None) -> Dict:
         """
         Run all prediction heads on a single text.
 
-        Returns {clauses, appetite, pricing, intent, embedding}.
+        If user_id is provided and user has a trained adapter,
+        predictions are personalized to the user's portfolio.
+
+        Returns {clauses, appetite, pricing, intent, personalized}.
         """
         if not self.is_available:
             return {
@@ -312,6 +368,7 @@ class InsuranceModelService:
                 "appetite": {"decision": "refer", "confidence": 0.0},
                 "pricing": {"band": "medium", "confidence": 0.0},
                 "intent": {"intent": "unknown", "confidence": 0.0},
+                "personalized": False,
             }
 
         with torch.no_grad():
@@ -321,6 +378,13 @@ class InsuranceModelService:
                 inputs["attention_mask"],
                 task=None  # returns all heads
             )
+
+            # Apply user adapter if available
+            adapter = self._get_user_adapter(user_id)
+            personalized = adapter is not None
+            if personalized:
+                shared = self._get_shared_features(inputs)
+                all_logits = adapter.forward(shared, all_logits, task=None)
 
         # Clause categories (multi-label, sigmoid)
         clause_probs = torch.sigmoid(all_logits["clause"]).cpu().numpy().flatten()
@@ -362,6 +426,7 @@ class InsuranceModelService:
                 "intent": intent_labels[intent_idx] if len(intent_labels) > intent_idx else "unknown",
                 "confidence": round(float(intent_probs[intent_idx]), 4),
             },
+            "personalized": personalized,
         }
 
     def build_risk_description(self, assessment_data: Dict) -> str:

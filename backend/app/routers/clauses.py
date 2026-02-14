@@ -225,6 +225,7 @@ async def recommend_clauses_for_assessment(
         territory = assessment_dict.get("territory", "")
         summary = assessment_dict.get("description", "") or ""
         extracted_data = assessment_dict.get("ai_analysis", {}) or {}
+        user_id = str(assessment_dict.get("created_by", "")) or None
 
         recommendations = []
         seen_ids = set()
@@ -245,8 +246,8 @@ async def recommend_clauses_for_assessment(
             # Build risk description from assessment data
             risk_text = insurance_model_service.build_risk_description(assessment_dict)
 
-            # Get all predictions in one pass
-            ml_predictions = insurance_model_service.predict_all(risk_text)
+            # Get all predictions in one pass (personalized if user has adapter)
+            ml_predictions = insurance_model_service.predict_all(risk_text, user_id=user_id)
 
             # Use ML clause categories to find matching clauses
             for cat_pred in ml_predictions.get("clauses", []):
