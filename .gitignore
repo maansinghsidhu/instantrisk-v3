@@ -104,6 +104,17 @@ tmp/
 # RAG training data (downloaded at build time via scripts/download_datasets.py)
 backend/app/data/training_data/embeddings/*.jsonl
 
+# ML training datasets (too large for git, downloaded via download_training_data.py)
+backend/app/data/insurance_data/training/*.json
+backend/app/data/insurance_data/training/*.jsonl
+
+# ML model checkpoints (too large for git, ~441MB each — upload to S3)
+backend/app/data/models/
+
+# Training artifacts
+backend/training_log.txt
+backend/quick_train.py
+
 # Deployment artifacts
 *.zip
 *.tar.gz

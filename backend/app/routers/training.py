@@ -11,6 +11,7 @@ import logging
 from app.core.security import get_current_user
 from app.models.user import User
 from app.services.qdrant_service import qdrant_service
+from app.services.insurance_model_service import insurance_model_service
 
 logger = logging.getLogger(__name__)
 
@@ -151,4 +152,72 @@ async def search_training_documents(
         }
     except Exception as e:
         logger.error(f"Failed to search training documents: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/model-status")
+async def get_model_status(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get InstantRisk Engine model status.
+
+    Returns base model availability and user's personal model training status.
+    """
+    base_model_available = insurance_model_service.is_available
+
+    # Check user's training data for personal model readiness
+    user_model_status = "not_available"
+    user_chunks = 0
+    try:
+        status = await qdrant_service.get_training_status(
+            user_id=str(current_user.id)
+        )
+        user_chunks = status.get("total_chunks", 0)
+        if user_chunks >= 50:
+            user_model_status = "ready_to_train"
+        elif user_chunks > 0:
+            user_model_status = "insufficient_data"
+        else:
+            user_model_status = "no_data"
+    except Exception as e:
+        logger.warning(f"Failed to check user model status: {e}")
+
+    return {
+        "base_model": {
+            "available": base_model_available,
+            "name": "InstantRisk Engine v1",
+        },
+        "user_model": {
+            "status": user_model_status,
+            "chunks": user_chunks,
+            "minimum_chunks": 50,
+        },
+    }
+
+
+@router.post("/predict")
+async def predict_risk(
+    risk_description: str,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Run InstantRisk Engine predictions on a risk description.
+
+    Returns clause recommendations, appetite assessment, pricing band, and intent.
+    """
+    if not insurance_model_service.is_available:
+        raise HTTPException(
+            status_code=503,
+            detail="InstantRisk Engine model is not loaded"
+        )
+
+    try:
+        result = insurance_model_service.predict_all(risk_description)
+        return {
+            "success": True,
+            "predictions": result,
+        }
+    except Exception as e:
+        logger.error(f"Prediction failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -20,6 +20,8 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
+from app.services.insurance_model_service import insurance_model_service
+
 logger = logging.getLogger(__name__)
 
 # Agent model assignments (haiku = cheap/fast, sonnet = smart/analytical)
@@ -122,6 +124,7 @@ class OpenDraftGenerator:
         self,
         assessment_data: Dict,
         user_id: str = None,
+        ml_context: Dict = None,
     ) -> Dict:
         """Agent 1: RiskResearcher — searches pgvector for relevant clauses and precedents."""
         risk_category = assessment_data.get("risk_category", "property")
@@ -150,6 +153,19 @@ class OpenDraftGenerator:
             "ai_analysis_summary": str(assessment_data.get("ai_analysis", {}))[:2000],
         }, indent=2)
 
+        # ML-powered insights
+        ml_block = ""
+        if ml_context:
+            appetite = ml_context.get("appetite", {})
+            pricing = ml_context.get("pricing", {})
+            ml_clauses = ml_context.get("clauses", [])
+            ml_block = f"""
+INSTANTRISK ENGINE ANALYSIS:
+- Risk appetite: {appetite.get('decision', 'unknown')} (confidence: {appetite.get('confidence', 0):.0%})
+- Pricing band: {pricing.get('band', 'unknown')} (confidence: {pricing.get('confidence', 0):.0%})
+- ML-recommended clause categories: {', '.join(c['category'] for c in ml_clauses[:10])}
+"""
+
         result = await self._run_agent_json(
             "RiskResearcher",
             "You are a Lloyd's insurance research specialist. Search and identify all relevant clauses, precedents, and market wordings for the given risk.",
@@ -160,7 +176,7 @@ ASSESSMENT DATA:
 
 KNOWLEDGE BASE (ACORD/CUAD/JeTech results):
 {rag_context}
-
+{ml_block}
 Return ONLY valid JSON:
 {{
     "risk_profile": {{
@@ -194,13 +210,16 @@ Return ONLY valid JSON:
         self,
         research: Dict,
         user_id: str = None,
+        ml_context: Dict = None,
     ) -> List[Dict]:
         """Agent 2: ClauseExtractor — deep-reads found clauses, extracts key provisions."""
         clause_candidates = []
+        seen_ids = set()
 
         for clause in research.get("relevant_clauses", [])[:20]:
             clause_id = clause.get("clause_id", "")
             name = clause.get("name", "")
+            seen_ids.add(clause_id)
             query = f"{name} {clause_id} insurance clause full wording provisions"
 
             try:
@@ -235,6 +254,36 @@ Return ONLY valid JSON:
                     "candidates": [],
                     "best_source": "ai_generated",
                 })
+
+        # Use ML-predicted clause categories to find additional relevant clauses
+        if ml_context and ml_context.get("clauses"):
+            for ml_clause in ml_context["clauses"][:10]:
+                category = ml_clause.get("category", "")
+                if category and category not in seen_ids:
+                    try:
+                        results = await self.unified_rag.search(
+                            query=f"{category} insurance clause wording",
+                            user_id=user_id,
+                            top_k=2,
+                            min_score=0.4,
+                        )
+                        if results:
+                            candidates = [{
+                                "text": r.get("text", "")[:1000],
+                                "source_tier": r.get("source_tier", "unknown"),
+                                "source_label": r.get("source_label", "Unknown"),
+                                "score": r.get("score", 0),
+                            } for r in results]
+                            clause_candidates.append({
+                                "clause_id": f"ML_{category.upper().replace(' ', '_')}",
+                                "name": category,
+                                "priority": "recommended",
+                                "candidates": candidates,
+                                "best_source": candidates[0]["source_tier"],
+                                "ml_score": ml_clause.get("score", 0),
+                            })
+                    except Exception as e:
+                        logger.warning(f"ML clause extraction failed for {category}: {e}")
 
         return clause_candidates
 
@@ -430,11 +479,23 @@ Return ONLY valid JSON:
         assessment_data: Dict,
         formatting: Dict,
         user_id: str = None,
+        ml_context: Dict = None,
     ) -> List[Dict]:
         """Agent 7: SectionDrafter — drafts each section using selected clauses + RAG context."""
         clause_map = {c["clause_id"]: c for c in selected_clauses}
         drafted_sections = []
         risk_category = assessment_data.get("risk_category", "property")
+
+        # Build ML context block for drafting
+        ml_block = ""
+        if ml_context:
+            appetite = ml_context.get("appetite", {})
+            pricing = ml_context.get("pricing", {})
+            ml_block = f"""
+INSTANTRISK ENGINE CONTEXT:
+- Risk appetite: {appetite.get('decision', 'unknown')} (confidence: {appetite.get('confidence', 0):.0%})
+- Pricing band: {pricing.get('band', 'unknown')} (confidence: {pricing.get('confidence', 0):.0%})
+"""
 
         for section in structure.get("sections", []):
             section_clauses = []
@@ -473,6 +534,27 @@ Return ONLY valid JSON:
 
                 rag_block = f"\nREFERENCE WORDINGS (ACORD/CUAD/standard clauses):\n{rag_context}\n" if rag_context else ""
 
+                # Include new assessment fields if available
+                extra_fields = ""
+                broker = assessment_data.get("broker_name", "")
+                commission = assessment_data.get("commission_rate")
+                insured_entity = assessment_data.get("insured_entity_name", "")
+                inception = assessment_data.get("inception_date", "")
+                renewal = assessment_data.get("renewal_date", "")
+                regulatory = assessment_data.get("regulatory_framework", "")
+                if broker:
+                    extra_fields += f"- Broker: {broker}\n"
+                if commission is not None:
+                    extra_fields += f"- Commission: {commission}%\n"
+                if insured_entity:
+                    extra_fields += f"- Insured entity: {insured_entity}\n"
+                if inception:
+                    extra_fields += f"- Inception: {inception}\n"
+                if renewal:
+                    extra_fields += f"- Renewal: {renewal}\n"
+                if regulatory:
+                    extra_fields += f"- Regulatory framework: {regulatory}\n"
+
                 response = await self._run_agent(
                     "SectionDrafter",
                     "You are a Lloyd's insurance document drafter. Write professional insurance wording using London market standard language. Use reference wordings as a guide for professional clause language.",
@@ -485,7 +567,7 @@ Assessment details:
 - Premium: {assessment_data.get('premium', '')}
 - Sum insured: {assessment_data.get('sum_insured', '')}
 - Deductible: {assessment_data.get('deductible', '')}
-{rag_block}
+{extra_fields}{rag_block}{ml_block}
 Draft professional insurance wording. Use Lloyd's market standard language and conventions. Draw from the reference wordings where applicable.""",
                     temperature=0.2,
                 )
@@ -580,6 +662,7 @@ Return ONLY valid JSON:
         drafted_sections: List[Dict],
         assessment_data: Dict,
         user_id: str = None,
+        ml_context: Dict = None,
     ) -> Dict:
         """Agent 10: RiskChallenger — challenges coverage adequacy, finds exclusion gaps."""
         risk_category = assessment_data.get('risk_category', '')
@@ -600,15 +683,27 @@ Return ONLY valid JSON:
 
         rag_block = f"\nMARKET PRECEDENTS AND STANDARDS:\n{rag_context}\n" if rag_context else ""
 
+        ml_block = ""
+        if ml_context:
+            appetite = ml_context.get("appetite", {})
+            pricing = ml_context.get("pricing", {})
+            ml_block = f"""
+INSTANTRISK ENGINE ANALYSIS:
+- Risk appetite: {appetite.get('decision', 'unknown')} (confidence: {appetite.get('confidence', 0):.0%})
+  Scores: accept={appetite.get('scores', {}).get('accept', 0):.2f}, refer={appetite.get('scores', {}).get('refer', 0):.2f}, decline={appetite.get('scores', {}).get('decline', 0):.2f}
+- Pricing band: {pricing.get('band', 'unknown')} (confidence: {pricing.get('confidence', 0):.0%})
+Use these data-driven signals to inform your risk challenge.
+"""
+
         result = await self._run_agent_json(
             "RiskChallenger",
-            "You are a senior Lloyd's underwriter reviewing a placement. Challenge the coverage adequacy and identify potential gaps or weaknesses. Use market precedents to inform your review.",
+            "You are a senior Lloyd's underwriter reviewing a placement. Challenge the coverage adequacy and identify potential gaps or weaknesses. Use market precedents and InstantRisk Engine analysis to inform your review.",
             f"""Challenge this insurance document's coverage adequacy.
 
 Risk: {risk_category} in {territory}
 Sum insured: {assessment_data.get('sum_insured', '')}
 Sections: {', '.join(s['title'] for s in drafted_sections[:20])}
-{rag_block}
+{rag_block}{ml_block}
 
 Key content:
 {chr(10).join(f"[{s['title']}]: {s.get('content', '')[:400]}" for s in drafted_sections[:10])}
@@ -673,6 +768,7 @@ Return ONLY valid JSON:
         drafted_sections: List[Dict],
         assessment_data: Dict,
         user_id: str = None,
+        ml_context: Dict = None,
     ) -> Dict:
         """Agent 12: ComplianceReviewer — simulates Lloyd's compliance review."""
         risk_category = assessment_data.get('risk_category', '')
@@ -693,15 +789,27 @@ Return ONLY valid JSON:
 
         rag_block = f"\nREGULATORY REFERENCE MATERIAL:\n{rag_context}\n" if rag_context else ""
 
+        ml_block = ""
+        if ml_context:
+            ml_clauses = ml_context.get("clauses", [])
+            appetite = ml_context.get("appetite", {})
+            clause_cats = [c["category"] for c in ml_clauses[:15]]
+            ml_block = f"""
+INSTANTRISK ENGINE CLAUSE ANALYSIS:
+- ML-recommended clause categories: {', '.join(clause_cats)}
+- Risk appetite: {appetite.get('decision', 'unknown')} ({appetite.get('confidence', 0):.0%})
+Verify that mandatory clause categories from the ML model are present in the document.
+"""
+
         result = await self._run_agent_json(
             "ComplianceReviewer",
-            "You are a Lloyd's compliance officer. Review this document for regulatory compliance including sanctions, PRA/FCA requirements, and market standards. Use reference material to verify requirements.",
+            "You are a Lloyd's compliance officer. Review this document for regulatory compliance including sanctions, PRA/FCA requirements, and market standards. Use reference material and InstantRisk Engine analysis to verify requirements.",
             f"""Review this insurance document for Lloyd's compliance.
 
 Document sections: {', '.join(s['title'] for s in drafted_sections[:20])}
 Risk category: {risk_category}
 Territory: {territory}
-{rag_block}
+{rag_block}{ml_block}
 
 Check for:
 1. Missing mandatory Lloyd's clauses (Several Liability, Sanctions, etc.)
@@ -879,18 +987,39 @@ Return ONLY valid JSON:
         assessment_data: Dict,
     ) -> Dict:
         """Agent 17: ScheduleBuilder — adds schedules, appendices, premium tables."""
+        # Build comprehensive assessment details including new fields
+        schedule_fields = [
+            f"- Risk: {assessment_data.get('risk_category', '')}",
+            f"- Insured: {assessment_data.get('insured_name', '')}",
+            f"- Territory: {assessment_data.get('territory', '')}",
+            f"- Premium: {assessment_data.get('premium', '')}",
+            f"- Sum insured: {assessment_data.get('sum_insured', '')}",
+            f"- Deductible: {assessment_data.get('deductible', '')}",
+        ]
+        if assessment_data.get("insured_entity_name"):
+            schedule_fields.append(f"- Insured entity (full legal name): {assessment_data['insured_entity_name']}")
+        if assessment_data.get("companies_house_number"):
+            schedule_fields.append(f"- Companies House number: {assessment_data['companies_house_number']}")
+        if assessment_data.get("broker_name"):
+            schedule_fields.append(f"- Broker: {assessment_data['broker_name']}")
+        if assessment_data.get("commission_rate") is not None:
+            schedule_fields.append(f"- Commission rate: {assessment_data['commission_rate']}%")
+        if assessment_data.get("inception_date"):
+            schedule_fields.append(f"- Inception date: {assessment_data['inception_date']}")
+        if assessment_data.get("renewal_date"):
+            schedule_fields.append(f"- Renewal date: {assessment_data['renewal_date']}")
+        if assessment_data.get("loss_run_reporting_rules"):
+            schedule_fields.append(f"- Loss run reporting rules: {assessment_data['loss_run_reporting_rules']}")
+        if assessment_data.get("regulatory_framework"):
+            schedule_fields.append(f"- Regulatory framework: {assessment_data['regulatory_framework']}")
+
         result = await self._run_agent_json(
             "ScheduleBuilder",
             "You are a Lloyd's schedule and appendix specialist. Build document schedules based on the assessment data.",
             f"""Build schedules and appendices for this insurance document.
 
 Assessment:
-- Risk: {assessment_data.get('risk_category', '')}
-- Insured: {assessment_data.get('insured_name', '')}
-- Territory: {assessment_data.get('territory', '')}
-- Premium: {assessment_data.get('premium', '')}
-- Sum insured: {assessment_data.get('sum_insured', '')}
-- Deductible: {assessment_data.get('deductible', '')}
+{chr(10).join(schedule_fields)}
 
 Generate appropriate schedules.
 
@@ -1016,6 +1145,18 @@ Return ONLY valid JSON:
             "agents_failed": 0,
         }
 
+        # Get ML predictions if model is available
+        ml_context = {}
+        if insurance_model_service.is_available:
+            try:
+                risk_text = insurance_model_service.build_risk_description(assessment_data)
+                ml_context = insurance_model_service.predict_all(risk_text)
+                logger.info(f"InstantRisk Engine predictions: appetite={ml_context.get('appetite', {}).get('decision')}, "
+                            f"pricing={ml_context.get('pricing', {}).get('band')}, "
+                            f"clauses={len(ml_context.get('clauses', []))}")
+            except Exception as e:
+                logger.warning(f"InstantRisk Engine prediction failed: {e}")
+
         async def step(agent_num: int, name: str, status: str = "running"):
             if progress_callback:
                 await progress_callback({
@@ -1041,14 +1182,14 @@ Return ONLY valid JSON:
 
         # ── PHASE 1: RESEARCH ──
         await step(1, "RiskResearcher")
-        research = await self.agent_risk_researcher(assessment_data, user_id)
+        research = await self.agent_risk_researcher(assessment_data, user_id, ml_context=ml_context)
         _track_agent(results, "RiskResearcher", research,
                      lambda r: set(c.get("clause_id") for c in r.get("relevant_clauses", [])) == {"LMA5021", "LMA5173", "SUBROGATION", "ICC_A"})
         results["pipeline_steps"].append({"agent": "RiskResearcher", "status": "completed"})
         await step(1, "RiskResearcher", "completed")
 
         await step(2, "ClauseExtractor")
-        clause_candidates = await self.agent_clause_extractor(research, user_id)
+        clause_candidates = await self.agent_clause_extractor(research, user_id, ml_context=ml_context)
         results["pipeline_steps"].append({"agent": "ClauseExtractor", "status": "completed"})
         await step(2, "ClauseExtractor", "completed")
 
@@ -1086,7 +1227,7 @@ Return ONLY valid JSON:
 
             # ── PHASE 3: COMPOSE ──
             await step(7, "SectionDrafter")
-            drafted_sections = await self.agent_section_drafter(structure, selected_clauses, assessment_data, formatting, user_id=user_id)
+            drafted_sections = await self.agent_section_drafter(structure, selected_clauses, assessment_data, formatting, user_id=user_id, ml_context=ml_context)
             results["pipeline_steps"].append({"agent": "SectionDrafter", "status": "completed", "doc_type": doc_type})
             await step(7, "SectionDrafter", "completed")
 
@@ -1102,7 +1243,7 @@ Return ONLY valid JSON:
 
             # ── PHASE 4: VALIDATE ──
             await step(10, "RiskChallenger")
-            risk_challenge = await self.agent_risk_challenger(drafted_sections, assessment_data, user_id=user_id)
+            risk_challenge = await self.agent_risk_challenger(drafted_sections, assessment_data, user_id=user_id, ml_context=ml_context)
             results["pipeline_steps"].append({"agent": "RiskChallenger", "status": "completed", "doc_type": doc_type})
             await step(10, "RiskChallenger", "completed")
 
@@ -1112,7 +1253,7 @@ Return ONLY valid JSON:
             await step(11, "ClauseVerifier", "completed")
 
             await step(12, "ComplianceReviewer")
-            compliance = await self.agent_compliance_reviewer(drafted_sections, assessment_data, user_id=user_id)
+            compliance = await self.agent_compliance_reviewer(drafted_sections, assessment_data, user_id=user_id, ml_context=ml_context)
             results["pipeline_steps"].append({"agent": "ComplianceReviewer", "status": "completed", "doc_type": doc_type})
             await step(12, "ComplianceReviewer", "completed")
 
@@ -1186,6 +1327,7 @@ Return ONLY valid JSON:
                 "source_attribution": source_attribution,
                 "assessment_reference": assessment_data.get("reference_number", ""),
                 "gap_analysis": gap_analysis,
+                "ml_predictions": ml_context if ml_context else None,
             }
 
             results["documents"].append(formatted_doc)

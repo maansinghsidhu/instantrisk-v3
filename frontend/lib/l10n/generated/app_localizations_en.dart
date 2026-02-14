@@ -536,7 +536,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get generateDocuments => 'Generate Documents';
 
   @override
-  String get aiRecommendedDocuments => 'AI Recommended Documents';
+  String get aiRecommendedDocuments => 'Recommended Documents';
 
   @override
   String get selectDocumentsToGenerate => 'Select the documents you want to generate';
@@ -554,7 +554,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get generatingDocuments => 'Generating Documents';
 
   @override
-  String get aiAgentsWorking => 'AI agents are working on your documents';
+  String get aiAgentsWorking => 'InstantRisk Engine is generating your documents';
 
   @override
   String get complete => 'Complete';
@@ -627,7 +627,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newChat => 'New Chat';
 
   @override
-  String get aiAssistant => 'AI Assistant';
+  String get aiAssistant => 'InstantRisk Assistant';
 
   @override
   String get knowledgeSources => 'Knowledge Sources';
@@ -923,7 +923,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contractGenerations => 'Contract Generations';
 
   @override
-  String get aiChatMessages => 'AI Chat Messages';
+  String get aiChatMessages => 'Engine Chat Messages';
 
   @override
   String get documentStorage => 'Document Storage';
@@ -1200,10 +1200,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingDesc2 => 'Generate professional insurance documents, contracts, and clauses tailored to Lloyd\'s market standards';
 
   @override
-  String get onboardingTitle3 => '24/7 Insurance AI Assistant';
+  String get onboardingTitle3 => '24/7 InstantRisk Assistant';
 
   @override
-  String get onboardingDesc3 => 'Get instant answers to insurance questions from our AI trained on 20GB+ of Lloyd\'s market knowledge';
+  String get onboardingDesc3 => 'Get instant answers to insurance questions from the InstantRisk Engine trained on Lloyd\'s market knowledge';
 
   @override
   String get skip => 'Skip';

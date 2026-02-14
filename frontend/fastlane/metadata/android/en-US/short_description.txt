@@ -1,1 +1,1 @@
-AI-powered risk assessment for Lloyd's syndicates. Instant GO/NO-GO decisions.
+InstantRisk Engine - Risk assessment for Lloyd's syndicates. Instant GO/NO-GO decisions.

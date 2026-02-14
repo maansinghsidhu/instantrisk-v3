@@ -278,7 +278,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
         },
       ),
       title: const Text(
-        'AI Assistant',
+        'InstantRisk Assistant',
         style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
       ),
       actions: [

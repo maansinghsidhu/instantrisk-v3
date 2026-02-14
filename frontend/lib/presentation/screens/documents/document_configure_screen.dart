@@ -1146,7 +1146,7 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
               ),
               const SizedBox(height: 8),
               Text(
-                'AI agents are working on your ${widget.lineOfBusinessName} ${widget.documentTypeName.toLowerCase()}',
+                'InstantRisk Engine is generating your ${widget.lineOfBusinessName} ${widget.documentTypeName.toLowerCase()}',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,

@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.services.clauses_library_service import clauses_library_service
+from app.services.insurance_model_service import insurance_model_service
 from app.models.assessment import Assessment
 
 router = APIRouter(prefix="/clauses", tags=["Clauses Library"])
@@ -204,8 +205,9 @@ async def recommend_clauses_for_assessment(
     """
     Get InstantRisk Engine recommended clauses for an assessment.
 
-    Analyzes the assessment data and recommends relevant clauses with explanations.
-    Searches 11,000+ real clauses from LEDGAR, CUAD, and ContractNLI datasets.
+    Uses the fine-tuned ML model for intelligent clause classification when available,
+    with keyword search fallback. Searches 11,000+ real clauses from LEDGAR, CUAD,
+    and ContractNLI datasets.
     """
     try:
         # Get assessment
@@ -221,12 +223,12 @@ async def recommend_clauses_for_assessment(
         assessment_dict = dict(assessment._mapping)
         risk_category = assessment_dict.get("risk_category", "").lower()
         territory = assessment_dict.get("territory", "")
-        summary = assessment_dict.get("summary", "")
-        extracted_data = assessment_dict.get("extracted_data", {}) or {}
+        summary = assessment_dict.get("description", "") or ""
+        extracted_data = assessment_dict.get("ai_analysis", {}) or {}
 
-        # Build search queries based on assessment
         recommendations = []
         seen_ids = set()
+        ml_predictions = None
 
         def add_rec(clause, score, reason, mandatory=False):
             if clause["id"] not in seen_ids:
@@ -238,7 +240,26 @@ async def recommend_clauses_for_assessment(
                     is_mandatory=mandatory
                 ))
 
-        # 1. Risk-category specific searches (search by TEXT, not by category field)
+        # --- ML-POWERED RECOMMENDATIONS (when model is available) ---
+        if insurance_model_service.is_available:
+            # Build risk description from assessment data
+            risk_text = insurance_model_service.build_risk_description(assessment_dict)
+
+            # Get all predictions in one pass
+            ml_predictions = insurance_model_service.predict_all(risk_text)
+
+            # Use ML clause categories to find matching clauses
+            for cat_pred in ml_predictions.get("clauses", []):
+                category = cat_pred["category"]
+                score = cat_pred["score"]
+                # Search clause library by the predicted category
+                results, _ = clauses_library_service.search(query=category.replace("_", " "), page_size=3)
+                for clause in results:
+                    add_rec(clause, round(score, 2),
+                            f"InstantRisk Engine: {category} (confidence {score:.0%})")
+
+        # --- KEYWORD FALLBACK (always runs to fill gaps) ---
+        # 1. Risk-category specific searches
         risk_search_map = {
             "cyber": ["cyber liability", "data breach", "network security", "privacy"],
             "marine": ["marine cargo", "hull", "maritime", "voyage"],
@@ -257,7 +278,7 @@ async def recommend_clauses_for_assessment(
             for clause in results:
                 add_rec(clause, 0.85, f"Relevant to {risk_category} insurance: '{term}'")
 
-        # 3. Standard insurance clauses every policy needs
+        # 2. Standard insurance clauses every policy needs
         standard_searches = [
             ("indemnification", 0.8, "Standard indemnification provision"),
             ("limitation of liability", 0.8, "Liability limitation clause"),
@@ -273,7 +294,7 @@ async def recommend_clauses_for_assessment(
             for clause in results:
                 add_rec(clause, score, reason)
 
-        # 4. Search terms from summary/extracted data
+        # 3. Search terms from summary/extracted data
         if summary:
             for term in ["cyber", "marine", "property", "liability", "professional",
                          "terrorism", "war", "flood", "earthquake", "pandemic",
@@ -282,6 +303,9 @@ async def recommend_clauses_for_assessment(
                     results, _ = clauses_library_service.search(query=term, page_size=3)
                     for clause in results:
                         add_rec(clause, 0.7, f"Related to '{term}' in assessment")
+
+        # Sort by relevance score (ML predictions first, then keyword)
+        recommendations.sort(key=lambda r: r.relevance_score, reverse=True)
 
         # Limit to max_recommendations
         recommendations = recommendations[:max_recommendations]
@@ -294,7 +318,7 @@ async def recommend_clauses_for_assessment(
             assessment_id=assessment_id,
             recommended_clauses=recommendations,
             mandatory_count=mandatory_count,
-            optional_count=optional_count
+            optional_count=optional_count,
         )
 
     except HTTPException:

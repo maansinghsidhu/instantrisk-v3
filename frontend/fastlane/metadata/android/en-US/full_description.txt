@@ -1,11 +1,11 @@
-InstantRisk V2 - AI-Powered Lloyd's Underwriting Platform
+InstantRisk - Lloyd's Underwriting Platform powered by InstantRisk Engine
 
 Transform your underwriting workflow with InstantRisk, the intelligent risk assessment platform designed specifically for Lloyd's syndicates and insurance brokers.
 
 KEY FEATURES:
 
-🤖 AI-Powered Risk Assessment
-• Instant GO/NO-GO decisions powered by multi-agent AI
+🚀 InstantRisk Engine Assessment
+• Instant GO/NO-GO decisions powered by the InstantRisk Engine
 • Automatic risk scoring and premium calculation
 • Deep document analysis using advanced OCR
 
@@ -21,7 +21,7 @@ KEY FEATURES:
 • Risk distribution analysis
 • 5-year forecasting
 
-💬 AI Chat Assistant
+💬 InstantRisk Assistant
 • Ask questions about your documents
 • Get instant risk insights
 • Interactive refinement of assessments

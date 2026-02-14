@@ -161,6 +161,21 @@ class Assessment(Base):
     # RapidRate pricing results (auto-populated during analysis pipeline)
     rapidrate_results = Column(JSON, nullable=True, comment="RapidRate ML pricing output")
 
+    # Broker and commission
+    broker_name = Column(String(255), nullable=True, comment="Broker name (e.g., Marsh, Aon)")
+    commission_rate = Column(Float, nullable=True, comment="Agreed commission rate as percentage")
+
+    # Insured entity details
+    insured_entity_name = Column(String(500), nullable=True, comment="Full legal entity name (highest point / totality of entity)")
+    companies_house_number = Column(String(50), nullable=True, comment="Companies House registration number for entity verification")
+
+    # Policy renewal
+    renewal_date = Column(DateTime(timezone=True), nullable=True, comment="Renewal date at next inception")
+
+    # Regulatory and reporting
+    loss_run_reporting_rules = Column(Text, nullable=True, comment="Loss run reporting rules and requirements")
+    regulatory_framework = Column(String(255), nullable=True, comment="Applicable regulatory framework (e.g., Solvency II, European regulation)")
+
     # Audit flags
     is_flagged = Column(Boolean, default=False, comment="Flagged for review")
     flag_reason = Column(String(255), nullable=True)

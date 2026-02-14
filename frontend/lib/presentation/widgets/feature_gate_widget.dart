@@ -232,7 +232,7 @@ class UpgradeDialog extends StatelessWidget {
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          _buildFeatureRow(Icons.chat, 'ClaimSense AI Chat'),
+          _buildFeatureRow(Icons.chat, 'InstantRisk Engine Chat'),
           _buildFeatureRow(Icons.description, 'Document Generation'),
           _buildFeatureRow(Icons.psychology, 'Deep Analysis Mode'),
           _buildFeatureRow(Icons.insights, 'Advanced Analytics'),

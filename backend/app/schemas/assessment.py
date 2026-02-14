@@ -41,14 +41,21 @@ class AssessmentCreate(AssessmentBase):
     """
     syndicate_id: Optional[int] = None
     insured_name: Optional[str] = Field(None, max_length=255)
+    insured_entity_name: Optional[str] = Field(None, max_length=500, description="Full legal entity name (highest point / totality of entity)")
+    companies_house_number: Optional[str] = Field(None, max_length=50, description="Companies House registration number")
     broker_reference: Optional[str] = Field(None, max_length=100)
+    broker_name: Optional[str] = Field(None, max_length=255, description="Broker name (e.g., Marsh, Aon)")
+    commission_rate: Optional[float] = Field(None, ge=0, le=100, description="Agreed commission rate (%)")
     premium: Optional[float] = Field(None, ge=0)
     sum_insured: Optional[float] = Field(None, ge=0)
     deductible: Optional[float] = Field(None, ge=0)
     inception_date: Optional[datetime] = None
     expiry_date: Optional[datetime] = None
+    renewal_date: Optional[datetime] = None
     territory: Optional[str] = Field(None, max_length=100)
     exposure_details: Optional[Dict[str, Any]] = None
+    loss_run_reporting_rules: Optional[str] = Field(None, description="Loss run reporting rules")
+    regulatory_framework: Optional[str] = Field(None, max_length=255, description="Regulatory framework (e.g., Solvency II)")
 
 
 class AssessmentUpdate(BaseModel):
@@ -62,14 +69,21 @@ class AssessmentUpdate(BaseModel):
     risk_category: Optional[RiskCategory] = None
     syndicate_id: Optional[int] = None
     insured_name: Optional[str] = Field(None, max_length=255)
+    insured_entity_name: Optional[str] = Field(None, max_length=500)
+    companies_house_number: Optional[str] = Field(None, max_length=50)
     broker_reference: Optional[str] = Field(None, max_length=100)
+    broker_name: Optional[str] = Field(None, max_length=255)
+    commission_rate: Optional[float] = Field(None, ge=0, le=100)
     premium: Optional[float] = Field(None, ge=0)
     sum_insured: Optional[float] = Field(None, ge=0)
     deductible: Optional[float] = Field(None, ge=0)
     inception_date: Optional[datetime] = None
     expiry_date: Optional[datetime] = None
+    renewal_date: Optional[datetime] = None
     territory: Optional[str] = Field(None, max_length=100)
     exposure_details: Optional[Dict[str, Any]] = None
+    loss_run_reporting_rules: Optional[str] = None
+    regulatory_framework: Optional[str] = Field(None, max_length=255)
     underwriter_notes: Optional[str] = None
     is_flagged: Optional[bool] = None
     flag_reason: Optional[str] = Field(None, max_length=255)
@@ -120,14 +134,21 @@ class AssessmentResponse(AssessmentBase):
     created_by: UUID
     syndicate_id: Optional[int] = None
     insured_name: Optional[str] = None
+    insured_entity_name: Optional[str] = None
+    companies_house_number: Optional[str] = None
     broker_reference: Optional[str] = None
+    broker_name: Optional[str] = None
+    commission_rate: Optional[float] = None
     premium: Optional[float] = 0.0
     sum_insured: Optional[float] = 0.0
     deductible: Optional[float] = 0.0
     inception_date: Optional[datetime] = None
     expiry_date: Optional[datetime] = None
+    renewal_date: Optional[datetime] = None
     territory: Optional[str] = None
     exposure_details: Optional[Dict[str, Any]] = None
+    loss_run_reporting_rules: Optional[str] = None
+    regulatory_framework: Optional[str] = None
     risk_score: Optional[int] = 0
     confidence_score: Optional[int] = 0
     ai_analysis: Optional[Dict[str, Any]] = None

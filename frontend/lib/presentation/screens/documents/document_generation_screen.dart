@@ -1171,7 +1171,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
             ),
             const SizedBox(height: 8),
             Text(
-              'AI agents are working on your documents',
+              'InstantRisk Engine is generating your documents',
               style: TextStyle(
                 fontSize: 14,
                 color: AppTheme.textSecondary,

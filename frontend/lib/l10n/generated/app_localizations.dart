@@ -352,7 +352,7 @@ abstract class AppLocalizations {
   /// Pricing engine subtitle
   ///
   /// In en, this message translates to:
-  /// **'AI-powered pricing models'**
+  /// **'InstantRisk Engine pricing models'**
   String get pricingEngineSubtitle;
 
   /// Data quality title
@@ -1156,7 +1156,7 @@ abstract class AppLocalizations {
   /// AI recommended documents title
   ///
   /// In en, this message translates to:
-  /// **'AI Recommended Documents'**
+  /// **'Recommended Documents'**
   String get aiRecommendedDocuments;
 
   /// Select documents to generate subtitle
@@ -1189,10 +1189,10 @@ abstract class AppLocalizations {
   /// **'Generating Documents'**
   String get generatingDocuments;
 
-  /// AI agents working message
+  /// Engine working message
   ///
   /// In en, this message translates to:
-  /// **'AI agents are working on your documents'**
+  /// **'InstantRisk Engine is generating your documents'**
   String get aiAgentsWorking;
 
   /// Complete label
@@ -1330,7 +1330,7 @@ abstract class AppLocalizations {
   /// AI assistant title
   ///
   /// In en, this message translates to:
-  /// **'AI Assistant'**
+  /// **'InstantRisk Assistant'**
   String get aiAssistant;
 
   /// Knowledge sources title
@@ -1633,7 +1633,7 @@ abstract class AppLocalizations {
   /// **'New Assessment'**
   String get newAssessment;
 
-  /// AI-powered analysis label
+  /// InstantRisk Engine analysis label
   ///
   /// In en, this message translates to:
   /// **'AI-Powered Analysis'**
@@ -1906,7 +1906,7 @@ abstract class AppLocalizations {
   /// AI chat messages label
   ///
   /// In en, this message translates to:
-  /// **'AI Chat Messages'**
+  /// **'Engine Chat Messages'**
   String get aiChatMessages;
 
   /// Document storage label
@@ -2410,7 +2410,7 @@ abstract class AppLocalizations {
   /// First onboarding screen description
   ///
   /// In en, this message translates to:
-  /// **'Upload insurance documents and get instant AI-powered risk analysis with GO/NO-GO recommendations'**
+  /// **'Upload insurance documents and get instant risk analysis with GO/NO-GO recommendations powered by the InstantRisk Engine'**
   String get onboardingDesc1;
 
   /// Second onboarding screen title
@@ -2428,7 +2428,7 @@ abstract class AppLocalizations {
   /// Third onboarding screen title
   ///
   /// In en, this message translates to:
-  /// **'24/7 Insurance AI Assistant'**
+  /// **'24/7 InstantRisk Assistant'**
   String get onboardingTitle3;
 
   /// Third onboarding screen description

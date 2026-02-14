@@ -99,7 +99,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   const SizedBox(height: 16),
                   _buildUsageItem('Contract Generations', 28, 50, AppTheme.accent),
                   const SizedBox(height: 16),
-                  _buildUsageItem('AI Chat Messages', 156, 500, AppTheme.info),
+                  _buildUsageItem('Engine Chat Messages', 156, 500, AppTheme.info),
                   const SizedBox(height: 16),
                   _buildUsageItem('Document Storage', 2.4, 10, AppTheme.warning, suffix: 'GB'),
                 ],
@@ -164,7 +164,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               features: [
                 'Everything in Basic',
                 'Sanctions Screening',
-                'ClaimSense AI Chat',
+                'InstantRisk Engine Chat',
                 'Document Generation',
                 'Deep Analysis Mode',
                 'Unlimited assessments',
