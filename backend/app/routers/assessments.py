@@ -69,6 +69,19 @@ async def run_ai_analysis(assessment_id: str, db: AsyncSession):
         assessment.confidence_score = analysis_result.get("confidence_score")
         assessment.ai_analysis = analysis_result.get("analysis", {})
         assessment.ai_recommendations = analysis_result.get("recommendations", [])
+
+        # Parse AI decision into assessment decision
+        analysis = analysis_result.get("analysis", {})
+        decision_str = (analysis.get("decision") or analysis_result.get("decision") or "refer").lower()
+        if "go" in decision_str and "no" not in decision_str:
+            assessment.decision = AssessmentDecision.GO
+        elif "accept" in decision_str or "approve" in decision_str:
+            assessment.decision = AssessmentDecision.GO
+        elif "no" in decision_str or "decline" in decision_str or "reject" in decision_str:
+            assessment.decision = AssessmentDecision.NO_GO
+        else:
+            assessment.decision = AssessmentDecision.PENDING
+
         assessment.status = AssessmentStatus.PENDING_REVIEW
 
         await db.commit()

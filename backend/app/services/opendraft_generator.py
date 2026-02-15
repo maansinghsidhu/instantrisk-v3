@@ -1704,7 +1704,7 @@ Return ONLY valid JSON:
             await step(19, "QualityGate", "completed")
 
             # Build final document
-            source_attribution = {"user": 0, "acord": 0, "cuad": 0, "jetech": 0, "ai_generated": 0, "global": 0}
+            source_attribution = {"template": 0, "lma_clause": 0, "clause_library": 0, "section_default": 0, "rag": 0, "ai_generated": 0}
             source_type_counts = {}
             doc_content = []
             for section in drafted_sections:
@@ -1719,10 +1719,9 @@ Return ONLY valid JSON:
                 if section.get("requires_review"):
                     section_entry["requires_review"] = True
                 doc_content.append(section_entry)
-                for sc in section.get("source_clauses", []):
-                    source = sc.get("source", "ai_generated")
-                    if source in source_attribution:
-                        source_attribution[source] += 1
+                # Count source_type for attribution
+                if st in source_attribution:
+                    source_attribution[st] += 1
 
             logger.info(f"OpenDraft doc '{doc_type}': {len(doc_content)} sections, "
                         f"source_types={source_type_counts}, "
