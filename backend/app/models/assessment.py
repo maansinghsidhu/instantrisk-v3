@@ -29,6 +29,7 @@ class AssessmentDecision(str, enum.Enum):
     """Enumeration of assessment decisions."""
     GO = "go"
     NO_GO = "no_go"
+    REFER = "refer"
     PENDING = "pending"
 
 

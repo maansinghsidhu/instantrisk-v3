@@ -71,16 +71,43 @@ async def run_ai_analysis(assessment_id: str, db: AsyncSession):
         assessment.ai_recommendations = analysis_result.get("recommendations", [])
 
         # Parse AI decision into assessment decision
+        # Check multiple locations: suggested_decision (AI service), analysis.decision, top-level decision
         analysis = analysis_result.get("analysis", {})
-        decision_str = (analysis.get("decision") or analysis_result.get("decision") or "refer").lower()
-        if "go" in decision_str and "no" not in decision_str:
-            assessment.decision = AssessmentDecision.GO
-        elif "accept" in decision_str or "approve" in decision_str:
-            assessment.decision = AssessmentDecision.GO
-        elif "no" in decision_str or "decline" in decision_str or "reject" in decision_str:
-            assessment.decision = AssessmentDecision.NO_GO
+        decision_str = (
+            analysis_result.get("suggested_decision")
+            or analysis.get("decision")
+            or analysis_result.get("decision")
+            or ""
+        ).lower().strip()
+
+        # Also derive from risk score if no explicit decision
+        risk_score = analysis_result.get("risk_score", 50)
+
+        if decision_str:
+            if "no" in decision_str and "go" in decision_str:
+                assessment.decision = AssessmentDecision.NO_GO
+            elif "go" in decision_str or "accept" in decision_str or "approve" in decision_str:
+                assessment.decision = AssessmentDecision.GO
+            elif "decline" in decision_str or "reject" in decision_str:
+                assessment.decision = AssessmentDecision.NO_GO
+            elif "refer" in decision_str:
+                assessment.decision = AssessmentDecision.REFER
+            else:
+                # Fall back to risk-score-based decision
+                if risk_score <= 50:
+                    assessment.decision = AssessmentDecision.GO
+                elif risk_score <= 75:
+                    assessment.decision = AssessmentDecision.REFER
+                else:
+                    assessment.decision = AssessmentDecision.NO_GO
         else:
-            assessment.decision = AssessmentDecision.PENDING
+            # No decision string at all - derive from risk score
+            if risk_score <= 50:
+                assessment.decision = AssessmentDecision.GO
+            elif risk_score <= 75:
+                assessment.decision = AssessmentDecision.REFER
+            else:
+                assessment.decision = AssessmentDecision.NO_GO
 
         assessment.status = AssessmentStatus.PENDING_REVIEW
 

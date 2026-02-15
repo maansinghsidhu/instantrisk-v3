@@ -645,8 +645,8 @@ Return ONLY valid JSON:
             "period_from": str(assessment_data.get("inception_date", "")),
             "period_to": str(assessment_data.get("expiry_date", "")),
             "inception_time": "00:01",
-            "interest": f"{assessment_data.get('risk_category', '').replace('_', ' ').title()} Insurance",
-            "territorial_limits": assessment_data.get("territory", "Worldwide"),
+            "interest": self._build_interest_description(assessment_data),
+            "territorial_limits": self._build_territorial_limits(assessment_data),
             "limit_of_liability": str(assessment_data.get("sum_insured", "")),
             "sub_limits": "",
             "deductible": str(assessment_data.get("deductible", "")),
@@ -668,13 +668,101 @@ Return ONLY valid JSON:
             "signed_line": "",
             "order_percentage": "",
             "following_markets": "",
-            "broker_name": assessment_data.get("broker_name", ""),
+            "broker_name": assessment_data.get("broker_name") or "",
             "broker_address": "",
             "broker_pin": "",
+            "broker_reference": assessment_data.get("broker_reference") or "",
+            "commission_rate": str(assessment_data.get("commission_rate") or "") + ("%" if assessment_data.get("commission_rate") else ""),
             "additional_information": additional,
             "policy_number": "",
             "cover_note_number": "",
         }
+
+    def _build_interest_description(self, data: dict) -> str:
+        """Build a detailed INTEREST section based on risk category and description."""
+        category = (data.get("risk_category") or "general").lower()
+        insured = data.get("insured_name") or data.get("insured_entity_name") or "the Insured"
+        desc = data.get("description") or ""
+        exposure = data.get("exposure_details") or {}
+
+        interest_map = {
+            "cyber": (
+                f"Cyber Liability Insurance in respect of:\n"
+                f"(a) Data breach response costs and notification expenses\n"
+                f"(b) Network security liability\n"
+                f"(c) Privacy liability arising from wrongful disclosure of personal data\n"
+                f"(d) Network business interruption loss and extra expense\n"
+                f"(e) Cyber extortion costs and ransom payments\n"
+                f"(f) Media liability arising from digital media activities\n"
+                f"All in connection with the business operations of {insured}."
+            ),
+            "property": (
+                f"Commercial Property Insurance covering:\n"
+                f"(a) Buildings, structures, and improvements at the Insured's premises\n"
+                f"(b) Machinery, plant, and equipment\n"
+                f"(c) Stock, materials, and contents\n"
+                f"(d) Business interruption / loss of profits\n"
+                f"All Risks of physical loss or damage to property of {insured}."
+            ),
+            "marine": (
+                f"Marine Cargo Insurance covering:\n"
+                f"(a) Goods, merchandise, and cargo in transit\n"
+                f"(b) Institute Cargo Clauses (A) - All Risks basis\n"
+                f"(c) General average and salvage charges\n"
+                f"(d) Warehouse to warehouse coverage\n"
+                f"In respect of shipments by or on behalf of {insured}."
+            ),
+            "casualty": (
+                f"Casualty / General Liability Insurance covering:\n"
+                f"(a) Third party bodily injury and property damage\n"
+                f"(b) Products and completed operations liability\n"
+                f"(c) Personal and advertising injury\n"
+                f"(d) Legal defence costs\n"
+                f"Arising from the business operations of {insured}."
+            ),
+            "aviation": (
+                f"Aviation Insurance covering:\n"
+                f"(a) Hull all risks (including ground risks and in-flight)\n"
+                f"(b) Aviation liability including passenger liability\n"
+                f"(c) Third party legal liability\n"
+                f"In respect of aircraft operated by or on behalf of {insured}."
+            ),
+            "energy": (
+                f"Energy Insurance covering:\n"
+                f"(a) Physical damage to energy installations and infrastructure\n"
+                f"(b) Operators Extra Expense (OEE)\n"
+                f"(c) Business interruption / loss of production income\n"
+                f"(d) Third party liability arising from energy operations\n"
+                f"In respect of the energy operations of {insured}."
+            ),
+        }
+
+        return interest_map.get(category, (
+            f"{category.replace('_', ' ').title()} Insurance covering all risks as described "
+            f"in the policy terms and conditions, in respect of the business operations of {insured}."
+        ))
+
+    def _build_territorial_limits(self, data: dict) -> str:
+        """Build a detailed TERRITORIAL LIMITS section."""
+        territory = data.get("territory") or "Worldwide"
+        category = (data.get("risk_category") or "general").lower()
+
+        base = territory
+        if category == "marine":
+            base += (
+                f"\n\nInstitute Warranty Limits (IWL) apply.\n"
+                f"Trading limits as per Institute Classification Clause.\n"
+                f"Held covered at premium to be agreed for breach of trading limits."
+            )
+        elif category == "cyber":
+            base += (
+                f"\n\nCoverage applies to cyber incidents affecting the Insured's operations "
+                f"or data regardless of where the incident originates, subject to applicable "
+                f"sanctions restrictions."
+            )
+        elif territory.lower() in ("worldwide", "global"):
+            base += "\n\nExcluding any country subject to applicable sanctions or embargoes."
+        return base
 
     def _split_rendered_template(self, rendered: str) -> Dict[str, str]:
         """Split a rendered template into sections keyed by section title.
