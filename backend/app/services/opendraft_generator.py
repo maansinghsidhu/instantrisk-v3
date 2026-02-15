@@ -1657,8 +1657,8 @@ Return ONLY valid JSON:
                         f"[User style example]: {d.get('text', '')[:500]}"
                         for d in style_docs
                     )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Style context retrieval failed: {e}")
 
         if not style_context:
             return drafted_sections

@@ -1035,7 +1035,7 @@ UNDERWRITING DECISION:
                 if start >= 0 and end > start:
                     json_str = content[start:end]
                     return json.loads(json_str)
-            except:
+            except (json.JSONDecodeError, ValueError):
                 pass
 
             return None

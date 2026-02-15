@@ -226,7 +226,7 @@ class UserModelService:
                 num_intent_labels=num_intent_labels,
             ).to(DEVICE)
 
-            state_dict = torch.load(adapter_path, map_location=DEVICE, weights_only=False)
+            state_dict = torch.load(adapter_path, map_location=DEVICE, weights_only=True)
             adapter.load_state_dict(state_dict)
             adapter.eval()
 

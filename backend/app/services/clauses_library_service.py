@@ -15,12 +15,15 @@ Features:
 """
 
 import json
+import logging
 import os
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass, field
 from collections import defaultdict
 import re
 import hashlib
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -151,7 +154,7 @@ class ClausesLibraryService:
                         category = self.LEDGAR_CATEGORIES.get(label, f"Category_{label}")
 
                         # Generate unique ID
-                        clause_id = f"ledgar_{hashlib.md5(text.encode()).hexdigest()[:12]}"
+                        clause_id = f"ledgar_{hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()[:12]}"
 
                         clause = Clause(
                             id=clause_id,
@@ -166,7 +169,8 @@ class ClausesLibraryService:
                         self._categories[clause.category] += 1
                         self._sources["ledgar"] += 1
 
-                    except Exception:
+                    except Exception as e:
+                        logger.debug(f"LEDGAR clause parse error: {e}")
                         continue
 
             except Exception as e:
@@ -213,7 +217,7 @@ class ClausesLibraryService:
                             continue
 
                         # Generate unique ID
-                        clause_id = f"cuad_{hashlib.md5(text.encode()).hexdigest()[:12]}"
+                        clause_id = f"cuad_{hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()[:12]}"
 
                         clause = Clause(
                             id=clause_id,
@@ -228,7 +232,8 @@ class ClausesLibraryService:
                         self._categories[clause.category] += 1
                         self._sources["cuad"] += 1
 
-                    except Exception:
+                    except Exception as e:
+                        logger.debug(f"CUAD clause parse error: {e}")
                         continue
 
             except Exception as e:
@@ -272,7 +277,7 @@ class ClausesLibraryService:
                             continue
 
                         # Generate unique ID
-                        clause_id = f"nli_{hashlib.md5(text.encode()).hexdigest()[:12]}"
+                        clause_id = f"nli_{hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()[:12]}"
 
                         clause = Clause(
                             id=clause_id,
@@ -287,7 +292,8 @@ class ClausesLibraryService:
                         self._categories[clause.category] += 1
                         self._sources["contract_nli"] += 1
 
-                    except Exception:
+                    except Exception as e:
+                        logger.debug(f"ContractNLI clause parse error: {e}")
                         continue
 
             except Exception as e:
@@ -318,7 +324,7 @@ class ClausesLibraryService:
 
                     for clause_data in data.get("clauses", []):
                         clause = Clause(
-                            id=clause_data.get("id", f"tmpl_{hashlib.md5(str(clause_data).encode()).hexdigest()[:12]}"),
+                            id=clause_data.get("id", f"tmpl_{hashlib.md5(str(clause_data).encode(), usedforsecurity=False).hexdigest()[:12]}"),
                             name=clause_data.get("name", ""),
                             text=clause_data.get("text", ""),
                             category=source_category,

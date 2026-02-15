@@ -4,7 +4,7 @@ Seed benchmark loss run data for demo.
 Generates realistic benchmark data for ClaimSense queries.
 Runs automatically if benchmark_loss_runs table is empty.
 """
-import random
+import random  # nosec B311 - used for non-security seed data generation
 import uuid
 from datetime import date, datetime
 from decimal import Decimal

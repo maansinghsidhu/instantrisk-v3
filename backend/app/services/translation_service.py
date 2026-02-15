@@ -569,7 +569,7 @@ class TranslationService:
 
     def _cache_key(self, text: str, target_lang: str) -> str:
         """Generate cache key for translation."""
-        text_hash = hashlib.md5(text.encode()).hexdigest()[:16]
+        text_hash = hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()[:16]
         return f"{target_lang}:{text_hash}"
 
     def get_terminology(self, term: str, language: SupportedLanguage) -> str:

@@ -139,7 +139,8 @@ class DocumentProcessor:
                     img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
                     # Save temp image for OCR
-                    temp_path = f"/tmp/pdf_page_{page_num}.png"
+                    import tempfile
+                    temp_path = os.path.join(tempfile.gettempdir(), f"pdf_page_{page_num}.png")
                     img.save(temp_path, quality=95)
 
                     # Try RapidOCR first (fast and high quality)

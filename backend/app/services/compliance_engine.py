@@ -550,8 +550,8 @@ class ComplianceAutomationEngine:
                             severity=ValidationSeverity(rule.severity),
                             message=rule.description or f"Field {field_path} is required",
                         )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Compliance rule check skipped: {e}")
 
         return None
 

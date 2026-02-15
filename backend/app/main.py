@@ -290,7 +290,7 @@ async def lifespan(app: FastAPI):
     # Initialize security
     print("Loading security configurations...")
     await load_ip_blocklists()
-    setup_security_log_file(settings.security_log_path)
+    setup_security_log_file(settings.resolved_security_log_path)
     print("Security initialized - Enterprise Grade V5")
 
     # Seed benchmark data if empty

@@ -1584,7 +1584,7 @@ class AlgorithmicUnderwritingEngine:
     def _generate_pricing_id(self, submission: Dict[str, Any]) -> str:
         """Generate unique pricing ID."""
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
-        data_hash = hashlib.md5(str(submission).encode()).hexdigest()[:8]
+        data_hash = hashlib.md5(str(submission).encode(), usedforsecurity=False).hexdigest()[:8]
         return f"PR-{timestamp}-{data_hash.upper()}"
 
     def _generate_quote_reference(self) -> str:

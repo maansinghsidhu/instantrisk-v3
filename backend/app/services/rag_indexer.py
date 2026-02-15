@@ -327,8 +327,8 @@ class RAGIndexer:
                                 (:text_hash, :text_preview, :full_text, :doc_type, :category, :source, :name, :embedding, :created_at)
                             ON CONFLICT (text_hash) DO NOTHING
                         """), rec)
-                    except Exception:
-                        pass  # skip duplicates
+                    except Exception as e:
+                        logger.debug(f"RAG vector insert skipped (duplicate): {e}")
 
             return len(records_to_insert)
         except Exception as e:

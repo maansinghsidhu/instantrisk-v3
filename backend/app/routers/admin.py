@@ -84,8 +84,8 @@ async def reset_demo_database(
         for table in tables_to_truncate:
             try:
                 await db.execute(text(f"TRUNCATE TABLE {table} CASCADE"))
-            except Exception:
-                pass  # Table might not exist
+            except Exception as e:
+                _admin_logger.debug(f"Truncate {table} skipped: {e}")
 
         await db.commit()
 

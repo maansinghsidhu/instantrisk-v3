@@ -375,9 +375,13 @@ class ReferenceDocumentService:
                 where_clauses.append("category = :category")
                 params["category"] = category
 
+            # Build WHERE clause from safe, validated column filters only
+            ALLOWED_FILTER_COLUMNS = {"category"}
+            safe_where_clauses = [c for c in where_clauses if c.split(" = ")[0].strip() in ALLOWED_FILTER_COLUMNS]
+
             where_sql = ""
-            if where_clauses:
-                where_sql = "WHERE " + " AND ".join(where_clauses)
+            if safe_where_clauses:
+                where_sql = "WHERE " + " AND ".join(safe_where_clauses)
 
             sql = sql_text(f"""
                 SELECT document_id, title, category, chunk_text, file_name,

@@ -118,8 +118,8 @@ async def upload_training_document(
             text_preview = ""
             try:
                 text_preview = content.decode("utf-8", errors="ignore")[:5000]
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Text preview extraction failed: {e}")
             detected = classify_document(text_preview, file.filename or "unknown")
             if category == "policy" and detected != "policy":
                 # Only override "policy" default if we detected something more specific

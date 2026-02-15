@@ -109,12 +109,12 @@ class InsuranceModelService:
             ).to(DEVICE)
 
             # Load trained weights (state_dict only)
-            state_dict = torch.load(model_path, map_location=DEVICE, weights_only=False)
+            state_dict = torch.load(model_path, map_location=DEVICE, weights_only=True)
             self._model.load_state_dict(state_dict)
             self._model.eval()
 
             # Load tokenizer
-            self._tokenizer = AutoTokenizer.from_pretrained(model_dir)
+            self._tokenizer = AutoTokenizer.from_pretrained(model_dir, local_files_only=True)
 
             self._loaded = True
             self._available = True

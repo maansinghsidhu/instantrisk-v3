@@ -146,18 +146,20 @@ class InsuranceModel:
         else:
             quantization_config = None
 
-        # Load model
+        # Load model (local_files_only prevents unintended remote downloads)
         self.model = AutoModelForCausalLM.from_pretrained(
             str(self.model_path),
             quantization_config=quantization_config,
             device_map=self.device,
             torch_dtype=torch.float16,
-            trust_remote_code=True,
+            trust_remote_code=False,
+            local_files_only=True,
         )
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             str(self.model_path),
-            trust_remote_code=True
+            trust_remote_code=False,
+            local_files_only=True,
         )
 
         if self.tokenizer.pad_token is None:

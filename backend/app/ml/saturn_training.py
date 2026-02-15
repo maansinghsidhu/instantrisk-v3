@@ -136,7 +136,7 @@ def train_model(model_type: str, data_dir: str = "/home/jovyan/workspace/data"):
         sample_data = create_sample_data(model_type)
         dataset = Dataset.from_list(sample_data)
     else:
-        dataset = load_dataset("json", data_files=data_path, split="train")
+        dataset = load_dataset("json", data_files=data_path, split="train")  # nosec B615 - local files only
 
     # Limit samples for faster training
     if len(dataset) > config['max_samples']:

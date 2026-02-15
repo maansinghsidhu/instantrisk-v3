@@ -1698,7 +1698,8 @@ class TrainingDataCollector:
 
     def __init__(self, output_dir: str = None):
         if output_dir is None:
-            output_dir = "/tmp/training_data"
+            import tempfile
+            output_dir = os.path.join(tempfile.gettempdir(), "training_data")
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 

@@ -477,8 +477,8 @@ async def _update_job_progress(job_id: str, agent: str, description: str, percen
                 job.current_agent_description = description
                 job.progress_percentage = percentage
                 await db.commit()
-        except Exception:
-            pass  # Don't fail on progress update errors
+        except Exception as e:
+            logging.getLogger(__name__).debug(f"Progress update skipped: {e}")
 
 
 async def _run_generation_job(
@@ -1776,8 +1776,8 @@ async def ai_clause_search(
                         "content_preview": (r.get("text", ""))[:200] + "...",
                         "is_mandatory": False,
                     })
-            except Exception:
-                pass
+            except Exception as e:
+                logging.getLogger(__name__).debug(f"Clause search for {doc_type} skipped: {e}")
 
             clauses_by_doc[doc_type] = doc_clauses
 
@@ -1972,8 +1972,8 @@ async def _run_opendraft_job(job_id: str, assessment_data: dict, user_id: str, d
                 if job:
                     job.fail(str(e))
                     await db.commit()
-            except Exception:
-                pass
+            except Exception as e2:
+                logging.getLogger(__name__).debug(f"Could not mark job as failed: {e2}")
 
 
 def _get_fallback_recommendations(risk_category: str) -> list:

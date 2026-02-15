@@ -340,18 +340,18 @@ Use the Q&A examples above to match the expected response style. Reference the c
                 try:
                     if assessment.risk_category:
                         context_parts.append(f"Risk Category: {assessment.risk_category}")
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Could not read risk_category: {e}")
                 try:
                     if assessment.ai_analysis:
                         context_parts.append(f"AI Analysis: {json.dumps(assessment.ai_analysis) if isinstance(assessment.ai_analysis, dict) else assessment.ai_analysis}")
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Could not read ai_analysis: {e}")
                 try:
                     if assessment.title:
                         context_parts.append(f"Title: {assessment.title}")
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Could not read title: {e}")
                 return "\n".join(context_parts)
         except Exception as e:
             logger.error(f"Error getting assessment context: {e}")

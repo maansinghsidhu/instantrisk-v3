@@ -601,7 +601,7 @@ class InsuranceMultiTaskModel(nn.Module):
     def __init__(self, base_model_name: str, num_clause_labels: int, num_intent_labels: int):
         super().__init__()
 
-        self.encoder = AutoModel.from_pretrained(base_model_name)
+        self.encoder = AutoModel.from_pretrained(base_model_name, local_files_only=True)  # noqa: B615
         hidden_size = self.encoder.config.hidden_size
 
         # Shared projection (dimensionality reduction for task heads)
@@ -684,7 +684,7 @@ class InsuranceModelTrainer:
 
         # Load tokenizer
         print(f"Loading tokenizer: {config.base_model}")
-        self.tokenizer = AutoTokenizer.from_pretrained(config.base_model)
+        self.tokenizer = AutoTokenizer.from_pretrained(config.base_model, local_files_only=True)
 
         # Build training data
         builder = TrainingDataBuilder(config)

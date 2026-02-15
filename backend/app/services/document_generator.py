@@ -642,7 +642,7 @@ class DocumentGenerationPipeline:
             try:
                 if isinstance(amount, (int, float, Decimal)):
                     return f"{currency} {amount:,.2f}"
-            except:
+            except (ValueError, TypeError, ArithmeticError):
                 pass
             return str(amount)
 

@@ -5,6 +5,8 @@ This module defines application settings using pydantic-settings
 for environment variable management and validation.
 """
 
+import os
+import tempfile
 from typing import List, Optional
 from pydantic_settings import BaseSettings
 from functools import lru_cache
@@ -118,7 +120,11 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE: int = 50 * 1024 * 1024  # 50MB
     MAX_FILE_SIZE_MB: int = 50  # Used by S3 presigned URL conditions
     ALLOWED_EXTENSIONS: List[str] = [".pdf", ".png", ".jpg", ".jpeg", ".tiff", ".doc", ".docx"]
-    upload_dir: str = "/tmp/uploads"
+    upload_dir: str = ""  # Set via UPLOAD_DIR env var; defaults to tempfile.gettempdir()/uploads at runtime
+
+    @property
+    def resolved_upload_dir(self) -> str:
+        return self.upload_dir or os.path.join(tempfile.gettempdir(), "uploads")
 
     # Syndicate Domains for auto-recognition
     syndicate_domains: dict = {
@@ -149,7 +155,11 @@ class Settings(BaseSettings):
     google_application_credentials: Optional[str] = None
 
     # Security Settings
-    security_log_path: str = "/tmp/security.log"
+    security_log_path: str = ""  # Set via SECURITY_LOG_PATH env var
+
+    @property
+    def resolved_security_log_path(self) -> str:
+        return self.security_log_path or os.path.join(tempfile.gettempdir(), "security.log")
 
     # CAPTCHA Settings (mCaptcha)
     MCAPTCHA_URL: str = "http://localhost:7000"
