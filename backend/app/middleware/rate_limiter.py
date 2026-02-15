@@ -23,9 +23,9 @@ class RateLimits:
     """Rate limit configurations for different endpoint types."""
 
     # Authentication - strict limits to prevent brute force
-    LOGIN = "60/minute"              # 5 login attempts per minute
+    LOGIN = "5/minute"              # 5 login attempts per minute
     REGISTER = "3/hour"             # 3 registrations per hour per IP
-    TWO_FA_VERIFY = "5/minute"      # 5 2FA attempts per minute
+    TWO_FA_VERIFY = "3/minute"      # 3 2FA attempts per minute
     PASSWORD_RESET = "3/hour"       # 3 password reset requests per hour
 
     # AI/Expensive operations - protect API costs

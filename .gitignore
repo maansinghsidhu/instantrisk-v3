@@ -51,8 +51,9 @@ coverage.xml
 
 # Secrets - NEVER COMMIT
 .env
-.env.local
-.env.*.local
+.env.*
+backend/.env
+backend/.env.*
 *.pem
 *.key
 credentials.json

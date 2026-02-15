@@ -134,10 +134,18 @@ async def login(
     result = await db.execute(select(User).where(User.email == credentials.email))
     user = result.scalar_one_or_none()
 
-    if not user or not verify_password(credentials.password, user.hashed_password):
+    # Constant-time check: always verify password to prevent timing attacks
+    if user:
+        password_valid = verify_password(credentials.password, user.hashed_password)
+    else:
+        # Hash a dummy password to consume the same time as a real check
+        verify_password(credentials.password, get_password_hash("timing-attack-dummy"))
+        password_valid = False
+
+    if not user or not password_valid:
         # Track failed attempt for IP protection
         await track_failed_attempt(client_ip, "login")
-        security_logger.warning(f"Login failed: email={credentials.email}, ip={client_ip}")
+        security_logger.warning(f"Login failed: ip={client_ip}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -203,7 +211,7 @@ async def login(
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
 
-    security_logger.info(f"Login successful: user_id={user.id}, ip={client_ip}")
+    security_logger.info(f"Login successful: user_id={user.id}")
 
     return {
         "access_token": access_token,
@@ -240,6 +248,16 @@ async def refresh_token(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token type",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    # Check if refresh token is blacklisted (revoked)
+    from app.utils.token_blacklist import is_token_blacklisted
+    jti = payload.get("jti")
+    if jti and await is_token_blacklisted(jti):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token has been revoked",
             headers={"WWW-Authenticate": "Bearer"}
         )
 

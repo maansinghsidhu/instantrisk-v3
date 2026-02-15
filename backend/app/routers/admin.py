@@ -14,13 +14,18 @@ from sqlalchemy import text
 from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.core.security import get_current_user, get_password_hash
+from app.core.security import get_current_user, get_current_admin_user, get_password_hash
 from app.models.user import User
+from app.config import settings
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
-# Admin secret for protection (should be in env vars in production)
-ADMIN_SECRET = "InstantRiskAdmin2026!"
+# Admin secret from environment variable (fallback for backward compat)
+import os
+ADMIN_SECRET = os.environ.get("ADMIN_SECRET", settings.SECRET_KEY or "change-me-in-production")
+
+import logging
+_admin_logger = logging.getLogger("security.admin")
 
 
 class ResetResponse(BaseModel):
@@ -158,7 +163,8 @@ async def reset_demo_database(
 
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")
+        _admin_logger.error(f"Demo reset failed: {e}")
+        raise HTTPException(status_code=500, detail="Reset operation failed")
 
 
 @router.post("/index-rag")
@@ -181,22 +187,28 @@ async def index_rag(
         stats = await asyncio.to_thread(rag_indexer.index_all, force)
         return {"success": True, "stats": stats}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Indexing failed: {str(e)}")
+        _admin_logger.error(f"RAG indexing failed: {e}")
+        raise HTTPException(status_code=500, detail="Indexing operation failed")
 
 
 @router.get("/rag-status")
-async def rag_status():
-    """Check RAG indexing status."""
+async def rag_status(
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Check RAG indexing status (admin only)."""
     from app.services.rag_indexer import rag_indexer
     try:
         indexed = rag_indexer.is_indexed()
         count = rag_indexer.get_collection_count()
         return {"indexed": indexed, "vector_count": count}
     except Exception as e:
-        return {"indexed": False, "vector_count": 0, "error": str(e)}
+        _admin_logger.error(f"RAG status check failed: {e}")
+        return {"indexed": False, "vector_count": 0, "error": "Status check failed"}
 
 
 @router.get("/health")
-async def admin_health():
-    """Check if admin endpoints are available."""
-    return {"status": "ok", "admin": True}
+async def admin_health(
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Check if admin endpoints are available (admin only)."""
+    return {"status": "ok"}

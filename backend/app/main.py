@@ -58,6 +58,15 @@ async def lifespan(app: FastAPI):
     print(f"Environment: {settings.environment}")
     print(f"API running on port {settings.api_port}")
 
+    # Security validation: ensure critical secrets are set in production
+    if settings.environment != "development":
+        if not settings.jwt_secret_key or settings.jwt_secret_key in ("", "local-dev-jwt-secret", "local-dev-jwt-secret-change-in-prod"):
+            logger.critical("SECURITY: JWT_SECRET_KEY not set for production!")
+        if not settings.SECRET_KEY or settings.SECRET_KEY in ("", "local-dev-secret-key", "local-dev-secret-key-change-in-prod"):
+            logger.critical("SECURITY: SECRET_KEY not set for production!")
+        if settings.debug:
+            logger.warning("SECURITY: DEBUG mode is enabled in non-development environment")
+
     # Add missing columns to existing tables (v4 → EC2 schema migration)
     # Run each migration in its own transaction so one failure doesn't abort others
     try:
@@ -425,26 +434,22 @@ app.add_middleware(
     exclude_paths=["/health", "/", "/docs", "/redoc", "/openapi.json"]
 )
 
-# Configure CORS - Allow all origins during initial deployment
+# Configure CORS - whitelist specific origins
+ALLOWED_ORIGINS = [
+    "https://d2f065h47nuk0c.cloudfront.net",  # Frontend CloudFront
+    "https://instantrisk-alb-307384033.us-east-1.elb.amazonaws.com",  # ALB
+    "https://app.instantrisk.com",  # Production domain (future)
+    "http://localhost:3000",  # Local dev
+    "http://localhost:8200",  # Local dev alt
+    "http://localhost:5000",  # Flutter web dev
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
-
-
-# Custom CORS fallback middleware to ensure headers on ALL responses including errors
-@app.middleware("http")
-async def add_cors_headers(request: Request, call_next):
-    """Ensure CORS headers are present on ALL responses including errors."""
-    response = await call_next(request)
-    # Always add CORS headers to ensure they're present
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, X-Request-ID"
-    return response
 
 # Health endpoints - defined BEFORE routers to ensure they match first
 @app.get("/", tags=["Health"])
@@ -519,7 +524,11 @@ app.include_router(claims_router.router, prefix=f"{settings.api_prefix}", tags=[
 app.include_router(claimsense.router, prefix=f"{settings.api_prefix}/claimsense", tags=["ClaimSense"])
 app.include_router(loss_runs.router, prefix=f"{settings.api_prefix}/loss-runs", tags=["Loss Runs"])
 app.include_router(admin.router, prefix=f"{settings.api_prefix}", tags=["Admin"])
-app.include_router(admin_reset.router, prefix=f"{settings.api_prefix}", tags=["Admin Reset"])
+# Admin reset routes only available in development (requires ENABLE_ADMIN_RESET=true env var)
+import os
+if os.environ.get("ENABLE_ADMIN_RESET", "").lower() == "true" or settings.environment == "development":
+    app.include_router(admin_reset.router, prefix=f"{settings.api_prefix}", tags=["Admin Reset"])
+    logging.getLogger("instantrisk.security").warning("Admin reset routes ENABLED - disable in production")
 app.include_router(training.router, prefix=f"{settings.api_prefix}/training", tags=["AI Training"])
 app.include_router(rapidrate.router, tags=["RapidRate"])
 

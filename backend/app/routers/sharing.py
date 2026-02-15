@@ -7,10 +7,11 @@ to assessments. Links expire after 24 hours.
 
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
+import logging
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -18,6 +19,9 @@ from app.core.feature_gate import require_feature
 from app.models.user import User
 from app.models.assessment import Assessment
 from app.models.share_link import ShareLink
+from app.middleware.rate_limiter import limiter
+
+_share_logger = logging.getLogger("security.sharing")
 
 
 router = APIRouter(prefix="/share", tags=["Sharing"])
@@ -123,7 +127,9 @@ async def create_share_link(
 
 
 @router.get("/{token}", response_model=SharedAssessmentResponse)
+@limiter.limit("30/hour")
 async def access_shared_assessment(
+    request: Request,
     token: str,
     db: AsyncSession = Depends(get_db)
 ):
@@ -132,7 +138,15 @@ async def access_shared_assessment(
 
     This is a public endpoint - no authentication required.
     Returns the assessment details if the link is valid and not expired.
+    Rate limited to 30 requests per hour per IP.
     """
+    # Validate token format (should be hex string, 64 chars max)
+    if not token or len(token) > 128 or not all(c in '0123456789abcdefABCDEF-' for c in token):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid token format"
+        )
+
     # Find share link
     result = await db.execute(
         select(ShareLink).where(ShareLink.token == token)

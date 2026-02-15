@@ -1,40 +1,43 @@
 """
-TEMPORARY Admin Reset Router - DELETE AFTER USE
+Admin Reset Router
 
 Provides endpoints for database reset operations.
-Protected by admin secret key.
+Protected by admin secret key from environment.
 """
 
+import os
 import uuid
 import bcrypt
+import logging
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlalchemy import text
 
 from app.core.database import engine
+from app.core.security import get_current_admin_user
+from app.models.user import User
+from app.config import settings
 
 router = APIRouter(prefix="/admin", tags=["Admin Reset"])
 
-# Secret key for admin operations - DELETE THIS ROUTER AFTER USE
-ADMIN_SECRET = "InstantRisk2026Reset!"
+_reset_logger = logging.getLogger("security.admin_reset")
+
+# Admin secret from environment variable
+ADMIN_SECRET = os.environ.get("ADMIN_RESET_SECRET", settings.SECRET_KEY or "change-me-in-production")
 
 
 @router.post("/reset-database")
 async def reset_database(
     secret: str = Query(..., description="Admin secret key"),
+    current_user: User = Depends(get_current_admin_user),
 ):
     """
-    DANGEROUS: Resets the entire database and recreates demo users.
+    Reset the database and recreate demo users.
 
-    This endpoint will:
-    1. Delete all data from tables
-    2. Delete all users
-    3. Create 3 demo users (trial, basic, premium)
-
-    Args:
-        secret: Must match ADMIN_SECRET
+    Requires admin authentication AND admin secret key.
     """
     if secret != ADMIN_SECRET:
+        _reset_logger.warning(f"Invalid reset secret attempt by user {current_user.id}")
         raise HTTPException(403, "Invalid admin secret")
 
     results = []
@@ -118,23 +121,27 @@ async def reset_database(
                 results.append(f"Created {email} ({tier} tier)")
 
     except Exception as e:
-        raise HTTPException(500, f"Failed to create demo users: {str(e)}")
+        _reset_logger.error(f"Failed to create demo users: {e}")
+        raise HTTPException(500, "User creation failed")
 
+    _reset_logger.info(f"Database reset by admin user {current_user.id}")
     return {
         "status": "success",
         "message": "Database reset complete",
         "results": results,
         "demo_accounts": [
-            {"email": "trial@instantrisk.com", "password": "Demo2026pass", "tier": "trial"},
-            {"email": "basic@instantrisk.com", "password": "Demo2026pass", "tier": "basic"},
-            {"email": "demo@instantrisk.com", "password": "Demo2026pass", "tier": "premium"}
+            {"email": "trial@instantrisk.com", "tier": "trial"},
+            {"email": "basic@instantrisk.com", "tier": "basic"},
+            {"email": "demo@instantrisk.com", "tier": "premium"}
         ]
     }
 
 
 @router.get("/verify")
-async def verify_reset():
-    """Verify database state after reset."""
+async def verify_reset(
+    current_user: User = Depends(get_current_admin_user),
+):
+    """Verify database state after reset (admin only)."""
     try:
         async with engine.begin() as conn:
             user_count = await conn.execute(text("SELECT COUNT(*) FROM users"))
@@ -147,4 +154,5 @@ async def verify_reset():
                 "subscriptions": sub_count.scalar()
             }
     except Exception as e:
-        raise HTTPException(500, str(e))
+        _reset_logger.error(f"Verify failed: {e}")
+        raise HTTPException(500, "Verification failed")
