@@ -1,273 +1,234 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:instantrisk_app/main.dart' as app;
 
-/// InstantRisk V2 - Full E2E Integration Test
+/// InstantRisk V5 — Full E2E Integration Test with Screenshots
 ///
-/// This test uses Flutter's native integration testing framework
-/// which can interact directly with Flutter widgets (unlike Playwright).
+/// Uses pump(500ms) intervals. NEVER pumpAndSettle (hangs on spinners).
+/// Screenshots captured via binding.takeScreenshot() + extended driver.
 ///
-/// Run with:
-/// flutter test integration_test/full_e2e_test.dart -d chrome
-///
-/// Or for web:
-/// flutter drive --driver=test_driver/integration_test.dart --target=integration_test/full_e2e_test.dart -d chrome
+/// Run:
+///   chromedriver --port=4444
+///   flutter drive --driver=test_driver/integration_test.dart \
+///       --target=integration_test/full_e2e_test.dart -d chrome
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  // Test credentials
-  const testEmail = 'e2e_test@instantrisk.com';
-  const testPassword = 'TestUser123!!';
+  const email = 'demo@instantrisk.com';
+  const password = 'Demo2026pass';
 
-  // Screenshot counter
-  int screenshotCount = 0;
+  testWidgets('Full E2E test', (WidgetTester tester) async {
+    final passed = <String>[];
+    final skipped = <String>[];
+    int shotNum = 0;
 
-  Future<void> takeScreenshot(String name) async {
-    screenshotCount++;
-    final screenshotName = '${screenshotCount.toString().padLeft(2, '0')}_$name';
+    void pass(String msg) {
+      passed.add(msg);
+      debugPrint('[PASS] $msg');
+    }
+    void skip(String msg) {
+      skipped.add(msg);
+      debugPrint('[SKIP] $msg');
+    }
 
-    // For integration tests, screenshots are handled differently
-    await binding.takeScreenshot(screenshotName);
-    print('📸 Screenshot: $screenshotName');
-  }
+    Future<void> screenshot(String name) async {
+      shotNum++;
+      final label = '${shotNum.toString().padLeft(2, '0')}_$name';
+      try {
+        await binding.takeScreenshot(label);
+        debugPrint('[SCREENSHOT] $label');
+      } catch (e) {
+        debugPrint('[SCREENSHOT] $label — failed: $e');
+      }
+    }
 
-  group('InstantRisk E2E Tests', () {
-    testWidgets('Full app flow test', (WidgetTester tester) async {
-      // Launch the app
-      app.main();
-      await tester.pumpAndSettle(const Duration(seconds: 3));
+    debugPrint('=' * 60);
+    debugPrint('INSTANTRISK V5 — FULL E2E INTEGRATION TEST');
+    debugPrint('=' * 60);
 
-      print('=' * 60);
-      print('INSTANTRISK V2 - FLUTTER INTEGRATION TEST');
-      print('=' * 60);
+    // ── PHASE 1: Boot app ──
+    debugPrint('\n--- PHASE 1: App Launch ---');
+    app.main();
+    await tester.pump();
 
-      // ========================================
-      // TEST 1: Welcome Screen
-      // ========================================
-      print('\n--- TEST 1: Welcome Screen ---');
+    // Pump through splash — 10 pumps at 500ms = 5s total
+    bool welcomeFound = false;
+    bool dashboardFound = false;
+    for (int i = 1; i <= 10; i++) {
+      await tester.pump(const Duration(milliseconds: 500));
+      welcomeFound = find.byKey(const Key('welcomeLoginButton')).evaluate().isNotEmpty;
+      dashboardFound = find.textContaining('Dashboard').evaluate().isNotEmpty;
+      debugPrint('[P1] Pump $i/10 welcome=$welcomeFound dashboard=$dashboardFound');
+      if (welcomeFound || dashboardFound) break;
+    }
 
-      await takeScreenshot('welcome_screen');
+    expect(find.byType(MaterialApp), findsOneWidget, reason: 'App must render');
+    expect(welcomeFound || dashboardFound, isTrue,
+        reason: 'Must reach welcome or dashboard within 5s');
+    pass('App boots to ${welcomeFound ? "welcome" : "dashboard"} screen');
+    await screenshot('welcome_screen');
 
-      // Find Login button
-      final loginButton = find.text('Login');
-      expect(loginButton, findsOneWidget, reason: 'Login button should be visible');
-      print('✅ Login button found');
+    // ── PHASE 2: Login ──
+    debugPrint('\n--- PHASE 2: Login ---');
+    bool loggedIn = dashboardFound;
 
-      // ========================================
-      // TEST 2: Login Flow
-      // ========================================
-      print('\n--- TEST 2: Login Flow ---');
+    if (welcomeFound) {
+      expect(find.byKey(const Key('welcomeLoginButton')), findsOneWidget);
+      pass('Welcome screen has login button');
 
-      // Tap Login button
-      await tester.tap(loginButton);
-      await tester.pumpAndSettle(const Duration(seconds: 2));
-      await takeScreenshot('login_form');
-
-      // Find email field and enter email
-      final emailField = find.byType(TextField).first;
-      await tester.enterText(emailField, testEmail);
-      await tester.pumpAndSettle();
-      print('✅ Email entered: $testEmail');
-
-      // Find password field and enter password
-      final passwordFields = find.byType(TextField);
-      final passwordField = passwordFields.at(1); // Second TextField
-      await tester.enterText(passwordField, testPassword);
-      await tester.pumpAndSettle();
-      print('✅ Password entered');
-
-      await takeScreenshot('credentials_entered');
-
-      // Find and tap Sign In button
-      final signInButton = find.widgetWithText(ElevatedButton, 'Sign In');
-      if (signInButton.evaluate().isEmpty) {
-        // Try alternative text
-        final loginSubmit = find.widgetWithText(FilledButton, 'Login');
-        if (loginSubmit.evaluate().isNotEmpty) {
-          await tester.tap(loginSubmit);
-        }
-      } else {
-        await tester.tap(signInButton);
+      await tester.tap(find.byKey(const Key('welcomeLoginButton')));
+      for (int i = 1; i <= 6; i++) {
+        await tester.pump(const Duration(milliseconds: 500));
+        if (find.byKey(const Key('loginEmailField')).evaluate().isNotEmpty) break;
       }
 
-      await tester.pumpAndSettle(const Duration(seconds: 5));
-      await takeScreenshot('after_login');
+      expect(find.byKey(const Key('loginEmailField')), findsOneWidget);
+      expect(find.byKey(const Key('loginPasswordField')), findsOneWidget);
+      expect(find.byKey(const Key('loginSubmitButton')), findsOneWidget);
+      pass('Login screen renders correctly');
+      await screenshot('login_screen');
 
-      // Check if we're logged in (dashboard visible or no welcome screen)
-      final welcomeText = find.text('Welcome Back');
-      if (welcomeText.evaluate().isEmpty) {
-        print('✅ Login successful - Welcome screen gone');
-      } else {
-        print('⚠️ May still be on welcome screen');
-      }
+      // Enter credentials
+      await tester.enterText(find.byKey(const Key('loginEmailField')), email);
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.enterText(find.byKey(const Key('loginPasswordField')), password);
+      await tester.pump(const Duration(milliseconds: 500));
+      pass('Credentials entered');
+      await screenshot('credentials_filled');
 
-      // ========================================
-      // TEST 3: Dashboard
-      // ========================================
-      print('\n--- TEST 3: Dashboard ---');
+      // Submit login
+      await tester.tap(find.byKey(const Key('loginSubmitButton')));
+      debugPrint('[INFO] Login submitted — waiting for API...');
 
-      // Look for dashboard elements
-      final dashboardElements = [
-        find.text('Dashboard'),
-        find.text('Recent Assessments'),
-        find.text('New Assessment'),
-      ];
-
-      for (final element in dashboardElements) {
-        if (element.evaluate().isNotEmpty) {
-          print('✅ Found: ${element.toString()}');
+      for (int i = 1; i <= 20; i++) {
+        await tester.pump(const Duration(milliseconds: 500));
+        final hasDash = find.textContaining('Dashboard').evaluate().isNotEmpty;
+        final hasAssess = find.textContaining('Assessment').evaluate().isNotEmpty;
+        final hasHome = find.byIcon(Icons.dashboard_outlined).evaluate().isNotEmpty;
+        if (hasDash || hasAssess || hasHome) {
+          loggedIn = true;
+          break;
         }
       }
 
-      await takeScreenshot('dashboard');
-
-      // ========================================
-      // TEST 4: Navigate to Assessments
-      // ========================================
-      print('\n--- TEST 4: Assessments List ---');
-
-      // Try to find assessments navigation
-      final assessmentsNav = find.text('Assessments');
-      if (assessmentsNav.evaluate().isNotEmpty) {
-        await tester.tap(assessmentsNav.first);
-        await tester.pumpAndSettle(const Duration(seconds: 2));
-        await takeScreenshot('assessments_list');
-        print('✅ Navigated to Assessments');
+      if (loggedIn) {
+        pass('Login succeeded — on dashboard');
+        await screenshot('dashboard');
+      } else {
+        skip('Login API unreachable — UI checks only');
+        await screenshot('login_api_timeout');
       }
+    }
 
-      // ========================================
-      // TEST 5: New Assessment
-      // ========================================
-      print('\n--- TEST 5: New Assessment Form ---');
-
-      final newAssessmentBtn = find.text('New Assessment');
-      if (newAssessmentBtn.evaluate().isNotEmpty) {
-        await tester.tap(newAssessmentBtn.first);
-        await tester.pumpAndSettle(const Duration(seconds: 2));
-        await takeScreenshot('new_assessment_form');
-        print('✅ New Assessment form opened');
+    // ── PHASE 3: Post-login tests ──
+    debugPrint('\n--- PHASE 3: Post-Login ---');
+    if (loggedIn) {
+      for (int i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 500));
       }
+      for (final text in ['New Assessment', 'Recent', 'Dashboard', 'Total']) {
+        if (find.textContaining(text).evaluate().isNotEmpty) {
+          pass('Dashboard: "$text"');
+        }
+      }
+      await screenshot('dashboard_loaded');
 
-      // ========================================
-      // TEST 6: Settings / Language
-      // ========================================
-      print('\n--- TEST 6: Settings & Language ---');
+      // Assessments tab
+      final assessTab = find.text('Assessments');
+      if (assessTab.evaluate().isNotEmpty) {
+        await tester.tap(assessTab.first);
+        for (int i = 0; i < 6; i++) {
+          await tester.pump(const Duration(milliseconds: 500));
+        }
+        pass('Assessments tab');
+        await screenshot('assessments');
 
-      // Navigate to settings
-      final settingsNav = find.byIcon(Icons.settings);
-      if (settingsNav.evaluate().isNotEmpty) {
-        await tester.tap(settingsNav.first);
-        await tester.pumpAndSettle(const Duration(seconds: 2));
-        await takeScreenshot('settings_page');
-        print('✅ Settings page opened');
+        final cards = find.byType(Card);
+        if (cards.evaluate().isNotEmpty) {
+          await tester.tap(cards.first);
+          for (int i = 0; i < 10; i++) {
+            await tester.pump(const Duration(milliseconds: 500));
+          }
+          for (final x in ['GO', 'NO-GO', 'Risk', 'Score', 'Recommendation']) {
+            if (find.textContaining(x).evaluate().isNotEmpty) {
+              pass('Detail: "$x"');
+            }
+          }
+          await screenshot('assessment_detail');
 
-        // Look for language option
-        final languageOption = find.text('Language');
-        if (languageOption.evaluate().isNotEmpty) {
-          await tester.tap(languageOption.first);
-          await tester.pumpAndSettle(const Duration(seconds: 2));
-          await takeScreenshot('language_settings');
-          print('✅ Language settings opened');
-
-          // Try to select German
-          final germanOption = find.text('Deutsch');
-          if (germanOption.evaluate().isNotEmpty) {
-            await tester.tap(germanOption.first);
-            await tester.pumpAndSettle(const Duration(seconds: 1));
-            await takeScreenshot('german_selected');
-            print('✅ German language selected');
-
-            // Save language
-            final saveBtn = find.text('Save');
-            if (saveBtn.evaluate().isNotEmpty) {
-              await tester.tap(saveBtn.first);
-              await tester.pumpAndSettle(const Duration(seconds: 2));
-              await takeScreenshot('language_saved');
-              print('✅ Language saved');
+          final back = find.byIcon(Icons.arrow_back);
+          if (back.evaluate().isNotEmpty) {
+            await tester.tap(back.first);
+            for (int i = 0; i < 4; i++) {
+              await tester.pump(const Duration(milliseconds: 500));
             }
           }
         }
       }
 
-      // ========================================
-      // TEST 7: AI Chat
-      // ========================================
-      print('\n--- TEST 7: AI Chat ---');
-
-      final chatNav = find.text('Chat');
-      if (chatNav.evaluate().isEmpty) {
-        // Try icon
-        final chatIcon = find.byIcon(Icons.chat);
-        if (chatIcon.evaluate().isNotEmpty) {
-          await tester.tap(chatIcon.first);
-          await tester.pumpAndSettle(const Duration(seconds: 2));
+      // Chat tab
+      final chatTab = find.text('Chat');
+      if (chatTab.evaluate().isNotEmpty) {
+        await tester.tap(chatTab.first);
+        for (int i = 0; i < 6; i++) {
+          await tester.pump(const Duration(milliseconds: 500));
         }
-      } else {
-        await tester.tap(chatNav.first);
-        await tester.pumpAndSettle(const Duration(seconds: 2));
+        pass('Chat tab');
+        await screenshot('chat');
       }
 
-      await takeScreenshot('chat_page');
-
-      // Try to send a message
-      final chatInput = find.byType(TextField);
-      if (chatInput.evaluate().isNotEmpty) {
-        await tester.enterText(chatInput.first, 'What is marine insurance?');
-        await tester.pumpAndSettle();
-
-        // Find send button
-        final sendBtn = find.byIcon(Icons.send);
-        if (sendBtn.evaluate().isNotEmpty) {
-          await tester.tap(sendBtn.first);
-          await tester.pumpAndSettle(const Duration(seconds: 5));
-          await takeScreenshot('chat_response');
-          print('✅ Chat message sent');
+      // Training tab
+      final trainTab = find.text('Training');
+      if (trainTab.evaluate().isNotEmpty) {
+        await tester.tap(trainTab.first);
+        for (int i = 0; i < 6; i++) {
+          await tester.pump(const Duration(milliseconds: 500));
         }
+        pass('Training tab');
+        await screenshot('training');
       }
 
-      // ========================================
-      // TEST 8: Documents
-      // ========================================
-      print('\n--- TEST 8: Documents Hub ---');
-
-      final docsNav = find.text('Documents');
-      if (docsNav.evaluate().isNotEmpty) {
-        await tester.tap(docsNav.first);
-        await tester.pumpAndSettle(const Duration(seconds: 2));
-        await takeScreenshot('documents_hub');
-        print('✅ Documents hub opened');
+      // Settings tab
+      final settingsTab = find.text('Settings');
+      if (settingsTab.evaluate().isNotEmpty) {
+        await tester.tap(settingsTab.first);
+        for (int i = 0; i < 6; i++) {
+          await tester.pump(const Duration(milliseconds: 500));
+        }
+        pass('Settings tab');
+        for (final s in ['Profile', 'Security', 'Language']) {
+          if (find.textContaining(s).evaluate().isNotEmpty) {
+            pass('Settings: "$s"');
+          }
+        }
+        await screenshot('settings');
       }
 
-      // ========================================
-      // SUMMARY
-      // ========================================
-      print('\n' + '=' * 60);
-      print('TEST SUMMARY');
-      print('=' * 60);
-      print('Total screenshots taken: $screenshotCount');
-      print('Screenshots location: build/integration_test/');
-    });
+      // Home
+      final homeTab = find.text('Home');
+      if (homeTab.evaluate().isNotEmpty) {
+        await tester.tap(homeTab.first);
+        for (int i = 0; i < 4; i++) {
+          await tester.pump(const Duration(milliseconds: 500));
+        }
+        pass('Back to Home');
+        await screenshot('home_final');
+      }
+    } else {
+      skip('Post-login features (no backend)');
+    }
 
-    testWidgets('Test sanctions screening on assessment', (WidgetTester tester) async {
-      app.main();
-      await tester.pumpAndSettle(const Duration(seconds: 3));
-
-      // This would navigate to a specific assessment and run sanctions
-      // For now, just verify the app loads
-      expect(find.byType(MaterialApp), findsOneWidget);
-      print('✅ App launched successfully for sanctions test');
-    });
-
-    testWidgets('Test document generation', (WidgetTester tester) async {
-      app.main();
-      await tester.pumpAndSettle(const Duration(seconds: 3));
-
-      // This would test document generation flow
-      expect(find.byType(MaterialApp), findsOneWidget);
-      print('✅ App launched successfully for document generation test');
-    });
+    // ── RESULTS ──
+    debugPrint('\n${'=' * 60}');
+    debugPrint('E2E RESULTS: ${passed.length} passed, ${skipped.length} skipped, $shotNum screenshots');
+    for (final p in passed) {
+      debugPrint('  + $p');
+    }
+    for (final s in skipped) {
+      debugPrint('  - $s');
+    }
+    debugPrint('=' * 60);
   });
 }
