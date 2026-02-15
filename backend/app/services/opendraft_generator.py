@@ -518,7 +518,119 @@ Return ONLY valid JSON:
     # ─── PHASE 3: COMPOSE (Agents 7-9) ────────────────────────────────
 
     def _build_template_data(self, assessment_data: Dict) -> Dict:
-        """Map assessment fields to template placeholder names."""
+        """Map assessment fields to template placeholder names.
+
+        Risk-score-aware: high risk scores (>70) get stricter terms,
+        additional exclusions, and enhanced subjectivities.
+        """
+        risk_score = assessment_data.get("risk_score") or 0
+        risk_category = assessment_data.get("risk_category", "").lower()
+        insured_name = assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", "")
+
+        # Base exclusions (always present)
+        exclusions = (
+            "War & terrorism (LMA5021), Nuclear (NMA1191), Sanctions (LMA3100), "
+            "Fraud or criminal acts of the Insured, "
+            "Contractual liability (unless liability would exist without contract), "
+            "Fines/penalties/punitive damages."
+        )
+
+        # Base subjectivities
+        subjectivities = (
+            "Prior to inception, receipt and approval of: completed proposal form, "
+            "current risk management report, satisfactory loss history (5 years), "
+            "current financial statements, and confirmation of security arrangements. "
+            "All subjectivities to be satisfied within 30 days of inception."
+        )
+
+        # Base warranties
+        warranties = (
+            "The Insured warrants that: all information provided is true and accurate; "
+            "appropriate risk management procedures are maintained; "
+            "Underwriters will be notified promptly of any material change; "
+            "all applicable laws and regulations are complied with; "
+            "adequate records are maintained."
+        )
+
+        # Base conditions
+        conditions = (
+            "Claims notification as soon as practicable; due diligence to prevent loss; "
+            "full cooperation with Underwriters; subrogation rights preserved; "
+            "other insurance applies in excess."
+        )
+
+        # Risk-score-aware adjustments
+        if risk_score >= 80:
+            # HIGH RISK — stricter terms
+            exclusions += (
+                "\n\nADDITIONAL EXCLUSIONS (Enhanced Risk Profile):\n"
+                "- Prior and pending litigation exclusion\n"
+                "- Regulatory investigation exclusion (unless defence costs sub-limit applies)\n"
+                "- Loss of digital assets / cryptocurrency exclusion\n"
+                "- Bodily injury / property damage arising from professional services\n"
+                "- Insolvency of any party\n"
+                "- Retroactive date limitation: No cover for wrongful acts prior to [retroactive date]"
+            )
+
+            subjectivities += (
+                "\n\nADDITIONAL SUBJECTIVITIES (Enhanced Risk Profile):\n"
+                f"- Independent risk survey of {insured_name} operations within 60 days of inception\n"
+                "- Receipt of board-approved risk management framework\n"
+                "- Satisfactory review of regulatory compliance history\n"
+                "- Enhanced due diligence on key personnel and beneficial ownership\n"
+                "- Confirmation of no pending or threatened regulatory actions\n"
+                "- Receipt of independent IT security audit (for cyber exposures)\n"
+                "- Quarterly loss experience reporting throughout the policy period"
+            )
+
+            warranties += (
+                "\n\nADDITIONAL WARRANTIES (Enhanced Risk Profile):\n"
+                f"- {insured_name} maintains minimum capital adequacy ratios as required by applicable regulators\n"
+                "- No material change to business operations without prior written consent of Underwriters\n"
+                "- The Insured maintains professional indemnity run-off cover for departed principals\n"
+                "- Immediate notification of any regulatory investigation or inquiry\n"
+                "- Annual renewal of all professional certifications and licences"
+            )
+
+            conditions += (
+                "\n\nADDITIONAL CONDITIONS (Enhanced Risk Profile):\n"
+                "- 72-hour claims notification window (breach may prejudice cover)\n"
+                "- Underwriters' right to appoint defence counsel\n"
+                "- Quarterly risk management reports required\n"
+                "- Right of audit of Insured's records on 48 hours' notice\n"
+                "- Aggregate deductible applies across all claims in the policy period"
+            )
+
+        elif risk_score >= 60:
+            # MEDIUM-HIGH RISK — some additional terms
+            exclusions += (
+                "\n\nAdditional Exclusions:\n"
+                "- Prior and pending litigation\n"
+                "- Regulatory fines (unless insurable by law)"
+            )
+
+            subjectivities += (
+                "\n\nAdditional Subjectivities:\n"
+                f"- Receipt of current risk management procedures for {insured_name}\n"
+                "- Confirmation of no pending regulatory actions"
+            )
+
+        # Additional info based on risk score
+        additional = ""
+        if risk_score >= 80:
+            additional = (
+                f"IMPORTANT: This risk has been assessed with an elevated risk score of {risk_score}/100. "
+                f"Enhanced terms, conditions and subjectivities apply. "
+                f"Underwriters should note the heightened risk profile and ensure all "
+                f"subjectivities are satisfied before binding. "
+                f"Referral to senior underwriter required before acceptance."
+            )
+        elif risk_score >= 60:
+            additional = (
+                f"NOTE: This risk has been assessed with a risk score of {risk_score}/100. "
+                f"Standard terms apply with additional monitoring requirements."
+            )
+
         return {
             "umr": f"B0000/IR/{datetime.utcnow().strftime('%Y')}",
             "broker_ref": f"IR/{datetime.utcnow().strftime('%Y')}/001",
@@ -526,8 +638,8 @@ Return ONLY valid JSON:
             "class_of_business": assessment_data.get("risk_category", "").replace("_", " ").title(),
             "risk_code": assessment_data.get("risk_code", ""),
             "placing_type": "Open Market",
-            "insured_name": assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", ""),
-            "named_insured": assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", ""),
+            "insured_name": insured_name,
+            "named_insured": insured_name,
             "insured_address": assessment_data.get("insured_address", ""),
             "insured_country": assessment_data.get("territory", ""),
             "period_from": str(assessment_data.get("inception_date", "")),
@@ -544,10 +656,10 @@ Return ONLY valid JSON:
             "premium_amount": str(assessment_data.get("premium", "")),
             "premium": str(assessment_data.get("premium", "")),
             "premium_terms": "",
-            "subjectivities": "Prior to inception, receipt and approval of: completed proposal form, current risk management report, satisfactory loss history (5 years), current financial statements, and confirmation of security arrangements. All subjectivities to be satisfied within 30 days of inception.",
-            "warranties": "The Insured warrants that: all information provided is true and accurate; appropriate risk management procedures are maintained; Underwriters will be notified promptly of any material change; all applicable laws and regulations are complied with; adequate records are maintained.",
-            "exclusions": "War & terrorism (LMA5021), Nuclear (NMA1191), Sanctions (LMA3100), Fraud or criminal acts of the Insured, Contractual liability (unless liability would exist without contract), Fines/penalties/punitive damages.",
-            "conditions": "Claims notification as soon as practicable; due diligence to prevent loss; full cooperation with Underwriters; subrogation rights preserved; other insurance applies in excess.",
+            "subjectivities": subjectivities,
+            "warranties": warranties,
+            "exclusions": exclusions,
+            "conditions": conditions,
             "claims_contact": assessment_data.get("broker_name", ""),
             "claims_location": "London",
             "lead_underwriter": "",
@@ -559,7 +671,7 @@ Return ONLY valid JSON:
             "broker_name": assessment_data.get("broker_name", ""),
             "broker_address": "",
             "broker_pin": "",
-            "additional_information": "",
+            "additional_information": additional,
             "policy_number": "",
             "cover_note_number": "",
         }
