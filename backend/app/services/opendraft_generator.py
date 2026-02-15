@@ -1595,11 +1595,15 @@ Return ONLY valid JSON:
             source_attribution = {"user": 0, "acord": 0, "cuad": 0, "jetech": 0, "ai_generated": 0, "global": 0}
             doc_content = []
             for section in drafted_sections:
-                doc_content.append({
+                section_entry = {
                     "section_number": section["section_number"],
                     "title": section["title"],
                     "content": section["content"],
-                })
+                    "source_type": section.get("source_type", "unknown"),
+                }
+                if section.get("requires_review"):
+                    section_entry["requires_review"] = True
+                doc_content.append(section_entry)
                 for sc in section.get("source_clauses", []):
                     source = sc.get("source", "ai_generated")
                     if source in source_attribution:
