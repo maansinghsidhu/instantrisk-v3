@@ -29,7 +29,7 @@ def classify_document(text: str, filename: str) -> str:
     text_lower = text[:5000].lower()
     fname_lower = filename.lower()
 
-    # Filename-based hints (highest confidence)
+    # Filename-based hints (highest confidence — order matters: specific before generic)
     if any(k in fname_lower for k in ["loss_run", "lossrun", "loss run", "loss-run"]):
         return "loss_run"
     if any(k in fname_lower for k in ["claim", "claims", "bordereaux"]):
@@ -42,12 +42,15 @@ def classify_document(text: str, filename: str) -> str:
         return "slip_template"
     if any(k in fname_lower for k in ["endorse", "amendment", "rider"]):
         return "endorsement"
-    if any(k in fname_lower for k in ["clause", "lma", "nma", "icc", "wordings"]):
-        return "clause_library"
     if any(k in fname_lower for k in ["market", "rate", "pricing", "benchmark"]):
         return "market"
+    # "policy" or "wording" in filename → policy (check BEFORE clause to avoid "policy_wording" → clause)
+    if any(k in fname_lower for k in ["policy", "wording"]):
+        return "policy"
+    if any(k in fname_lower for k in ["clause", "lma", "nma", "icc", "wordings"]):
+        return "clause_library"
 
-    # Content-based classification (scan first 5000 chars)
+    # Content-based classification (scan first 5000 chars — order matters)
     if any(k in text_lower for k in ["loss ratio", "incurred losses", "paid losses", "claim count", "earned premium"]):
         return "loss_run"
     if any(k in text_lower for k in ["claimant", "date of loss", "reserve amount", "indemnity payment", "adjuster"]):
@@ -64,12 +67,16 @@ def classify_document(text: str, filename: str) -> str:
     if any(k in text_lower for k in ["endorsement no", "it is hereby agreed", "amendment to policy",
                                       "rider to", "addendum"]):
         return "endorsement"
-    if any(k in text_lower for k in ["lma5", "lma3", "nma1", "icc-a", "icc-b", "institute cargo",
-                                      "clause library", "standard clause"]):
-        return "clause_library"
     if any(k in text_lower for k in ["premium rate", "market rate", "benchmark rate", "rate on line",
                                       "pricing model", "actuarial"]):
         return "market"
+    # Policy wording: insuring clause, coverage, deductible, sum insured (before clause_library to avoid false matches)
+    if any(k in text_lower for k in ["insuring clause", "policy number", "coverage", "sum insured",
+                                      "deductible", "general conditions", "policy period"]):
+        return "policy"
+    if any(k in text_lower for k in ["lma5", "lma3", "nma1", "icc-a", "icc-b",
+                                      "clause library", "standard clause"]):
+        return "clause_library"
 
     # Default: genuinely unclassifiable → "policy" (most common document type)
     return "policy"

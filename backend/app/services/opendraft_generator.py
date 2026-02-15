@@ -1705,13 +1705,16 @@ Return ONLY valid JSON:
 
             # Build final document
             source_attribution = {"user": 0, "acord": 0, "cuad": 0, "jetech": 0, "ai_generated": 0, "global": 0}
+            source_type_counts = {}
             doc_content = []
             for section in drafted_sections:
+                st = section.get("source_type", "unknown")
+                source_type_counts[st] = source_type_counts.get(st, 0) + 1
                 section_entry = {
                     "section_number": section["section_number"],
                     "title": section["title"],
                     "content": section["content"],
-                    "source_type": section.get("source_type", "unknown"),
+                    "source_type": st,
                 }
                 if section.get("requires_review"):
                     section_entry["requires_review"] = True
@@ -1720,6 +1723,10 @@ Return ONLY valid JSON:
                     source = sc.get("source", "ai_generated")
                     if source in source_attribution:
                         source_attribution[source] += 1
+
+            logger.info(f"OpenDraft doc '{doc_type}': {len(doc_content)} sections, "
+                        f"source_types={source_type_counts}, "
+                        f"sample_keys={list(doc_content[0].keys()) if doc_content else []}")
 
             formatted_doc = {
                 "document_type": doc_type,

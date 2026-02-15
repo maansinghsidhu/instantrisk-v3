@@ -1927,6 +1927,12 @@ async def _run_opendraft_job(job_id: str, assessment_data: dict, user_id: str, d
                 from sqlalchemy.orm.attributes import flag_modified
                 doc_ids = []
                 for doc_data in safe_result.get("documents", []):
+                    sections_to_store = doc_data.get("sections", [])
+                    if sections_to_store:
+                        sample_keys = list(sections_to_store[0].keys())
+                        logger.info(f"Storing doc '{doc_data.get('document_type')}': "
+                                    f"{len(sections_to_store)} sections, "
+                                    f"section[0] keys={sample_keys}")
                     gen_doc = GeneratedDocument(
                         assessment_id=job.assessment_id,
                         generation_job_id=job_id,
@@ -1934,7 +1940,7 @@ async def _run_opendraft_job(job_id: str, assessment_data: dict, user_id: str, d
                         title=doc_data.get("title", "Untitled Document"),
                         status="draft",
                         draft_content={
-                            "sections": doc_data.get("sections", []),
+                            "sections": sections_to_store,
                             "schedules": doc_data.get("schedules", []),
                             "appendices": doc_data.get("appendices", []),
                         },
