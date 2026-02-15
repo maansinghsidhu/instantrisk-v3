@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../widgets/common/screen_header.dart';
 
 /// Analysis Mode Selection Screen
 /// Allows users to choose between Quick, Go/No-Go, and Deep analysis
@@ -166,25 +167,18 @@ class _AnalysisModeScreenState extends State<AnalysisModeScreen> {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        backgroundColor: AppTheme.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          l10n.analysisMode,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
-            fontFamily: 'Inter',
+      body: Column(
+        children: [
+          ScreenHeader(
+            title: l10n.analysisMode,
+            subtitle: 'Choose analysis depth',
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => context.pop(),
+            ),
           ),
-        ),
-        centerTitle: true,
-      ),
-      body: _isLoading
+          Expanded(
+            child: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
@@ -297,6 +291,9 @@ class _AnalysisModeScreenState extends State<AnalysisModeScreen> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
     );
   }
 

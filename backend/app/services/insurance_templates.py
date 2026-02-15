@@ -47,7 +47,7 @@ The undersigned are authorized and directed to accept service of process on beha
     },
 
     "arbitration": {
-        "id": "LMA3100",
+        "id": "LMA3090",
         "name": "Arbitration Clause",
         "text": """Any dispute arising out of or in connection with this contract, including any question regarding its existence, validity or termination, shall be referred to and finally resolved by arbitration under the rules of the London Court of International Arbitration (LCIA), which rules are deemed to be incorporated by reference into this clause.
 

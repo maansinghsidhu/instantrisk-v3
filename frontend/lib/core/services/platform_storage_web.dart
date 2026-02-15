@@ -25,7 +25,12 @@ class PlatformStorage {
 /// Get the base URL for the backend API.
 /// When hosted on S3/CloudFront, use the ALB CloudFront (HTTPS).
 /// When on localhost or ALB directly, use the same host.
+/// Override with --dart-define=BASE_URL=... for integration tests.
 String getPlatformBaseUrl() {
+  // Allow override via --dart-define for integration tests
+  const overrideUrl = String.fromEnvironment('BASE_URL', defaultValue: '');
+  if (overrideUrl.isNotEmpty) return overrideUrl;
+
   final location = html.window.location;
   final host = location.host;
 

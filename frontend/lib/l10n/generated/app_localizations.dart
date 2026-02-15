@@ -1153,7 +1153,7 @@ abstract class AppLocalizations {
   /// **'Generate Documents'**
   String get generateDocuments;
 
-  /// AI recommended documents title
+  /// Recommended documents title
   ///
   /// In en, this message translates to:
   /// **'Recommended Documents'**
@@ -1327,7 +1327,7 @@ abstract class AppLocalizations {
   /// **'New Chat'**
   String get newChat;
 
-  /// AI assistant title
+  /// InstantRisk assistant title
   ///
   /// In en, this message translates to:
   /// **'InstantRisk Assistant'**
@@ -1636,13 +1636,13 @@ abstract class AppLocalizations {
   /// InstantRisk Engine analysis label
   ///
   /// In en, this message translates to:
-  /// **'AI-Powered Analysis'**
+  /// **'InstantRisk Engine Analysis'**
   String get aiPoweredAnalysis;
 
   /// Risk type auto detection description
   ///
   /// In en, this message translates to:
-  /// **'Risk type will be automatically detected from your documents using OCR & AI'**
+  /// **'Risk type will be automatically detected from your documents using the InstantRisk Engine'**
   String get riskTypeAutoDetected;
 
   /// Add documents title
@@ -1903,7 +1903,7 @@ abstract class AppLocalizations {
   /// **'Contract Generations'**
   String get contractGenerations;
 
-  /// AI chat messages label
+  /// Engine chat messages label
   ///
   /// In en, this message translates to:
   /// **'Engine Chat Messages'**
@@ -2404,7 +2404,7 @@ abstract class AppLocalizations {
   /// First onboarding screen title
   ///
   /// In en, this message translates to:
-  /// **'AI-Powered Risk Assessment'**
+  /// **'InstantRisk Engine Assessment'**
   String get onboardingTitle1;
 
   /// First onboarding screen description
@@ -2434,7 +2434,7 @@ abstract class AppLocalizations {
   /// Third onboarding screen description
   ///
   /// In en, this message translates to:
-  /// **'Get instant answers to insurance questions from our AI trained on 20GB+ of Lloyd\'s market knowledge'**
+  /// **'Get instant answers to insurance questions from the InstantRisk Engine trained on Lloyd\'s market knowledge'**
   String get onboardingDesc3;
 
   /// Skip button

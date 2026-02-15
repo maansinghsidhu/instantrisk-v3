@@ -15,30 +15,16 @@ from app.models.assessment import AssessmentStatus, AssessmentDecision, RiskCate
 
 class AssessmentBase(BaseModel):
     """Base schema with common assessment fields."""
+    title: Optional[str] = Field(None, max_length=500)
+    description: Optional[str] = None
+    risk_category: Optional[str] = "property"
+
+
+class AssessmentCreate(BaseModel):
+    """Schema for creating a new assessment."""
     title: str = Field(..., min_length=5, max_length=500)
     description: Optional[str] = None
-    risk_category: RiskCategory = RiskCategory.PROPERTY
-
-
-class AssessmentCreate(AssessmentBase):
-    """
-    Schema for creating a new assessment.
-
-    Attributes:
-        title: Title or summary of the risk.
-        description: Detailed description of the risk.
-        risk_category: Category of the risk.
-        syndicate_id: Target syndicate for the assessment.
-        insured_name: Name of the insured party.
-        broker_reference: Broker's reference number.
-        premium: Quoted premium amount.
-        sum_insured: Total sum insured.
-        deductible: Deductible amount.
-        inception_date: Policy inception date.
-        expiry_date: Policy expiry date.
-        territory: Primary territory/region.
-        exposure_details: Additional exposure information.
-    """
+    risk_category: Optional[str] = "property"
     syndicate_id: Optional[int] = None
     insured_name: Optional[str] = Field(None, max_length=255)
     insured_entity_name: Optional[str] = Field(None, max_length=500, description="Full legal entity name (highest point / totality of entity)")
@@ -127,11 +113,11 @@ class AssessmentResponse(AssessmentBase):
     """
     model_config = ConfigDict(from_attributes=True)
 
-    id: UUID  # EC2 database uses UUID for assessment IDs
-    reference_number: Optional[str] = None  # May not exist in EC2 database
-    status: AssessmentStatus
-    decision: AssessmentDecision
-    created_by: UUID
+    id: Any  # UUID or int depending on database
+    reference_number: Optional[str] = None
+    status: Optional[str] = None
+    decision: Optional[str] = None
+    created_by: Optional[Any] = None
     syndicate_id: Optional[int] = None
     insured_name: Optional[str] = None
     insured_entity_name: Optional[str] = None
@@ -158,8 +144,8 @@ class AssessmentResponse(AssessmentBase):
     ocr_extracted_text: Optional[str] = None
     is_flagged: bool = False
     flag_reason: Optional[str] = None
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
 
     @field_validator('premium', 'sum_insured', 'deductible', mode='before')
@@ -170,7 +156,12 @@ class AssessmentResponse(AssessmentBase):
     @field_validator('risk_score', 'confidence_score', mode='before')
     @classmethod
     def coerce_int_none(cls, v):
-        return v if v is not None else 0
+        if v is None:
+            return 0
+        try:
+            return int(v)
+        except (ValueError, TypeError):
+            return 0
 
     # Computed fields
     risk_rating: Optional[str] = None

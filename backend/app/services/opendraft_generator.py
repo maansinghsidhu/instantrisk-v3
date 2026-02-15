@@ -12,9 +12,10 @@ for Lloyd's insurance document generation with ACORD/CUAD/JeTech RAG.
   PHASE 5 - REFINE (13-16):   HouseStyleAgent, LanguageVarier, ProofReader, ClauseCompiler
   PHASE 6 - EXPORT (17-19):   ScheduleBuilder, PDFExporter, QualityGate
 
-Cost per document: ~$0.38 (10 Haiku + 9 Sonnet calls)
+Cost per document: ~$0.15 (template-first, AI only for gaps: ~5 Haiku + 3-5 Sonnet calls)
 """
 
+import asyncio
 import json
 import logging
 from typing import Dict, Any, List, Optional
@@ -86,6 +87,7 @@ class OpenDraftGenerator:
         system_prompt: str,
         user_content: str,
         temperature: float = 0.1,
+        max_tokens: int = 8000,
     ) -> Optional[str]:
         """Run a single agent via Bedrock."""
         model_alias = AGENT_MODELS.get(name, "haiku")
@@ -95,7 +97,7 @@ class OpenDraftGenerator:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_content},
             ]
-            response = await self.bedrock.chat(messages, temperature=temperature, model_id=model_id)
+            response = await self.bedrock.chat(messages, temperature=temperature, max_tokens=max_tokens, model_id=model_id)
             if response:
                 logger.info(f"Agent {name} succeeded (response length: {len(response)})")
             else:
@@ -145,11 +147,20 @@ class OpenDraftGenerator:
             "risk_category": risk_category,
             "territory": territory,
             "insured_name": assessment_data.get("insured_name", ""),
+            "insured_entity_name": assessment_data.get("insured_entity_name", ""),
+            "companies_house_number": assessment_data.get("companies_house_number", ""),
+            "broker_name": assessment_data.get("broker_name", ""),
+            "commission_rate": assessment_data.get("commission_rate"),
             "premium": assessment_data.get("premium"),
             "sum_insured": assessment_data.get("sum_insured"),
             "deductible": assessment_data.get("deductible"),
+            "inception_date": assessment_data.get("inception_date", ""),
+            "expiry_date": assessment_data.get("expiry_date", ""),
+            "renewal_date": assessment_data.get("renewal_date", ""),
             "decision": assessment_data.get("decision", ""),
             "risk_score": assessment_data.get("risk_score"),
+            "regulatory_framework": assessment_data.get("regulatory_framework", ""),
+            "loss_run_reporting_rules": assessment_data.get("loss_run_reporting_rules", ""),
             "ai_analysis_summary": str(assessment_data.get("ai_analysis", {}))[:2000],
         }, indent=2)
 
@@ -304,6 +315,8 @@ Return ONLY valid JSON:
 
 Risk category: {assessment_data.get('risk_category', 'property')}
 Territory: {assessment_data.get('territory', '')}
+Insured: {assessment_data.get('insured_entity_name') or assessment_data.get('insured_name', '')}
+Regulatory framework: {assessment_data.get('regulatory_framework', '')}
 Clauses FOUND in knowledge base: {', '.join(found_ids[:30])}
 Clauses NOT FOUND: {', '.join(missing_ids[:20])}
 
@@ -388,89 +401,203 @@ Return ONLY valid JSON:
         selected_clauses: List[Dict],
         assessment_data: Dict,
     ) -> Dict:
-        """Agent 5: StructurePlanner — uses CUAD patterns for section ordering."""
-        result = await self._run_agent_json(
-            "StructurePlanner",
-            "You are a Lloyd's document structure specialist. Use CUAD's 41 clause type taxonomy to plan document sections in proper market order.",
-            f"""Plan the structure for a {doc_type} insurance document.
+        """Agent 5: StructurePlanner — select template and map clauses to sections."""
+        from app.services.insurance_templates import auto_select_template, get_template
 
-Risk category: {assessment_data.get('risk_category', 'property')}
-Territory: {assessment_data.get('territory', '')}
-Number of clauses: {len(selected_clauses)}
-Clause names: {', '.join(c['name'] for c in selected_clauses[:25])}
-
-Structure this as a professional Lloyd's market document with proper section ordering.
-
-Return ONLY valid JSON:
-{{
-    "document_type": "{doc_type}",
-    "sections": [
-        {{
-            "section_number": 1,
-            "title": "Section Title",
-            "content_type": "header|clause|schedule|definitions|conditions|exclusions|signature",
-            "clause_ids": ["clause_ids to include in this section"],
-            "notes": "Drafting notes"
-        }}
-    ],
-    "total_sections": 15
-}}"""
+        template_id = auto_select_template(
+            assessment_data.get("risk_category", "property"), doc_type
         )
-        if result:
-            return result
+        template = get_template(template_id) or {}
+        template_sections = template.get("sections", [])
+        standard_clause_ids = template.get("standard_clauses", [])
+
+        if not template_sections:
+            # Fallback: one section per clause
+            return {
+                "document_type": doc_type,
+                "template_id": template_id,
+                "sections": [
+                    {"section_number": str(i + 1), "title": c["name"], "content_type": "clause", "clause_ids": [c["clause_id"]], "notes": ""}
+                    for i, c in enumerate(selected_clauses)
+                ],
+                "total_sections": len(selected_clauses),
+                "standard_clauses": standard_clause_ids,
+            }
+
+        # Build section list from template, mapping selected clauses to sections
+        sections = []
+        for i, section_title in enumerate(template_sections, 1):
+            matching_clause_ids = []
+            for clause in selected_clauses:
+                if self._clause_matches_section(clause, section_title):
+                    matching_clause_ids.append(clause["clause_id"])
+
+            sections.append({
+                "section_number": str(i),
+                "title": section_title,
+                "content_type": "clause",
+                "clause_ids": matching_clause_ids,
+                "notes": "",
+            })
+
+        logger.info(f"StructurePlanner: template={template_id}, {len(sections)} sections, "
+                     f"{sum(len(s['clause_ids']) for s in sections)} clause mappings")
 
         return {
             "document_type": doc_type,
-            "sections": [
-                {"section_number": i + 1, "title": c["name"], "content_type": "clause", "clause_ids": [c["clause_id"]]}
-                for i, c in enumerate(selected_clauses)
-            ],
-            "total_sections": len(selected_clauses),
+            "template_id": template_id,
+            "sections": sections,
+            "total_sections": len(sections),
+            "standard_clauses": standard_clause_ids,
         }
+
+    def _clause_matches_section(self, clause: Dict, section_title: str) -> bool:
+        """Check if a clause belongs in a given section by fuzzy name matching."""
+        title_lower = section_title.lower()
+        clause_name = clause.get("name", "").lower()
+        clause_id = clause.get("clause_id", "").lower()
+
+        # Direct matches
+        match_pairs = [
+            ("assured", ["assured", "insured"]),
+            ("period", ["period", "inception", "expiry"]),
+            ("interest", ["interest", "subject matter"]),
+            ("territorial", ["territorial", "territory", "jurisdiction"]),
+            ("limit of liability", ["limit", "liability", "sum insured"]),
+            ("deductible", ["deductible", "excess", "retention"]),
+            ("basis of cover", ["basis", "cover", "claims made", "occurrence"]),
+            ("premium", ["premium", "payment"]),
+            ("subjectivities", ["subjectivity", "subject to"]),
+            ("warranties", ["warranty", "warranted"]),
+            ("exclusions", ["exclusion", "excluded", "nuclear", "sanctions"]),
+            ("conditions", ["condition", "general condition"]),
+            ("claims", ["claims", "notification", "claims cooperation"]),
+            ("law", ["law", "jurisdiction", "arbitration", "governing"]),
+            ("several liability", ["several liability", "lma5096"]),
+            ("security", ["security", "underwriter", "syndicate"]),
+            ("broker", ["broker", "placing broker"]),
+            ("cancellation", ["cancellation", "cancel"]),
+            ("subrogation", ["subrogation"]),
+        ]
+
+        for section_key, clause_keywords in match_pairs:
+            if section_key in title_lower:
+                for kw in clause_keywords:
+                    if kw in clause_name or kw in clause_id:
+                        return True
+
+        return False
 
     async def agent_lloyd_formatter(
         self,
         structure: Dict,
         assessment_data: Dict,
     ) -> Dict:
-        """Agent 6: LloydFormatter — applies London market formatting patterns from JeTech."""
-        result = await self._run_agent_json(
-            "LloydFormatter",
-            "You are a Lloyd's market formatting specialist. Apply London market standard formatting conventions based on JeTech underwriting block patterns.",
-            f"""Apply Lloyd's market formatting to this document structure.
-
-Document type: {structure.get('document_type', 'policy_wording')}
-Total sections: {structure.get('total_sections', 0)}
-Section titles: {', '.join(s['title'] for s in structure.get('sections', [])[:20])}
-
-Define the formatting rules for:
-- Header block format (Type, Unique Market Reference, etc.)
-- Section numbering style
-- Clause reference format
-- Schedule formatting
-- Signature block layout
-
-Return ONLY valid JSON:
-{{
-    "format_rules": {{
-        "header_style": "Description of header format",
-        "numbering": "1.1, 1.2 etc",
-        "clause_ref_format": "How to reference clauses",
-        "schedule_format": "How to format schedules"
-    }},
-    "header_block": {{
-        "type_of_insurance": "{assessment_data.get('risk_category', 'Property')}",
-        "unique_market_reference": "B0000/IR/{datetime.utcnow().strftime('%Y')}",
-        "period": "12 months",
-        "premium": "{assessment_data.get('premium', 'TBA')}",
-        "insured": "{assessment_data.get('insured_name', 'TBA')}"
-    }},
-    "footer_notes": "Standard footer text"
-}}"""
-        )
-        return result or {"format_rules": {}, "header_block": {}, "footer_notes": ""}
+        """Agent 6: LloydFormatter — extract formatting from template (code-only, no AI call)."""
+        return {
+            "format_rules": {
+                "header_style": "MRC Standard",
+                "numbering": "1, 2, 3 etc",
+                "clause_ref_format": "Clause ID in parentheses",
+                "schedule_format": "Tabular with numbered items",
+            },
+            "header_block": {
+                "type_of_insurance": assessment_data.get("risk_category", "Property"),
+                "unique_market_reference": f"B0000/IR/{datetime.utcnow().strftime('%Y')}",
+                "insured": assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", "TBA"),
+                "period": f"{assessment_data.get('inception_date', 'TBA')} to {assessment_data.get('expiry_date', 'TBA')}",
+                "premium": str(assessment_data.get("premium", "TBA")),
+                "sum_insured": str(assessment_data.get("sum_insured", "TBA")),
+                "broker": assessment_data.get("broker_name", "TBA"),
+                "brokerage": f"{assessment_data.get('commission_rate', 'TBA')}%",
+                "territory": assessment_data.get("territory", "TBA"),
+            },
+            "footer_notes": "This slip is for placing purposes only and is subject to contract.",
+        }
 
     # ─── PHASE 3: COMPOSE (Agents 7-9) ────────────────────────────────
+
+    def _build_template_data(self, assessment_data: Dict) -> Dict:
+        """Map assessment fields to template placeholder names."""
+        return {
+            "umr": f"B0000/IR/{datetime.utcnow().strftime('%Y')}",
+            "broker_ref": f"IR/{datetime.utcnow().strftime('%Y')}/001",
+            "type_of_business": assessment_data.get("type_of_business", "New"),
+            "class_of_business": assessment_data.get("risk_category", "").replace("_", " ").title(),
+            "risk_code": assessment_data.get("risk_code", ""),
+            "placing_type": "Open Market",
+            "insured_name": assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", ""),
+            "named_insured": assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", ""),
+            "insured_address": assessment_data.get("insured_address", ""),
+            "insured_country": assessment_data.get("territory", ""),
+            "period_from": str(assessment_data.get("inception_date", "")),
+            "period_to": str(assessment_data.get("expiry_date", "")),
+            "inception_time": "00:01",
+            "interest": f"{assessment_data.get('risk_category', '').replace('_', ' ').title()} Insurance",
+            "territorial_limits": assessment_data.get("territory", "Worldwide"),
+            "limit_of_liability": str(assessment_data.get("sum_insured", "")),
+            "sub_limits": "",
+            "deductible": str(assessment_data.get("deductible", "")),
+            "currency": assessment_data.get("currency", "GBP"),
+            "basis_of_cover": assessment_data.get("basis_of_cover", "Claims Made"),
+            "retroactive_date": "",
+            "premium_amount": str(assessment_data.get("premium", "")),
+            "premium": str(assessment_data.get("premium", "")),
+            "premium_terms": "",
+            "subjectivities": "Prior to inception, receipt and approval of: completed proposal form, current risk management report, satisfactory loss history (5 years), current financial statements, and confirmation of security arrangements. All subjectivities to be satisfied within 30 days of inception.",
+            "warranties": "The Insured warrants that: all information provided is true and accurate; appropriate risk management procedures are maintained; Underwriters will be notified promptly of any material change; all applicable laws and regulations are complied with; adequate records are maintained.",
+            "exclusions": "War & terrorism (LMA5021), Nuclear (NMA1191), Sanctions (LMA3100), Fraud or criminal acts of the Insured, Contractual liability (unless liability would exist without contract), Fines/penalties/punitive damages.",
+            "conditions": "Claims notification as soon as practicable; due diligence to prevent loss; full cooperation with Underwriters; subrogation rights preserved; other insurance applies in excess.",
+            "claims_contact": assessment_data.get("broker_name", ""),
+            "claims_location": "London",
+            "lead_underwriter": "",
+            "lead_syndicate": "",
+            "lead_reference": "",
+            "signed_line": "",
+            "order_percentage": "",
+            "following_markets": "",
+            "broker_name": assessment_data.get("broker_name", ""),
+            "broker_address": "",
+            "broker_pin": "",
+            "additional_information": "",
+            "policy_number": "",
+            "cover_note_number": "",
+        }
+
+    def _split_rendered_template(self, rendered: str) -> Dict[str, str]:
+        """Split a rendered template into sections keyed by section title.
+
+        Template format:
+            ================
+            SECTION TITLE
+            ================
+            content here
+        After splitting on ={10,}, parts alternate: [preamble, TITLE, content, TITLE, content, ...]
+        """
+        import re
+        sections = {}
+        if not rendered:
+            return sections
+
+        # Split on separator lines (10+ equal signs)
+        parts = re.split(r'={10,}', rendered)
+
+        # parts[0] = preamble, then alternating title/content pairs
+        if parts:
+            preamble = parts[0].strip()
+            if preamble:
+                sections["PREAMBLE"] = preamble
+
+        # Pair titles (odd indices) with content (even indices)
+        i = 1
+        while i < len(parts) - 1:
+            title = parts[i].strip()
+            content = parts[i + 1].strip()
+            if title:
+                sections[title.upper()] = content
+            i += 2
+
+        return sections
 
     async def agent_section_drafter(
         self,
@@ -481,104 +608,246 @@ Return ONLY valid JSON:
         user_id: str = None,
         ml_context: Dict = None,
     ) -> List[Dict]:
-        """Agent 7: SectionDrafter — drafts each section using selected clauses + RAG context."""
-        clause_map = {c["clause_id"]: c for c in selected_clauses}
-        drafted_sections = []
-        risk_category = assessment_data.get("risk_category", "property")
+        """Agent 7: SectionDrafter — render template + inject selected clauses. AI only for gaps."""
+        from app.services.insurance_templates import render_template, STANDARD_CLAUSES
 
-        # Build ML context block for drafting
-        ml_block = ""
-        if ml_context:
-            appetite = ml_context.get("appetite", {})
-            pricing = ml_context.get("pricing", {})
-            ml_block = f"""
-INSTANTRISK ENGINE CONTEXT:
-- Risk appetite: {appetite.get('decision', 'unknown')} (confidence: {appetite.get('confidence', 0):.0%})
-- Pricing band: {pricing.get('band', 'unknown')} (confidence: {pricing.get('confidence', 0):.0%})
-"""
+        template_id = structure.get("template_id")
+        clause_map = {c["clause_id"]: c for c in selected_clauses}
+        risk_category = assessment_data.get("risk_category", "property")
+        drafted_sections = []
+        gap_sections = []
+
+        # Step 1: Render template with assessment data (instant, no AI)
+        template_data = self._build_template_data(assessment_data)
+        rendered = render_template(template_id, template_data) if template_id else ""
+        rendered_sections = self._split_rendered_template(rendered)
+
+        logger.info(f"SectionDrafter: template_id={template_id}, rendered_len={len(rendered)}, sections_found={list(rendered_sections.keys())}")
+
+        template_hits = 0
+        clause_hits = 0
+        gap_count = 0
 
         for section in structure.get("sections", []):
-            section_clauses = []
+            title = section["title"]
+            title_upper = title.upper()
+
+            # Priority 1: Rendered template content (data already filled in)
+            rendered_content = rendered_sections.get(title_upper, "")
+            # Also try partial match
+            if not rendered_content:
+                for key, val in rendered_sections.items():
+                    if title_upper in key or key in title_upper:
+                        rendered_content = val
+                        break
+
+            # Priority 2: Selected clause text from ClauseManager (from RAG)
+            clause_content_parts = []
+            clause_sources = []
             for cid in section.get("clause_ids", []):
-                if cid in clause_map:
-                    section_clauses.append(clause_map[cid])
+                if cid in clause_map and clause_map[cid].get("selected_text"):
+                    clause_content_parts.append(clause_map[cid]["selected_text"])
+                    clause_sources.append({"id": cid, "source": clause_map[cid].get("source", "rag")})
 
-            if section_clauses and any(c.get("selected_text") for c in section_clauses):
-                content_parts = []
-                for c in section_clauses:
-                    if c.get("selected_text"):
-                        content_parts.append(c["selected_text"])
+            # Priority 3: Standard clauses from the embedded clause library (10 LMA clauses)
+            std_clause_text = ""
+            for std_key, std_clause in STANDARD_CLAUSES.items():
+                std_name = std_clause.get("name", "").lower()
+                std_id = std_clause.get("id", "").lower()
+                if (std_name and std_name in title.lower()) or (std_id and std_id in title.lower()):
+                    std_clause_text = std_clause["text"]
+                    clause_sources.append({"id": std_clause["id"], "source": "lma_clause"})
+                    break
 
+            # Priority 3.5: Full clause library search (30K+ LEDGAR/CUAD/ContractNLI clauses)
+            full_lib_text = ""
+            if not std_clause_text:
+                try:
+                    from app.services.clauses_library_service import ClausesLibraryService
+                    clause_lib = ClausesLibraryService()
+                    lib_results, lib_total = clause_lib.search(
+                        query=title,
+                        line_of_business=risk_category,
+                        page_size=3,
+                    )
+                    if lib_results:
+                        best = lib_results[0]
+                        best_text = best.get("text", "")
+                        if best_text and len(best_text) > 30:
+                            full_lib_text = best_text
+                            clause_sources.append({"id": best.get("id", "clause_library"), "source": "clause_library"})
+                except Exception as e:
+                    logger.debug(f"Clause library search for '{title}': {e}")
+
+            clause_content = "\n\n".join(clause_content_parts)
+            if std_clause_text and not clause_content:
+                clause_content = std_clause_text
+            elif full_lib_text and not clause_content:
+                clause_content = full_lib_text
+
+            # Decide which content to use
+            if rendered_content and rendered_content.strip():
+                # Template content — already has data filled in
+                template_hits += 1
                 drafted_sections.append({
                     "section_number": section["section_number"],
-                    "title": section["title"],
-                    "content": "\n\n".join(content_parts),
-                    "source_clauses": [
-                        {"id": c["clause_id"], "source": c.get("source", "unknown")}
-                        for c in section_clauses
-                    ],
+                    "title": title,
+                    "content": rendered_content.strip(),
+                    "source_clauses": [{"id": "template", "source": "template"}],
+                    "source_type": "template",
+                })
+            elif clause_content and clause_content.strip():
+                # Real clause text from library/RAG
+                clause_hits += 1
+                # Determine source type from clause_sources
+                src_type = "lma_clause"
+                if clause_sources:
+                    first_src = clause_sources[0].get("source", "")
+                    if first_src == "clause_library":
+                        src_type = "clause_library"
+                    elif first_src in ("rag", "standard_clause", "lma_clause"):
+                        src_type = first_src
+                drafted_sections.append({
+                    "section_number": section["section_number"],
+                    "title": title,
+                    "content": clause_content.strip(),
+                    "source_clauses": clause_sources if clause_sources else [{"id": "clause_library", "source": "clause_library"}],
+                    "source_type": src_type,
                 })
             else:
-                # Search RAG for relevant clause examples and standard wordings
-                rag_context = ""
-                try:
-                    results = await self.unified_rag.search(
-                        query=f"{section['title']} {risk_category} insurance clause wording Lloyd's",
+                # No template or clause content — mark for gap filling
+                gap_count += 1
+                gap_sections.append(section)
+
+        logger.info(f"SectionDrafter: template={template_hits}, clause={clause_hits}, gaps={gap_count}")
+
+        # Step 2: Fill gaps — use section defaults first, then targeted RAG, then AI last resort
+        # Section-specific default content for common Lloyd's MRC sections
+        insured_name = assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", "The Insured")
+        section_defaults = {
+            "SUBJECTIVITIES": (
+                f"Prior to inception of the Policy, the following subjectivities must be satisfied:\n\n"
+                f"1. Receipt and approval of the current risk management report for {insured_name}\n"
+                f"2. Receipt and approval of {insured_name}'s completed proposal form\n"
+                f"3. Receipt of satisfactory loss history for the previous five years\n"
+                f"4. Receipt and approval of the current financial statements\n"
+                f"5. Receipt of confirmation of current security arrangements\n\n"
+                f"All subjectivities to be satisfied within 30 days of inception, failing which Underwriters "
+                f"reserve the right to void coverage from inception."
+            ),
+            "WARRANTIES": (
+                f"The Insured warrants that:\n\n"
+                f"1. All information provided in the proposal form and supporting documentation is true, "
+                f"complete and accurate in all material respects.\n"
+                f"2. {insured_name} maintains appropriate risk management procedures and controls.\n"
+                f"3. The Insured will notify Underwriters promptly of any material change in the risk.\n"
+                f"4. The Insured complies with all applicable laws, regulations and industry standards.\n"
+                f"5. The Insured maintains adequate records relating to the subject matter of this insurance.\n\n"
+                f"Breach of any warranty shall entitle Underwriters to avoid liability from the date of breach."
+            ),
+            "EXCLUSIONS": (
+                "In addition to the standard exclusions incorporated herein, this insurance "
+                "does not cover:\n\n"
+                "1. War, invasion, act of foreign enemies, hostilities or warlike operations\n"
+                "2. Nuclear reaction, radiation or radioactive contamination (NMA1191)\n"
+                "3. Loss arising from sanctions (LMA3100)\n"
+                "4. Loss arising from fraud, dishonesty or criminal acts of the Insured\n"
+                "5. Contractual liability unless such liability would have existed in the absence of the contract\n"
+                "6. Fines, penalties, punitive or exemplary damages"
+            ),
+            "CONDITIONS": (
+                "1. CLAIMS NOTIFICATION: The Insured shall give notice to Underwriters as soon as "
+                "practicable of any occurrence which may give rise to a claim under this Policy.\n\n"
+                "2. DUE DILIGENCE: The Insured shall take all reasonable precautions to prevent loss, "
+                "damage or liability.\n\n"
+                "3. COOPERATION: The Insured shall cooperate fully with Underwriters and provide all "
+                "information and assistance as may be reasonably required.\n\n"
+                "4. SUBROGATION: In the event of any payment under this Policy, Underwriters shall be "
+                "subrogated to all the Insured's rights of recovery.\n\n"
+                "5. OTHER INSURANCE: If any loss covered by this Policy is also covered by any other "
+                "insurance, this Policy shall apply in excess of such other insurance."
+            ),
+            "ADDITIONAL CLAUSES": (
+                "The following standard market clauses are incorporated herein:\n\n"
+                "- LMA5096 Several Liability Clause\n"
+                "- LMA5121 Law and Jurisdiction (England and Wales)\n"
+                "- LMA3100 Sanctions Limitation and Exclusion\n"
+                "- NMA1191 Radioactive Contamination Exclusion\n"
+                "- LMA5235 Premium Payment Clause\n"
+                "- NMA358 Claims Notification Clause"
+            ),
+        }
+
+        for section in gap_sections:
+            title_upper = section["title"].strip().upper()
+
+            # Priority 1: Use section-specific defaults
+            default_content = section_defaults.get(title_upper)
+            if default_content:
+                drafted_sections.append({
+                    "section_number": section["section_number"],
+                    "title": section["title"],
+                    "content": default_content,
+                    "source_clauses": [{"id": "standard_default", "source": "standard_default"}],
+                    "source_type": "section_default",
+                })
+                continue
+
+            # Priority 2: Targeted RAG search (higher min_score to avoid irrelevant results)
+            rag_content = ""
+            try:
+                results = await asyncio.wait_for(
+                    self.unified_rag.search(
+                        query=f"{section['title']} Lloyd's insurance policy {risk_category} wording",
                         user_id=user_id,
-                        top_k=5,
-                        min_score=0.3,
-                    )
-                    rag_context = self.unified_rag.format_as_context(results, max_chars=3000)
-                except Exception as e:
-                    logger.warning(f"SectionDrafter RAG search failed for '{section['title']}': {e}")
-
-                rag_block = f"\nREFERENCE WORDINGS (ACORD/CUAD/standard clauses):\n{rag_context}\n" if rag_context else ""
-
-                # Include new assessment fields if available
-                extra_fields = ""
-                broker = assessment_data.get("broker_name", "")
-                commission = assessment_data.get("commission_rate")
-                insured_entity = assessment_data.get("insured_entity_name", "")
-                inception = assessment_data.get("inception_date", "")
-                renewal = assessment_data.get("renewal_date", "")
-                regulatory = assessment_data.get("regulatory_framework", "")
-                if broker:
-                    extra_fields += f"- Broker: {broker}\n"
-                if commission is not None:
-                    extra_fields += f"- Commission: {commission}%\n"
-                if insured_entity:
-                    extra_fields += f"- Insured entity: {insured_entity}\n"
-                if inception:
-                    extra_fields += f"- Inception: {inception}\n"
-                if renewal:
-                    extra_fields += f"- Renewal: {renewal}\n"
-                if regulatory:
-                    extra_fields += f"- Regulatory framework: {regulatory}\n"
-
-                response = await self._run_agent(
-                    "SectionDrafter",
-                    "You are a Lloyd's insurance document drafter. Write professional insurance wording using London market standard language. Use reference wordings as a guide for professional clause language.",
-                    f"""Draft the '{section['title']}' section for a {structure.get('document_type', 'policy')} document.
-
-Assessment details:
-- Risk category: {risk_category}
-- Insured: {assessment_data.get('insured_name', '')}
-- Territory: {assessment_data.get('territory', '')}
-- Premium: {assessment_data.get('premium', '')}
-- Sum insured: {assessment_data.get('sum_insured', '')}
-- Deductible: {assessment_data.get('deductible', '')}
-{extra_fields}{rag_block}{ml_block}
-Draft professional insurance wording. Use Lloyd's market standard language and conventions. Draw from the reference wordings where applicable.""",
-                    temperature=0.2,
+                        top_k=3,
+                        min_score=0.5,
+                    ),
+                    timeout=30,
                 )
+                rag_content = self.unified_rag.format_as_context(results, max_chars=2000)
+            except Exception as e:
+                logger.warning(f"SectionDrafter RAG gap-fill failed for '{section['title']}': {e}")
+
+            if rag_content and rag_content.strip():
+                drafted_sections.append({
+                    "section_number": section["section_number"],
+                    "title": section["title"],
+                    "content": rag_content.strip(),
+                    "source_clauses": [{"id": "rag", "source": "rag"}],
+                    "source_type": "rag",
+                })
+            else:
+                # Priority 3: Single AI call for this gap section
+                try:
+                    response = await asyncio.wait_for(
+                        self._run_agent(
+                            "SectionDrafter",
+                            "You are a Lloyd's insurance document drafter. Write professional insurance wording.",
+                            f"""Draft the '{section['title']}' section for a {structure.get('document_type', 'policy')} document.
+Risk: {risk_category}, Insured: {insured_name}, Territory: {assessment_data.get('territory', '')}, Sum Insured: {assessment_data.get('sum_insured', '')}
+Write concise, professional Lloyd's market standard wording.""",
+                            temperature=0.2,
+                        ),
+                        timeout=90,
+                    )
+                except asyncio.TimeoutError:
+                    response = None
 
                 drafted_sections.append({
                     "section_number": section["section_number"],
                     "title": section["title"],
-                    "content": response or f"[Section: {section['title']} — content pending]",
+                    "content": response or f"[{section['title']} - To be completed]",
                     "source_clauses": [{"id": "ai_generated", "source": "ai_generated"}],
+                    "source_type": "ai_generated",
+                    "requires_review": True,
                 })
 
+        # Sort by section number
+        drafted_sections.sort(key=lambda s: int(str(s.get("section_number", 0)).split(".")[0]) if str(s.get("section_number", "0")).split(".")[0].isdigit() else 0)
+
+        logger.info(f"SectionDrafter: completed {len(drafted_sections)} sections "
+                     f"(template={template_hits}, clause={clause_hits}, gaps={gap_count})")
         return drafted_sections
 
     async def agent_consistency_checker(
@@ -598,11 +867,15 @@ Draft professional insurance wording. Use Lloyd's market standard language and c
             f"""Check consistency across all sections of this insurance document.
 
 Assessment values:
-- Insured: {assessment_data.get('insured_name', '')}
+- Insured: {assessment_data.get('insured_entity_name') or assessment_data.get('insured_name', '')}
+- Broker: {assessment_data.get('broker_name', '')}
+- Commission: {assessment_data.get('commission_rate', '')}%
 - Premium: {assessment_data.get('premium', '')}
 - Sum insured: {assessment_data.get('sum_insured', '')}
 - Deductible: {assessment_data.get('deductible', '')}
 - Territory: {assessment_data.get('territory', '')}
+- Inception: {assessment_data.get('inception_date', '')}
+- Expiry: {assessment_data.get('expiry_date', '')}
 
 Sections:
 {section_summary}
@@ -701,7 +974,10 @@ Use these data-driven signals to inform your risk challenge.
             f"""Challenge this insurance document's coverage adequacy.
 
 Risk: {risk_category} in {territory}
+Insured: {assessment_data.get('insured_entity_name') or assessment_data.get('insured_name', '')}
 Sum insured: {assessment_data.get('sum_insured', '')}
+Inception: {assessment_data.get('inception_date', '')}
+Broker: {assessment_data.get('broker_name', '')}
 Sections: {', '.join(s['title'] for s in drafted_sections[:20])}
 {rag_block}{ml_block}
 
@@ -809,6 +1085,9 @@ Verify that mandatory clause categories from the ML model are present in the doc
 Document sections: {', '.join(s['title'] for s in drafted_sections[:20])}
 Risk category: {risk_category}
 Territory: {territory}
+Insured: {assessment_data.get('insured_entity_name') or assessment_data.get('insured_name', '')}
+Regulatory framework: {assessment_data.get('regulatory_framework', 'N/A')}
+Loss run reporting rules: {assessment_data.get('loss_run_reporting_rules', 'N/A')}
 {rag_block}{ml_block}
 
 Check for:
@@ -1209,7 +1488,21 @@ Return ONLY valid JSON:
         if doc_types:
             recommended_docs = [d for d in recommended_docs if d.get("type") in doc_types]
         if not recommended_docs:
-            recommended_docs = [{"type": "policy_wording", "name": "Policy Wording", "priority": "mandatory"}]
+            # Build from requested doc_types if AI didn't return matching recommendations
+            if doc_types:
+                recommended_docs = [{"type": dt, "name": dt.replace("_", " ").title(), "priority": "mandatory"} for dt in doc_types]
+            else:
+                recommended_docs = [{"type": "policy_wording", "name": "Policy Wording", "priority": "mandatory"}]
+        # Deduplicate by document type (keep first occurrence)
+        seen_types = set()
+        unique_docs = []
+        for d in recommended_docs:
+            dt = d.get("type", "policy_wording")
+            if dt not in seen_types:
+                seen_types.add(dt)
+                unique_docs.append(d)
+        recommended_docs = unique_docs
+        logger.info(f"Document generation: requested={doc_types}, generating={[d.get('type') for d in recommended_docs]}")
 
         # Generate each document type
         for doc_req in recommended_docs:
@@ -1314,7 +1607,7 @@ Return ONLY valid JSON:
 
             formatted_doc = {
                 "document_type": doc_type,
-                "title": f"{doc_type.replace('_', ' ').title()} — {assessment_data.get('insured_name', 'Insured')}",
+                "title": f"{doc_type.replace('_', ' ').title()} — {assessment_data.get('insured_entity_name') or assessment_data.get('insured_name', 'Insured')}",
                 "generated_at": datetime.utcnow().isoformat(),
                 "sections": doc_content,
                 "total_sections": len(doc_content),

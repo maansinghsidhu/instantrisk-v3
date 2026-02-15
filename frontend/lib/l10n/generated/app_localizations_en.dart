@@ -783,7 +783,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiPoweredAnalysis => 'InstantRisk Engine Analysis';
 
   @override
-  String get riskTypeAutoDetected => 'Risk type will be automatically detected from your documents using OCR & AI';
+  String get riskTypeAutoDetected => 'Risk type will be automatically detected from your documents using the InstantRisk Engine';
 
   @override
   String get addDocuments => 'Add Documents';

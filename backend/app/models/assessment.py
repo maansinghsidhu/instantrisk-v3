@@ -42,6 +42,10 @@ class RiskCategory(str, enum.Enum):
     SPECIALTY = "specialty"
     CYBER = "cyber"
     FINANCIAL_LINES = "financial_lines"
+    PROFESSIONAL_INDEMNITY = "professional_indemnity"
+    GENERAL_LIABILITY = "general_liability"
+    DIRECTORS_AND_OFFICERS = "directors_and_officers"
+    LIFE_AND_HEALTH = "life_and_health"
 
 
 class Assessment(Base):

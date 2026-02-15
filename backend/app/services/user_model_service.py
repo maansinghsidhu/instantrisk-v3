@@ -308,6 +308,26 @@ class UserModelService:
         clause_labels = config.get("clause_labels", [])
         num_clause = len(clause_labels) or 134
 
+        # Category-aware boosting: document type influences pseudo-label confidence
+        CATEGORY_APPETITE_BOOST = {
+            "loss_run": {"refer": 2, "decline": 1},       # Loss data → cautious
+            "claims": {"refer": 2, "decline": 1},         # Claims data → cautious
+            "underwriting": {"accept": 2},                  # Guidelines → acceptance criteria
+            "regulatory": {"refer": 1, "decline": 1},     # Regulatory → compliance concerns
+            "slip_template": {"accept": 1},                 # Placing slips → accepted risks
+            "market": {},                                    # Neutral
+            "clause_library": {},                            # Neutral
+            "endorsement": {"accept": 1},                   # Endorsed → accepted
+            "policy": {},                                    # Generic, no boost
+        }
+        CATEGORY_PRICING_BOOST = {
+            "loss_run": {"high": 2},                        # Loss runs indicate pricing pressure
+            "claims": {"high": 1},                          # Claims data → higher pricing signal
+            "underwriting": {},                              # Neutral
+            "market": {"medium": 1},                        # Market data → benchmark pricing
+            "policy": {},
+        }
+
         for chunk in chunks:
             text = chunk["text"].lower()
             category = chunk["category"].lower()
@@ -333,24 +353,34 @@ class UserModelService:
             if found_clause:
                 clause_data.append((chunk["text"], clause_label))
 
-            # --- Appetite pseudo-labels ---
+            # --- Appetite pseudo-labels (with category boosting) ---
             appetite_scores = {k: 0 for k in APPETITE_KEYWORDS}
             for label, keywords in APPETITE_KEYWORDS.items():
                 for kw in keywords:
                     if kw in text:
                         appetite_scores[label] += 1
 
+            # Apply category-aware boosts
+            cat_appetite_boost = CATEGORY_APPETITE_BOOST.get(category, {})
+            for label, boost in cat_appetite_boost.items():
+                appetite_scores[label] += boost
+
             best_appetite = max(appetite_scores, key=appetite_scores.get)
             if appetite_scores[best_appetite] > 0:
                 label_idx = ["accept", "refer", "decline"].index(best_appetite)
                 appetite_data.append((chunk["text"], label_idx))
 
-            # --- Pricing pseudo-labels ---
+            # --- Pricing pseudo-labels (with category boosting) ---
             pricing_scores = {k: 0 for k in PRICING_KEYWORDS}
             for label, keywords in PRICING_KEYWORDS.items():
                 for kw in keywords:
                     if kw in text:
                         pricing_scores[label] += 1
+
+            # Apply category-aware boosts
+            cat_pricing_boost = CATEGORY_PRICING_BOOST.get(category, {})
+            for label, boost in cat_pricing_boost.items():
+                pricing_scores[label] += boost
 
             best_pricing = max(pricing_scores, key=pricing_scores.get)
             if pricing_scores[best_pricing] > 0:

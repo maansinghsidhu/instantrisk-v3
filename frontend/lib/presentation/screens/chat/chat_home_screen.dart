@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/chat_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../widgets/common/screen_header.dart';
 
 /// Chat Home Screen - List of chat conversations with AI assistant
 class ChatHomeScreen extends StatefulWidget {
@@ -65,74 +66,21 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
             slivers: [
               // Header
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                l10n.chat,
-                                style: const TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.textPrimary,
-                                  fontFamily: 'Inter',
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [AppTheme.primaryDark, AppTheme.accent],
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Text(
-                                  'RAG',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            l10n.analysis,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AppTheme.textSecondary,
-                              fontFamily: 'Inter',
-                            ),
-                          ),
-                        ],
+                child: ScreenHeader(
+                  title: l10n.chat,
+                  subtitle: l10n.analysis,
+                  badge: 'RAG-Powered',
+                  badgeColor: AppTheme.primaryLight,
+                  actions: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
                       ),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppTheme.primaryDark, AppTheme.accent],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.auto_awesome,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                    ],
-                  ),
+                      child: const Icon(Icons.auto_awesome, color: Colors.white, size: 22),
+                    ),
+                  ],
                 ),
               ),
 
@@ -142,16 +90,12 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Container(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppTheme.primaryDark, AppTheme.primaryLight],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: AppTheme.primaryDark,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primaryDark.withOpacity(0.3),
-                          blurRadius: 12,
+                          color: AppTheme.primaryDark.withOpacity(0.2),
+                          blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
                       ],
@@ -433,9 +377,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppTheme.primaryDark.withOpacity(0.1), AppTheme.accent.withOpacity(0.1)],
-                    ),
+                    color: AppTheme.primaryDark.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -509,9 +451,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppTheme.primaryDark.withOpacity(0.1), AppTheme.accent.withOpacity(0.1)],
-              ),
+              color: AppTheme.primaryDark.withOpacity(0.08),
               shape: BoxShape.circle,
             ),
             child: const Icon(

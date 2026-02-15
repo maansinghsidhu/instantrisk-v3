@@ -696,6 +696,18 @@ class DocumentGenerationPipeline:
                 "confidence": 0.85,
                 "requires_review": False
             },
+            "insured_entity_name": {
+                "value": safe_get(assessment, 'insured_entity_name'),
+                "source": "assessment",
+                "confidence": 1.0 if assessment.get('insured_entity_name') else 0.0,
+                "requires_review": not assessment.get('insured_entity_name')
+            },
+            "companies_house_number": {
+                "value": safe_get(assessment, 'companies_house_number'),
+                "source": "assessment",
+                "confidence": 1.0 if assessment.get('companies_house_number') else 0.0,
+                "requires_review": not assessment.get('companies_house_number')
+            },
 
             # Financial Information
             "premium": {
@@ -800,13 +812,39 @@ class DocumentGenerationPipeline:
                 "confidence": 0.9,
                 "requires_review": False
             },
+            "renewal_date": {
+                "value": format_date(safe_get(assessment, 'renewal_date')),
+                "source": "assessment",
+                "confidence": 1.0 if assessment.get('renewal_date') else 0.0,
+                "requires_review": not assessment.get('renewal_date')
+            },
+
+            # Regulatory
+            "regulatory_framework": {
+                "value": safe_get(assessment, 'regulatory_framework'),
+                "source": "assessment",
+                "confidence": 1.0 if assessment.get('regulatory_framework') else 0.0,
+                "requires_review": not assessment.get('regulatory_framework')
+            },
+            "loss_run_reporting_rules": {
+                "value": safe_get(assessment, 'loss_run_reporting_rules'),
+                "source": "assessment",
+                "confidence": 1.0 if assessment.get('loss_run_reporting_rules') else 0.0,
+                "requires_review": not assessment.get('loss_run_reporting_rules')
+            },
 
             # Broker Information
             "broker_name": {
-                "value": safe_get(broker_data, 'name'),
-                "source": "extraction",
-                "confidence": 0.9 if broker_data.get('name') else 0.0,
-                "requires_review": not broker_data.get('name')
+                "value": safe_get(assessment, 'broker_name') or safe_get(broker_data, 'name'),
+                "source": "assessment" if assessment.get('broker_name') else "extraction",
+                "confidence": 1.0 if assessment.get('broker_name') else (0.9 if broker_data.get('name') else 0.0),
+                "requires_review": not (assessment.get('broker_name') or broker_data.get('name'))
+            },
+            "commission_rate": {
+                "value": f"{safe_get(assessment, 'commission_rate')}%" if assessment.get('commission_rate') else None,
+                "source": "assessment",
+                "confidence": 1.0 if assessment.get('commission_rate') else 0.0,
+                "requires_review": not assessment.get('commission_rate')
             },
             "broker_contact": {
                 "value": safe_get(broker_data, 'contact'),
@@ -2479,14 +2517,21 @@ ASSESSMENT DETAILS:
 - Risk Category: {assessment.get('risk_category', 'N/A')}
 - Decision: {assessment.get('decision', 'PENDING')}
 - Insured: {assessment.get('insured_name', 'N/A')}
+- Insured Entity: {assessment.get('insured_entity_name', 'N/A')}
+- Companies House: {assessment.get('companies_house_number', 'N/A')}
+- Broker: {assessment.get('broker_name', 'N/A')}
 - Broker Reference: {assessment.get('broker_reference', 'N/A')}
+- Commission: {assessment.get('commission_rate', 'N/A')}%
 - Premium: {assessment.get('premium', 'N/A')}
 - Sum Insured: {assessment.get('sum_insured', 'N/A')}
 - Deductible: {assessment.get('deductible', 'N/A')}
 - Territory: {assessment.get('territory', 'N/A')}
 - Inception Date: {assessment.get('inception_date', 'N/A')}
 - Expiry Date: {assessment.get('expiry_date', 'N/A')}
+- Renewal Date: {assessment.get('renewal_date', 'N/A')}
 - Risk Score: {assessment.get('risk_score', 'N/A')}
+- Regulatory Framework: {assessment.get('regulatory_framework', 'N/A')}
+- Loss Run Rules: {assessment.get('loss_run_reporting_rules', 'N/A')}
 """
 
     async def _analyze_requirements(self, assessment_summary: str, progress: DocumentGenerationProgress = None) -> Dict:

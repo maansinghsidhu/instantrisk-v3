@@ -33,6 +33,7 @@ import '../screens/settings/settings_screen.dart';
 import '../screens/settings/profile_screen.dart';
 import '../screens/settings/subscription_screen.dart';
 import '../screens/settings/language_screen.dart';
+import '../screens/settings/appearance_screen.dart';
 import '../screens/settings/repository_screen.dart';
 import '../screens/settings/team_management_screen.dart';
 import '../screens/settings/two_factor_screen.dart';
@@ -540,6 +541,11 @@ class AppRouter {
                 path: 'language',
                 name: 'language',
                 builder: (context, state) => const LanguageScreen(),
+              ),
+              GoRoute(
+                path: 'appearance',
+                name: 'appearance',
+                builder: (context, state) => const AppearanceScreen(),
               ),
               GoRoute(
                 path: 'repository',

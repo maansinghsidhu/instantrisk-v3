@@ -5,9 +5,11 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/documents_prefetch_service.dart';
 import '../../../core/services/language_service.dart';
+import '../../../core/services/theme_service.dart';
 import '../../../core/services/subscription_service.dart';
 import '../../../core/models/language_model.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../widgets/common/screen_header.dart';
 
 /// Settings Screen - App settings and account management
 class SettingsScreen extends ConsumerWidget {
@@ -19,6 +21,19 @@ class SettingsScreen extends ConsumerWidget {
     if (user == null) return false;
     final role = user['role']?.toString().toLowerCase();
     return role == 'admin' || role == 'superadmin';
+  }
+
+  /// Get current theme mode label
+  String _getThemeModeLabel(WidgetRef ref) {
+    final mode = ref.watch(themeProvider).themeModeString;
+    switch (mode) {
+      case 'light':
+        return 'Light mode';
+      case 'dark':
+        return 'Dark mode';
+      default:
+        return 'System default';
+    }
   }
 
   /// Get badge text for pending approvals (only shown for admins)
@@ -42,17 +57,9 @@ class SettingsScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Text(
-                  l10n.settings,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
-                    fontFamily: 'Inter',
-                  ),
-                ),
+              ScreenHeader(
+                title: l10n.settings,
+                subtitle: 'Account & preferences',
               ),
 
               // Profile Card
@@ -200,9 +207,9 @@ class SettingsScreen extends ConsumerWidget {
                   context,
                   icon: Icons.palette_outlined,
                   title: l10n.appearance,
-                  subtitle: l10n.appearanceSubtitle,
+                  subtitle: _getThemeModeLabel(ref),
                   onTap: () {
-                    // TODO: Navigate to appearance settings
+                    context.push('/settings/appearance');
                   },
                 ),
               ]),

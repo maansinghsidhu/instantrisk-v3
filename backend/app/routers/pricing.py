@@ -231,47 +231,56 @@ async def calculate_technical_price(
     Returns:
         TechnicalPriceResponse with premium and risk analysis.
     """
-    # Calculate technical premium
-    pricing_data = _calculate_technical_premium(
-        limit=request.limit_of_liability,
-        class_of_business=request.class_of_business,
-        territory=request.territory,
-        additional_factors=request.additional_factors or {},
-    )
+    try:
+        # Calculate technical premium
+        pricing_data = _calculate_technical_premium(
+            limit=request.limit_of_liability,
+            class_of_business=request.class_of_business,
+            territory=request.territory,
+            additional_factors=request.additional_factors or {},
+        )
 
-    # Save pricing result
-    pricing_result = PricingResult(
-        assessment_id=request.assessment_id,
-        model_id=None,  # No specific model used in simplified version
-        technical_premium=pricing_data["technical_premium"],
-        currency=request.currency,
-        risk_score=pricing_data["risk_score"],
-        risk_category=pricing_data["risk_category"],
-        confidence_interval_low=pricing_data["confidence_low"],
-        confidence_interval_high=pricing_data["confidence_high"],
-        loading_factors=pricing_data["loading_factors"],
-        key_drivers=pricing_data["key_drivers"],
-        explanation={"text": pricing_data["explanation"]},
-    )
+        # Try to save pricing result to DB
+        try:
+            pricing_result = PricingResult(
+                assessment_id=request.assessment_id,
+                model_id=None,
+                technical_premium=pricing_data["technical_premium"],
+                currency=request.currency,
+                risk_score=pricing_data["risk_score"],
+                risk_category=pricing_data["risk_category"],
+                confidence_interval_low=pricing_data["confidence_low"],
+                confidence_interval_high=pricing_data["confidence_high"],
+                loading_factors=pricing_data["loading_factors"],
+                key_drivers=pricing_data["key_drivers"],
+                explanation={"text": pricing_data["explanation"]},
+            )
+            db.add(pricing_result)
+            await db.commit()
+            await db.refresh(pricing_result)
+            pricing_id = pricing_result.id
+        except Exception:
+            await db.rollback()
+            pricing_id = 0  # DB save failed (e.g. FK constraint) — still return pricing
 
-    db.add(pricing_result)
-    await db.commit()
-    await db.refresh(pricing_result)
-
-    return TechnicalPriceResponse(
-        pricing_id=pricing_result.id,
-        assessment_id=request.assessment_id,
-        technical_premium=pricing_data["technical_premium"],
-        currency=request.currency,
-        risk_score=pricing_data["risk_score"],
-        risk_category=pricing_data["risk_category"],
-        confidence_low=pricing_data["confidence_low"],
-        confidence_high=pricing_data["confidence_high"],
-        loading_factors=pricing_data["loading_factors"],
-        key_drivers=pricing_data["key_drivers"],
-        explanation=pricing_data["explanation"],
-        calculated_at=datetime.now(timezone.utc),
-    )
+        return TechnicalPriceResponse(
+            pricing_id=pricing_id,
+            assessment_id=request.assessment_id,
+            technical_premium=pricing_data["technical_premium"],
+            currency=request.currency,
+            risk_score=pricing_data["risk_score"],
+            risk_category=pricing_data["risk_category"],
+            confidence_low=pricing_data["confidence_low"],
+            confidence_high=pricing_data["confidence_high"],
+            loading_factors=pricing_data["loading_factors"],
+            key_drivers=pricing_data["key_drivers"],
+            explanation=pricing_data["explanation"],
+            calculated_at=datetime.now(timezone.utc),
+        )
+    except Exception as e:
+        import traceback
+        print(f"TECHNICAL PRICE ERROR: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Failed to calculate price: {str(e)}")
 
 
 @router.post("/quote", response_model=QuoteResponse, status_code=status.HTTP_201_CREATED)

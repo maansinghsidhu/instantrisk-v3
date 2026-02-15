@@ -10,6 +10,7 @@ import 'core/theme/app_theme.dart';
 import 'core/config/app_config.dart';
 import 'core/services/auth_service.dart';
 import 'core/services/language_service.dart';
+import 'core/services/theme_service.dart';
 import 'presentation/router/app_router.dart';
 import 'l10n/generated/app_localizations.dart';
 
@@ -22,8 +23,9 @@ void main() async {
   // Initialize Hive for local storage
   await Hive.initFlutter();
 
-  // Initialize language service
+  // Initialize language and theme services
   await languageService.init();
+  await themeService.init();
 
   // Initialize auth service
   await authService.init();
@@ -103,13 +105,16 @@ class _InstantRiskAppState extends ConsumerState<InstantRiskApp> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch language state for reactive locale changes
+    // Watch language and theme state for reactive changes
     final languageState = ref.watch(languageProvider);
+    final themeState = ref.watch(themeProvider);
 
     return MaterialApp.router(
       title: AppConfig.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeState.themeMode,
       routerConfig: AppRouter.router,
       // Localization support
       locale: languageState.locale,

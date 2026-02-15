@@ -6,6 +6,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/documents_prefetch_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../widgets/common/screen_header.dart';
 
 /// Documents Hub Screen - V3 Document Center
 /// Entry point for all document operations - viewing, creating, and managing documents
@@ -141,47 +142,25 @@ class _DocumentsHubScreenState extends State<DocumentsHubScreen> {
       backgroundColor: AppTheme.background,
       body: CustomScrollView(
         slivers: [
-          // Custom App Bar
-          SliverAppBar(
-            expandedHeight: 120,
-            floating: false,
-            pinned: true,
-            backgroundColor: AppTheme.primaryDark,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-              onPressed: () => context.go('/home'),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.search, color: Colors.white),
-                onPressed: _showSearchDialog,
+          // Unified Header
+          SliverToBoxAdapter(
+            child: ScreenHeader(
+              title: AppLocalizations.of(context).documentCenter,
+              subtitle: 'Manage and generate documents',
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+                onPressed: () => context.go('/home'),
               ),
-              IconButton(
-                icon: const Icon(Icons.refresh, color: Colors.white),
-                onPressed: _loadData,
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                AppLocalizations.of(context).documentCenter,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.search, color: Colors.white),
+                  onPressed: _showSearchDialog,
                 ),
-              ),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppTheme.primaryDark,
-                      AppTheme.primaryLight,
-                    ],
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  onPressed: _loadData,
                 ),
-              ),
+              ],
             ),
           ),
 

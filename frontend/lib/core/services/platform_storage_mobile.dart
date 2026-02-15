@@ -23,7 +23,7 @@ class PlatformStorage {
   }
 }
 
-/// On mobile, use the hardcoded URL since there is no browser location.
+/// On mobile/desktop, use the ALB URL since there is no browser location.
 String getPlatformBaseUrl() {
-  return "https://ir.alexandratechlab.com/api/v1";
+  return "http://instantrisk-alb-307384033.us-east-1.elb.amazonaws.com/api/v1";
 }

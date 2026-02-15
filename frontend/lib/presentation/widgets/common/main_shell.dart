@@ -35,6 +35,8 @@ class _MainShellState extends State<MainShell> {
         body: Row(
           children: [
             _Sidebar(onNavigate: null),
+            // Subtle divider between sidebar and content
+            Container(width: 0.5, color: AppTheme.border.withOpacity(0.3)),
             Expanded(child: widget.child),
           ],
         ),
@@ -46,25 +48,26 @@ class _MainShellState extends State<MainShell> {
       return Scaffold(
         key: _scaffoldKey,
         appBar: AppBar(
-          backgroundColor: AppTheme.primaryDark,
+          backgroundColor: AppTheme.darkBg,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.menu, color: Colors.white),
+            icon: const Icon(Icons.menu_rounded, color: Colors.white70, size: 22),
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
           title: Row(
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.asset('assets/images/logo-icon.png', width: 32, height: 32, fit: BoxFit.contain),
+                child: Image.asset('assets/images/logo-icon.png', width: 28, height: 28, fit: BoxFit.contain),
               ),
               const SizedBox(width: 10),
               Text(
                 AppLocalizations.of(context)?.appName ?? 'InstantRisk',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.w600,
+                  letterSpacing: -0.3,
                 ),
               ),
             ],
@@ -88,7 +91,7 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-/// Sidebar for Web/Desktop
+/// Sidebar for Web/Desktop — Clean, modern, ChatGPT-inspired
 class _Sidebar extends StatelessWidget {
   final VoidCallback? onNavigate;
 
@@ -97,11 +100,10 @@ class _Sidebar extends StatelessWidget {
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/home')) return 0;
-    if (location.startsWith('/reports')) return 1;  // Assessments
-    if (location.startsWith('/chat')) return 2;  // AI Chat
+    if (location.startsWith('/reports')) return 1;
+    if (location.startsWith('/chat')) return 2;
     if (location.startsWith('/training')) return 3;
     if (location.startsWith('/documents')) return 4;
-    // Settings includes Lloyd's Market pages
     if (location.startsWith('/settings') || location.startsWith('/lloyds')) return 5;
     return 0;
   }
@@ -109,24 +111,12 @@ class _Sidebar extends StatelessWidget {
   void _onItemTapped(BuildContext context, int index) {
     onNavigate?.call();
     switch (index) {
-      case 0:
-        context.go('/home');
-        break;
-      case 1:
-        context.go('/reports');  // Assessments
-        break;
-      case 2:
-        context.go('/chat');
-        break;
-      case 3:
-        context.go('/training');
-        break;
-      case 4:
-        context.go('/documents');
-        break;
-      case 5:
-        context.go('/settings');
-        break;
+      case 0: context.go('/home'); break;
+      case 1: context.go('/reports'); break;
+      case 2: context.go('/chat'); break;
+      case 3: context.go('/training'); break;
+      case 4: context.go('/documents'); break;
+      case 5: context.go('/settings'); break;
     }
   }
 
@@ -137,7 +127,7 @@ class _Sidebar extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.lock, color: Colors.amber),
+            Icon(Icons.lock_outline_rounded, color: Colors.amber.shade600, size: 20),
             const SizedBox(width: 8),
             const Text('Premium Feature'),
           ],
@@ -155,9 +145,6 @@ class _Sidebar extends StatelessWidget {
               Navigator.pop(ctx);
               context.go('/settings/subscription');
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryDark,
-            ),
             child: const Text('Upgrade'),
           ),
         ],
@@ -170,139 +157,76 @@ class _Sidebar extends StatelessWidget {
     final selectedIndex = _calculateSelectedIndex(context);
 
     return Container(
-      width: 240,
-      decoration: BoxDecoration(
-        color: AppTheme.darkBg,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(2, 0),
-          ),
-        ],
-      ),
+      width: 260,
+      color: AppTheme.darkBg,
       child: Column(
         children: [
-          // Logo Header (only shown when not in drawer)
-          if (onNavigate == null)
-            Container(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.asset('assets/images/logo-icon.png', width: 44, height: 44, fit: BoxFit.contain),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      AppLocalizations.of(context).appName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
+          // Logo Header
+          Container(
+            padding: EdgeInsets.fromLTRB(20, onNavigate != null ? 48 : 20, 20, 16),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset('assets/images/logo-icon.png', width: 36, height: 36, fit: BoxFit.contain),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    AppLocalizations.of(context).appName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.3,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
+          ),
 
-          // Drawer header
-          if (onNavigate != null)
-            Container(
-              padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.asset('assets/images/logo-icon.png', width: 44, height: 44, fit: BoxFit.contain),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      AppLocalizations.of(context).appName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            height: 0.5,
+            color: Colors.white.withOpacity(0.08),
+          ),
+          const SizedBox(height: 12),
 
-          const Divider(color: Colors.white24, height: 1),
-          const SizedBox(height: 16),
-
-          // Navigation Items - Simplified (Lloyd's moved to Settings)
+          // Navigation Items
           Expanded(
             child: Builder(
               builder: (context) {
                 final l10n = AppLocalizations.of(context)!;
                 return ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
                   children: [
                     _SidebarItem(
-                      icon: Icons.dashboard_outlined,
-                      activeIcon: Icons.dashboard,
+                      icon: Icons.grid_view_rounded,
                       label: l10n.dashboard,
                       isSelected: selectedIndex == 0,
                       onTap: () => _onItemTapped(context, 0),
                     ),
                     _SidebarItem(
-                      icon: Icons.assessment_outlined,
-                      activeIcon: Icons.assessment,
+                      icon: Icons.description_outlined,
                       label: l10n.reports,
                       isSelected: selectedIndex == 1,
                       onTap: () => _onItemTapped(context, 1),
                     ),
 
-                    const SizedBox(height: 24),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        l10n.analytics.toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                    const _SectionLabel(label: 'ANALYTICS'),
 
                     _SidebarItem(
-                      icon: Icons.chat_bubble_outline,
-                      activeIcon: Icons.chat_bubble,
+                      icon: Icons.auto_awesome_outlined,
                       label: l10n.chat,
                       isSelected: selectedIndex == 2,
                       onTap: () => _onItemTapped(context, 2),
-                      showBadge: false,
-                      isPremium: false,
                     ),
 
-                    const SizedBox(height: 24),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        l10n.documents.toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                    const _SectionLabel(label: 'DOCUMENTS'),
 
-                    // Training - Upload docs to improve AI
                     _SidebarItem(
-                      icon: Icons.model_training_outlined,
-                      activeIcon: Icons.model_training,
+                      icon: Icons.school_outlined,
                       label: 'Training',
                       isSelected: selectedIndex == 3,
                       onTap: subscriptionService.isPremium
@@ -310,10 +234,8 @@ class _Sidebar extends StatelessWidget {
                           : () => _showSidebarUpgradeDialog(context, 'Training'),
                       isPremium: !subscriptionService.isPremium,
                     ),
-                    // Documents - Premium only (show with PRO badge for lower tiers)
                     _SidebarItem(
                       icon: Icons.folder_outlined,
-                      activeIcon: Icons.folder,
                       label: l10n.documents,
                       isSelected: selectedIndex == 4,
                       onTap: subscriptionService.isPremium
@@ -322,24 +244,10 @@ class _Sidebar extends StatelessWidget {
                       isPremium: !subscriptionService.isPremium,
                     ),
 
-                    const SizedBox(height: 24),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        l10n.settings.toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                    const _SectionLabel(label: 'PREFERENCES'),
 
                     _SidebarItem(
-                      icon: Icons.settings_outlined,
-                      activeIcon: Icons.settings,
+                      icon: Icons.tune_rounded,
                       label: l10n.settings,
                       isSelected: selectedIndex == 5,
                       onTap: () => _onItemTapped(context, 5),
@@ -350,7 +258,7 @@ class _Sidebar extends StatelessWidget {
             ),
           ),
 
-          // User Profile at bottom - with popup menu
+          // User Profile at bottom
           _UserProfileMenu(onNavigate: onNavigate),
         ],
       ),
@@ -358,9 +266,29 @@ class _Sidebar extends StatelessWidget {
   }
 }
 
-class _SidebarItem extends StatelessWidget {
+class _SectionLabel extends StatelessWidget {
+  final String label;
+  const _SectionLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 20, 14, 6),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: Colors.white.withOpacity(0.3),
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarItem extends StatefulWidget {
   final IconData icon;
-  final IconData activeIcon;
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
@@ -369,7 +297,6 @@ class _SidebarItem extends StatelessWidget {
 
   const _SidebarItem({
     required this.icon,
-    required this.activeIcon,
     required this.label,
     required this.isSelected,
     required this.onTap,
@@ -378,88 +305,79 @@ class _SidebarItem extends StatelessWidget {
   });
 
   @override
+  State<_SidebarItem> createState() => _SidebarItemState();
+}
+
+class _SidebarItemState extends State<_SidebarItem> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
+    final isActive = widget.isSelected;
+    final showHover = _isHovered && !isActive;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
+      padding: const EdgeInsets.only(bottom: 2),
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: isSelected ? Colors.white.withOpacity(0.15) : Colors.transparent,
-              borderRadius: BorderRadius.circular(10),
+              color: isActive
+                  ? Colors.white.withOpacity(0.12)
+                  : showHover
+                      ? Colors.white.withOpacity(0.06)
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Icon(
-                      isSelected ? activeIcon : icon,
-                      color: isSelected ? Colors.white : Colors.white70,
-                      size: 22,
-                    ),
-                    if (showBadge && !isSelected)
-                      Positioned(
-                        right: -4,
-                        top: -4,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: AppTheme.danger,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                  ],
+                Icon(
+                  widget.icon,
+                  color: isActive ? Colors.white : Colors.white.withOpacity(0.55),
+                  size: 20,
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                            color: isSelected ? Colors.white : Colors.white70,
-                          ),
-                        ),
-                      ),
-                      if (isPremium) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.amber,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            'PRO',
-                            style: TextStyle(
-                              color: Colors.black87,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+                  child: Text(
+                    widget.label,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                      color: isActive ? Colors.white : Colors.white.withOpacity(0.7),
+                      letterSpacing: -0.1,
+                    ),
                   ),
                 ),
-                if (isSelected)
+                if (widget.isPremium)
                   Container(
-                    width: 4,
-                    height: 20,
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                     decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'PRO',
+                      style: TextStyle(
+                        color: Colors.amber.shade400,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                if (widget.showBadge && !isActive)
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
                       color: AppTheme.accent,
-                      borderRadius: BorderRadius.circular(2),
+                      shape: BoxShape.circle,
                     ),
                   ),
               ],
@@ -471,41 +389,27 @@ class _SidebarItem extends StatelessWidget {
   }
 }
 
-/// Bottom Navigation Bar for Mobile - 5 tabs with Training
+/// Bottom Navigation Bar — Clean, minimal
 class _BottomNavBar extends StatelessWidget {
   const _BottomNavBar();
 
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
-
-    // Dashboard → Assessments → Training → AI Chat → Settings
     if (location.startsWith('/home')) return 0;
     if (location.startsWith('/reports')) return 1;
     if (location.startsWith('/training') || location.startsWith('/documents')) return 2;
     if (location.startsWith('/chat')) return 3;
-    // Settings tab includes Lloyd's Market pages
     if (location.startsWith('/settings') || location.startsWith('/lloyds')) return 4;
-
     return 0;
   }
 
   void _onItemTapped(BuildContext context, int index) {
     switch (index) {
-      case 0:
-        context.go('/home');
-        break;
-      case 1:
-        context.go('/reports');
-        break;
-      case 2:
-        context.go('/documents');
-        break;
-      case 3:
-        context.go('/chat');
-        break;
-      case 4:
-        context.go('/settings');
-        break;
+      case 0: context.go('/home'); break;
+      case 1: context.go('/reports'); break;
+      case 2: context.go('/documents'); break;
+      case 3: context.go('/chat'); break;
+      case 4: context.go('/settings'); break;
     }
   }
 
@@ -515,7 +419,7 @@ class _BottomNavBar extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.lock, color: Colors.amber),
+            Icon(Icons.lock_outline_rounded, color: Colors.amber.shade600, size: 20),
             const SizedBox(width: 8),
             const Text('Premium Feature'),
           ],
@@ -533,9 +437,6 @@ class _BottomNavBar extends StatelessWidget {
               Navigator.pop(ctx);
               context.go('/settings/subscription');
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryDark,
-            ),
             child: const Text('Upgrade'),
           ),
         ],
@@ -549,43 +450,35 @@ class _BottomNavBar extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.darkBg,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
+        color: AppTheme.surface,
+        border: Border(
+          top: BorderSide(color: AppTheme.border.withOpacity(0.5), width: 0.5),
+        ),
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _NavItem(
                 key: const Key('navTab_0'),
-                icon: Icons.dashboard_outlined,
-                activeIcon: Icons.dashboard,
+                icon: Icons.grid_view_rounded,
                 label: AppLocalizations.of(context)?.home ?? 'Home',
                 isSelected: selectedIndex == 0,
                 onTap: () => _onItemTapped(context, 0),
               ),
               _NavItem(
                 key: const Key('navTab_1'),
-                icon: Icons.assessment_outlined,
-                activeIcon: Icons.assessment,
+                icon: Icons.description_outlined,
                 label: AppLocalizations.of(context)?.reports ?? 'Assess',
                 isSelected: selectedIndex == 1,
                 onTap: () => _onItemTapped(context, 1),
               ),
-              // Documents - Premium only (show with lock for lower tiers)
               _NavItem(
                 key: const Key('navTab_2'),
-                icon: Icons.description_outlined,
-                activeIcon: Icons.description,
+                icon: Icons.folder_outlined,
                 label: 'Docs',
                 isSelected: selectedIndex == 2,
                 onTap: subscriptionService.isPremium
@@ -593,21 +486,16 @@ class _BottomNavBar extends StatelessWidget {
                     : () => _showUpgradeDialog(context, 'Documents'),
                 isPremium: !subscriptionService.isPremium,
               ),
-              // Chat
               _NavItem(
                 key: const Key('navTab_3'),
-                icon: Icons.chat_bubble_outline,
-                activeIcon: Icons.chat_bubble,
+                icon: Icons.auto_awesome_outlined,
                 label: AppLocalizations.of(context)?.chat ?? 'Chat',
                 isSelected: selectedIndex == 3,
                 onTap: () => _onItemTapped(context, 3),
-                showBadge: false,
-                isPremium: false,
               ),
               _NavItem(
                 key: const Key('navTab_4'),
-                icon: Icons.settings_outlined,
-                activeIcon: Icons.settings,
+                icon: Icons.tune_rounded,
                 label: AppLocalizations.of(context)?.settings ?? 'Settings',
                 isSelected: selectedIndex == 4,
                 onTap: () => _onItemTapped(context, 4),
@@ -622,7 +510,6 @@ class _BottomNavBar extends StatelessWidget {
 
 class _NavItem extends StatelessWidget {
   final IconData icon;
-  final IconData activeIcon;
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
@@ -632,7 +519,6 @@ class _NavItem extends StatelessWidget {
   const _NavItem({
     super.key,
     required this.icon,
-    required this.activeIcon,
     required this.label,
     required this.isSelected,
     required this.onTap,
@@ -646,11 +532,11 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryDark.withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          color: isSelected ? AppTheme.primaryDark.withOpacity(0.08) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -659,19 +545,19 @@ class _NavItem extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 Icon(
-                  isSelected ? activeIcon : icon,
+                  icon,
                   color: isSelected ? AppTheme.primaryDark : AppTheme.textHint,
-                  size: 24,
+                  size: 22,
                 ),
                 if (showBadge && !isSelected)
                   Positioned(
-                    right: -4,
-                    top: -4,
+                    right: -3,
+                    top: -3,
                     child: Container(
-                      width: 10,
-                      height: 10,
+                      width: 8,
+                      height: 8,
                       decoration: BoxDecoration(
-                        color: AppTheme.danger,
+                        color: AppTheme.accent,
                         shape: BoxShape.circle,
                         border: Border.all(color: AppTheme.surface, width: 1.5),
                       ),
@@ -679,25 +565,22 @@ class _NavItem extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     color: isSelected ? AppTheme.primaryDark : AppTheme.textHint,
+                    letterSpacing: 0.1,
                   ),
                 ),
                 if (isPremium) ...[
                   const SizedBox(width: 2),
-                  Icon(
-                    Icons.lock,
-                    size: 10,
-                    color: Colors.amber,
-                  ),
+                  Icon(Icons.lock_outline_rounded, size: 9, color: Colors.amber.shade600),
                 ],
               ],
             ),
@@ -708,7 +591,7 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-/// User Profile Menu - Shows popup with Settings/Logout
+/// User Profile Menu — Clean minimal design
 class _UserProfileMenu extends StatelessWidget {
   final VoidCallback? onNavigate;
 
@@ -729,16 +612,16 @@ class _UserProfileMenu extends StatelessWidget {
     showMenu<String>(
       context: context,
       position: position,
-      color: AppTheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: AppTheme.darkCard,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       items: [
         PopupMenuItem<String>(
           value: 'settings',
           child: Row(
             children: [
-              Icon(Icons.settings_outlined, size: 20, color: AppTheme.textPrimary),
-              const SizedBox(width: 12),
-              Text(l10n.settings),
+              Icon(Icons.tune_rounded, size: 18, color: Colors.white70),
+              const SizedBox(width: 10),
+              Text(l10n?.settings ?? 'Settings', style: const TextStyle(color: Colors.white, fontSize: 13)),
             ],
           ),
         ),
@@ -746,9 +629,9 @@ class _UserProfileMenu extends StatelessWidget {
           value: 'profile',
           child: Row(
             children: [
-              Icon(Icons.person_outline, size: 20, color: AppTheme.textPrimary),
-              const SizedBox(width: 12),
-              Text(l10n.profile),
+              Icon(Icons.person_outline_rounded, size: 18, color: Colors.white70),
+              const SizedBox(width: 10),
+              Text(l10n?.profile ?? 'Profile', style: const TextStyle(color: Colors.white, fontSize: 13)),
             ],
           ),
         ),
@@ -757,9 +640,9 @@ class _UserProfileMenu extends StatelessWidget {
           value: 'logout',
           child: Row(
             children: [
-              Icon(Icons.logout, size: 20, color: AppTheme.danger),
-              const SizedBox(width: 12),
-              Text(l10n.logOut, style: TextStyle(color: AppTheme.danger)),
+              Icon(Icons.logout_rounded, size: 18, color: AppTheme.danger),
+              const SizedBox(width: 10),
+              Text(l10n?.logOut ?? 'Log out', style: TextStyle(color: AppTheme.danger, fontSize: 13)),
             ],
           ),
         ),
@@ -767,17 +650,10 @@ class _UserProfileMenu extends StatelessWidget {
     ).then((value) {
       if (value == null) return;
       onNavigate?.call();
-
       switch (value) {
-        case 'settings':
-          context.go('/settings');
-          break;
-        case 'profile':
-          context.go('/settings/profile');
-          break;
-        case 'logout':
-          _confirmLogout(context);
-          break;
+        case 'settings': context.go('/settings'); break;
+        case 'profile': context.go('/settings/profile'); break;
+        case 'logout': _confirmLogout(context); break;
       }
     });
   }
@@ -789,27 +665,24 @@ class _UserProfileMenu extends StatelessWidget {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(l10n?.logOut ?? 'Log Out'),
-        content: Text(l10n?.logOutConfirmation ?? 'Are you sure you want to log out?'),
+        backgroundColor: AppTheme.darkSurface,
+        title: Text(l10n?.logOut ?? 'Log Out', style: const TextStyle(color: Colors.white)),
+        content: Text(l10n?.logOutConfirmation ?? 'Are you sure you want to log out?', style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n?.cancel ?? 'Cancel'),
+            child: Text(l10n?.cancel ?? 'Cancel', style: const TextStyle(color: Colors.white60)),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
-              // Clear cache and logout
               documentsPrefetchService.clearCache();
               await authService.logout();
-              // Navigate to welcome screen using the captured navigator
               if (context.mounted) {
                 navigator.go('/welcome');
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.danger,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.danger, foregroundColor: Colors.white),
             child: Text(l10n?.logOut ?? 'Log Out'),
           ),
         ],
@@ -819,7 +692,6 @@ class _UserProfileMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Get user data from auth service
     final user = authService.user;
     final fullName = user?['full_name'] ?? user?['name'] ?? 'User';
     final email = user?['email'] ?? '';
@@ -832,24 +704,35 @@ class _UserProfileMenu extends StatelessWidget {
       child: InkWell(
         onTap: () => _showUserMenu(context),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: Colors.white12)),
+            border: Border(top: BorderSide(color: Colors.white.withOpacity(0.06))),
           ),
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: AppTheme.accent,
-                child: Text(
-                  initials,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppTheme.primaryDark, AppTheme.primaryLight],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    initials,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -858,15 +741,15 @@ class _UserProfileMenu extends StatelessWidget {
                       fullName,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     if (email.isNotEmpty)
                       Text(
                         email,
-                        style: const TextStyle(
-                          color: Colors.white60,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.4),
                           fontSize: 11,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -874,11 +757,7 @@ class _UserProfileMenu extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(
-                Icons.more_vert,
-                color: Colors.white60,
-                size: 20,
-              ),
+              Icon(Icons.unfold_more_rounded, color: Colors.white.withOpacity(0.3), size: 18),
             ],
           ),
         ),

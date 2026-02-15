@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
+import '../../widgets/common/screen_header.dart';
 
 /// Training Screen - Upload documents to improve AI analysis
 /// Users can upload insurance documents, loss runs, policies to train the AI
@@ -83,7 +84,7 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> {
           file.name,
           'file',
           fields: {
-            'category': _selectedCategory == 'all' ? 'policy' : _selectedCategory,
+            'category': _selectedCategory == 'all' ? 'auto' : _selectedCategory,
           },
         );
 
@@ -166,17 +167,22 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Training'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadTrainingDocuments,
-            tooltip: 'Refresh',
-          ),
-        ],
-      ),
+      backgroundColor: AppTheme.background,
       body: Column(
+        children: [
+          ScreenHeader(
+            title: 'AI Training',
+            subtitle: 'Upload documents to improve AI',
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                onPressed: _loadTrainingDocuments,
+                tooltip: 'Refresh',
+              ),
+            ],
+          ),
+          Expanded(
+            child: Column(
         children: [
           // Header with stats
           Container(
@@ -320,6 +326,9 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> {
                           );
                         },
                       ),
+          ),
+        ],
+      ),
           ),
         ],
       ),

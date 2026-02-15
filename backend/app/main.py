@@ -167,6 +167,14 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS rapidrate_results JSON",
                 "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS is_flagged BOOLEAN DEFAULT FALSE",
                 "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS flag_reason VARCHAR(255)",
+                # v87: New assessment fields for ML engine
+                "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS broker_name VARCHAR(255)",
+                "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS commission_rate FLOAT",
+                "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS insured_entity_name VARCHAR(500)",
+                "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS companies_house_number VARCHAR(50)",
+                "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS renewal_date TIMESTAMP WITH TIME ZONE",
+                "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS loss_run_reporting_rules TEXT",
+                "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS regulatory_framework VARCHAR(255)",
                 # Syndicates table (required for assessments FK)
                 """CREATE TABLE IF NOT EXISTS syndicates (
                     id SERIAL PRIMARY KEY,

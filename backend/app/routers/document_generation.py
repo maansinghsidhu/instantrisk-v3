@@ -166,10 +166,52 @@ async def suggest_documents(
         "ai_analysis": ai_analysis,
         "perils": perils,
         "special_features": special_features,
+        "broker_name": assessment.broker_name,
+        "commission_rate": float(assessment.commission_rate) if assessment.commission_rate else None,
+        "insured_entity_name": assessment.insured_entity_name,
+        "companies_house_number": assessment.companies_house_number,
+        "renewal_date": str(assessment.renewal_date) if assessment.renewal_date else None,
+        "loss_run_reporting_rules": assessment.loss_run_reporting_rules,
+        "regulatory_framework": assessment.regulatory_framework,
     }
 
-    # Get suggestions from AI for documents
-    suggestions = await document_generator.suggest_documents(assessment_data)
+    # Code-based document suggestions — instant, no AI call needed
+    category_docs = {
+        "cyber": [
+            {"document_type": "mrc_slip", "template_key": "mrc_slip", "mandatory": True, "confidence": 0.95, "priority": 1, "reason": "Standard Lloyd's MRC placing slip for cyber risk"},
+            {"document_type": "policy_wording", "template_key": "policy_wording", "mandatory": True, "confidence": 0.92, "priority": 1, "reason": "Full cyber policy wording with data breach coverage terms"},
+            {"document_type": "endorsement_schedule", "template_key": "endorsement_schedule", "mandatory": False, "confidence": 0.80, "priority": 2, "reason": "Endorsement schedule for cyber-specific amendments"},
+            {"document_type": "cover_note", "template_key": "cover_note", "mandatory": False, "confidence": 0.75, "priority": 3, "reason": "Interim cover note pending full policy issuance"},
+        ],
+        "marine": [
+            {"document_type": "mrc_slip", "template_key": "mrc_slip", "mandatory": True, "confidence": 0.95, "priority": 1, "reason": "Standard Lloyd's MRC marine placing slip"},
+            {"document_type": "policy_wording", "template_key": "policy_wording", "mandatory": True, "confidence": 0.92, "priority": 1, "reason": "Marine hull/cargo policy wording"},
+            {"document_type": "endorsement_schedule", "template_key": "endorsement_schedule", "mandatory": True, "confidence": 0.88, "priority": 2, "reason": "Institute cargo clauses endorsement"},
+            {"document_type": "cover_note", "template_key": "cover_note", "mandatory": False, "confidence": 0.70, "priority": 3, "reason": "Interim marine cover note"},
+        ],
+        "property": [
+            {"document_type": "mrc_slip", "template_key": "mrc_slip", "mandatory": True, "confidence": 0.95, "priority": 1, "reason": "Standard Lloyd's MRC property slip"},
+            {"document_type": "policy_wording", "template_key": "policy_wording", "mandatory": True, "confidence": 0.92, "priority": 1, "reason": "Property all-risks policy wording"},
+            {"document_type": "endorsement_schedule", "template_key": "endorsement_schedule", "mandatory": False, "confidence": 0.78, "priority": 2, "reason": "Property endorsement schedule"},
+        ],
+        "financial_lines": [
+            {"document_type": "mrc_slip", "template_key": "mrc_slip", "mandatory": True, "confidence": 0.95, "priority": 1, "reason": "Standard Lloyd's MRC financial lines slip"},
+            {"document_type": "policy_wording", "template_key": "policy_wording", "mandatory": True, "confidence": 0.93, "priority": 1, "reason": "Professional indemnity policy wording"},
+            {"document_type": "endorsement_schedule", "template_key": "endorsement_schedule", "mandatory": False, "confidence": 0.82, "priority": 2, "reason": "PI endorsement schedule with limit of liability"},
+            {"document_type": "cover_note", "template_key": "cover_note", "mandatory": False, "confidence": 0.72, "priority": 3, "reason": "Interim PI cover note"},
+        ],
+    }
+    default_docs = [
+        {"document_type": "mrc_slip", "template_key": "mrc_slip", "mandatory": True, "confidence": 0.95, "priority": 1, "reason": "Standard Lloyd's MRC placing slip"},
+        {"document_type": "policy_wording", "template_key": "policy_wording", "mandatory": True, "confidence": 0.90, "priority": 1, "reason": "Full policy wording with terms and conditions"},
+        {"document_type": "endorsement_schedule", "template_key": "endorsement_schedule", "mandatory": False, "confidence": 0.80, "priority": 2, "reason": "Endorsement schedule for amendments"},
+        {"document_type": "cover_note", "template_key": "cover_note", "mandatory": False, "confidence": 0.70, "priority": 3, "reason": "Cover note for interim coverage confirmation"},
+    ]
+    suggestions = {
+        "suggested_documents": category_docs.get(risk_category.lower(), default_docs),
+        "bundle_name": f"{risk_category.replace('_', ' ').title()} Document Bundle",
+        "total_estimated_time_seconds": 120,
+    }
 
     # Get clause recommendations using the REAL clauses library (with actual data)
     from app.services.clauses_library_service import clauses_library_service
@@ -177,89 +219,94 @@ async def suggest_documents(
     lma_clauses = []
     existing_ids = set()
 
-    # 1. Mandatory LMA clauses (always required for Lloyd's policies)
-    mandatory_lma_ids = {
-        "LMA5021": "War & terrorism exclusion - mandatory for all Lloyd's policies",
-        "LMA5390": "Sanctions compliance - mandatory for all Lloyd's policies",
-        "LMA5400": "Several liability - mandatory for all Lloyd's policies",
-        "LMA5027": "Market Reform Contract standard - mandatory for Lloyd's",
-        "LMA5515": "Law & jurisdiction - mandatory for all Lloyd's policies",
-        "LMA5406": "Claims cooperation - mandatory for all Lloyd's policies",
-    }
+    try:
+        # 1. Mandatory LMA clauses (always required for Lloyd's policies)
+        mandatory_lma_ids = {
+            "LMA5021": "War & terrorism exclusion - mandatory for all Lloyd's policies",
+            "LMA5390": "Sanctions compliance - mandatory for all Lloyd's policies",
+            "LMA5400": "Several liability - mandatory for all Lloyd's policies",
+            "LMA5027": "Market Reform Contract standard - mandatory for Lloyd's",
+            "LMA5515": "Law & jurisdiction - mandatory for all Lloyd's policies",
+            "LMA5406": "Claims cooperation - mandatory for all Lloyd's policies",
+        }
 
-    for clause_id, reason in mandatory_lma_ids.items():
-        clause_data = clauses_library_service.get_clause_by_id(clause_id)
-        if clause_data:
-            lma_clauses.append(LMAClauseSuggestion(
-                id=clause_data["id"],
-                name=clause_data["name"],
-                mandatory=True,
-                category=clause_data.get("category", "general"),
-                selected=True,
-                reason=reason
-            ))
-            existing_ids.add(clause_data["id"])
+        for clause_id, reason in mandatory_lma_ids.items():
+            clause_data = clauses_library_service.get_clause_by_id(clause_id)
+            if clause_data:
+                lma_clauses.append(LMAClauseSuggestion(
+                    id=clause_data["id"],
+                    name=clause_data["name"],
+                    mandatory=True,
+                    category=clause_data.get("category", "general"),
+                    selected=True,
+                    reason=reason
+                ))
+                existing_ids.add(clause_data["id"])
 
-    # 2. Risk-category specific recommended clauses (pre-selected)
-    category_searches = {
-        "property": ["property", "fire", "damage"],
-        "marine": ["marine", "cargo", "hull"],
-        "cyber": ["cyber", "data", "network"],
-        "aviation": ["aviation", "aircraft"],
-        "professional": ["professional", "negligence"],
-        "casualty": ["liability", "casualty"],
-        "energy": ["energy", "offshore"],
-    }
-    search_terms = category_searches.get(risk_category.lower(), [risk_category.lower()])
+        # 2. Risk-category specific recommended clauses (pre-selected)
+        category_searches = {
+            "property": ["property", "fire", "damage"],
+            "marine": ["marine", "cargo", "hull"],
+            "cyber": ["cyber", "data", "network"],
+            "aviation": ["aviation", "aircraft"],
+            "professional": ["professional", "negligence"],
+            "casualty": ["liability", "casualty"],
+            "energy": ["energy", "offshore"],
+        }
+        search_terms = category_searches.get(risk_category.lower(), [risk_category.lower()])
 
-    for term in search_terms[:2]:  # Max 2 search terms
-        results, _ = clauses_library_service.search(
-            query=term,
-            source="lma",
-            page_size=5
+        for term in search_terms[:2]:  # Max 2 search terms
+            results, _ = clauses_library_service.search(
+                query=term,
+                source="lma",
+                page_size=5
+            )
+            for clause_data in results:
+                if clause_data["id"] not in existing_ids:
+                    lma_clauses.append(LMAClauseSuggestion(
+                        id=clause_data["id"],
+                        name=clause_data["name"],
+                        mandatory=False,
+                        category=clause_data.get("category", "general"),
+                        selected=True,
+                        reason=f"Recommended for {risk_category} risks"
+                    ))
+                    existing_ids.add(clause_data["id"])
+
+        # 3. Search clause library for risk-category relevant clauses from all sources
+        category_results, _ = clauses_library_service.search(
+            query=risk_category,
+            page_size=15
         )
-        for clause_data in results:
+        for clause_data in category_results:
             if clause_data["id"] not in existing_ids:
                 lma_clauses.append(LMAClauseSuggestion(
                     id=clause_data["id"],
                     name=clause_data["name"],
                     mandatory=False,
                     category=clause_data.get("category", "general"),
-                    selected=True,
-                    reason=f"Recommended for {risk_category} risks"
+                    selected=False,
+                    reason=f"Available for {risk_category} policies"
                 ))
                 existing_ids.add(clause_data["id"])
 
-    # 3. Search clause library for risk-category relevant clauses from all sources
-    category_results, _ = clauses_library_service.search(
-        query=risk_category,
-        page_size=15
-    )
-    for clause_data in category_results:
-        if clause_data["id"] not in existing_ids:
-            lma_clauses.append(LMAClauseSuggestion(
-                id=clause_data["id"],
-                name=clause_data["name"],
-                mandatory=False,
-                category=clause_data.get("category", "general"),
-                selected=False,
-                reason=f"Available for {risk_category} policies"
-            ))
-            existing_ids.add(clause_data["id"])
+        # 4. Add remaining LMA clauses not yet included
+        lma_results, _ = clauses_library_service.search(source="lma", page_size=50)
+        for clause_data in lma_results:
+            if clause_data["id"] not in existing_ids:
+                lma_clauses.append(LMAClauseSuggestion(
+                    id=clause_data["id"],
+                    name=clause_data["name"],
+                    mandatory=False,
+                    category=clause_data.get("category", "general"),
+                    selected=False,
+                    reason="Available in LMA clause library"
+                ))
+                existing_ids.add(clause_data["id"])
 
-    # 4. Add remaining LMA clauses not yet included
-    lma_results, _ = clauses_library_service.search(source="lma", page_size=50)
-    for clause_data in lma_results:
-        if clause_data["id"] not in existing_ids:
-            lma_clauses.append(LMAClauseSuggestion(
-                id=clause_data["id"],
-                name=clause_data["name"],
-                mandatory=False,
-                category=clause_data.get("category", "general"),
-                selected=False,
-                reason="Available in LMA clause library"
-            ))
-            existing_ids.add(clause_data["id"])
+    except Exception as e:
+        logger.warning(f"Clause library search failed: {e}")
+        # Continue with whatever clauses we found so far
 
     # Map to response schema
     return DocumentSuggestionResponse(
@@ -296,8 +343,8 @@ async def generate_documents(
     """
     Start document generation for an assessment.
 
-    Creates a generation job that runs the 5-agent pipeline
-    to generate the requested documents.
+    Creates a generation job that runs the 19-agent OpenDraft pipeline
+    with RAG, per-user training, and ML predictions.
 
     Training documents are optional but improve AI output quality.
     A warning is returned if no training documents exist.
@@ -376,7 +423,15 @@ async def generate_documents(
         "inception_date": str(assessment.inception_date) if assessment.inception_date else None,
         "expiry_date": str(assessment.expiry_date) if assessment.expiry_date else None,
         "risk_score": assessment.risk_score,
-        "ai_analysis": assessment.ai_analysis
+        "ai_analysis": assessment.ai_analysis,
+        "broker_name": assessment.broker_name,
+        "commission_rate": float(assessment.commission_rate) if assessment.commission_rate else None,
+        "insured_entity_name": assessment.insured_entity_name,
+        "companies_house_number": assessment.companies_house_number,
+        "renewal_date": str(assessment.renewal_date) if assessment.renewal_date else None,
+        "loss_run_reporting_rules": assessment.loss_run_reporting_rules,
+        "regulatory_framework": assessment.regulatory_framework,
+        "rapidrate_results": assessment.rapidrate_results or {},
     }
 
     # Get extracted data from linked documents
@@ -394,7 +449,8 @@ async def generate_documents(
         request.document_types,
         extracted_data,
         request.clause_ids,  # Pass selected clause IDs
-        request.language     # Pass target language
+        request.language,    # Pass target language
+        str(current_user.id) # Pass user_id for OpenDraft pipeline
     )
 
     return GenerationJobResponse(
@@ -432,147 +488,20 @@ async def _run_generation_job(
     document_types: list,
     extracted_data: dict,
     clause_ids: list = None,
-    language: str = None
+    language: str = None,
+    user_id: str = None
 ):
-    """Background task to run document generation.
+    """Background task to run document generation via the 19-agent OpenDraft pipeline.
 
-    Creates its own database session to avoid issues with closed sessions.
-    Updates progress in real-time during the generation pipeline.
+    Delegates to the OpenDraft pipeline which uses RAG, per-user training,
+    and ML predictions for superior document quality.
 
     Args:
         clause_ids: Optional list of LMA clause IDs to include in documents
         language: Optional target language code for document generation
+        user_id: User ID for per-user RAG and ML adapter predictions
     """
-    import logging
-    logging.info(f"Starting document generation job {job_id} for assessment {assessment_data.get('id')}")
-
-    # Real-time progress callback
-    async def progress_callback(progress_data: dict):
-        """Update job progress in real-time during document generation."""
-        try:
-            agent = progress_data.get("current_agent", "Processing")
-            description = progress_data.get("current_description", "Processing documents...")
-
-            # Use the progress_percentage calculated by the generator directly
-            # The generator tracks precise progress: 5%, 15%, then per-document steps
-            percentage = progress_data.get("progress_percentage", 20)
-
-            # Ensure we stay within bounds (5% start, 95% max before completion)
-            percentage = max(5, min(percentage, 95))
-
-            await _update_job_progress(job_id, agent, description, percentage)
-        except Exception as e:
-            logging.warning(f"Progress update failed: {e}")
-
-    async with AsyncSessionLocal() as db:
-        try:
-            # Update job status - Starting
-            job_query = select(DocumentGenerationJob).where(DocumentGenerationJob.id == job_id)
-            result = await db.execute(job_query)
-            job = result.scalars().first()
-
-            if job:
-                job.start_processing()
-                job.current_agent = "Initializing"
-                job.current_agent_description = "Starting document generation pipeline..."
-                job.progress_percentage = 5
-                await db.commit()
-
-            # Step 1: Document Requirement Analyzer (10%)
-            await _update_job_progress(
-                job_id,
-                "DocumentRequirementAnalyzer",
-                "Analyzing assessment data and identifying document requirements...",
-                10
-            )
-
-            # Step 2: Template Selector (15%)
-            await _update_job_progress(
-                job_id,
-                "TemplateSelector",
-                "Selecting optimal templates for requested documents...",
-                15
-            )
-
-            # Step 3-5: Run actual generation pipeline with real-time progress
-            # Progress will update from 20% to 95% during this phase
-            await _update_job_progress(
-                job_id,
-                "DocumentGenerator",
-                f"Generating {len(document_types)} documents...",
-                20
-            )
-
-            results = await document_generator.generate_documents(
-                assessment=assessment_data,
-                templates=templates,
-                document_types=document_types,
-                extracted_data=extracted_data,
-                progress_callback=progress_callback,
-                clause_ids=clause_ids,
-                language=language
-            )
-
-            # Final compliance check (95%)
-            await _update_job_progress(
-                job_id,
-                "ComplianceChecker",
-                "Final compliance verification...",
-                95
-            )
-
-            # Store generated documents
-            for gen_doc in results.get("generated_documents", []):
-                # Handle template_id - static templates have string IDs, DB expects Integer or None
-                raw_template_id = gen_doc.get("template_id")
-                template_id = None
-                if raw_template_id is not None:
-                    try:
-                        template_id = int(raw_template_id)
-                    except (ValueError, TypeError):
-                        # Static template with string ID - store as None (use template_key in draft_content)
-                        template_id = None
-
-                doc = GeneratedDocument(
-                    assessment_id=assessment_data["id"],
-                    generation_job_id=job_id,
-                    template_id=template_id,
-                    document_type=gen_doc.get("document_type"),
-                    title=gen_doc.get("title"),
-                    status=gen_doc.get("status", "draft"),
-                    draft_content=gen_doc.get("draft_content", {}),
-                    data_mappings=gen_doc.get("data_mappings", {}),
-                    compliance_report=gen_doc.get("compliance_report", {}),
-                    placeholders_remaining=gen_doc.get("placeholders_remaining", 0),
-                    ai_confidence=gen_doc.get("ai_confidence")
-                )
-                db.add(doc)
-
-            # Update job to completed (100%)
-            job_query = select(DocumentGenerationJob).where(DocumentGenerationJob.id == job_id)
-            result = await db.execute(job_query)
-            job = result.scalars().first()
-            if job:
-                job.agent_outputs = results.get("agent_outputs", {})
-                job.current_agent = "Complete"
-                job.current_agent_description = "Document generation completed successfully"
-                job.progress_percentage = 100
-                job.complete()
-                job.completed_documents = len(results.get("generated_documents", []))
-                await db.commit()
-
-        except Exception as e:
-            # Log the error
-            import logging
-            logging.error(f"Document generation job {job_id} failed: {str(e)}", exc_info=True)
-            # Mark job as failed with new session to ensure it commits
-            async with AsyncSessionLocal() as error_db:
-                job_query = select(DocumentGenerationJob).where(DocumentGenerationJob.id == job_id)
-                result = await error_db.execute(job_query)
-                job = result.scalars().first()
-                if job:
-                    job.fail(str(e))
-                    await error_db.commit()
+    await _run_opendraft_job(job_id, assessment_data, user_id, document_types)
 
 
 @router.get("/generation-jobs/")
@@ -1913,12 +1842,25 @@ async def generate_documents_opendraft(
         "reference_number": assessment.reference_number,
         "title": assessment.title,
         "risk_category": assessment.risk_category.value if assessment.risk_category else "general",
+        "decision": assessment.decision.value if assessment.decision else None,
         "insured_name": assessment.insured_name,
+        "broker_reference": assessment.broker_reference,
         "territory": assessment.territory or "",
         "premium": assessment.premium,
         "sum_insured": assessment.sum_insured,
+        "deductible": assessment.deductible,
+        "inception_date": str(assessment.inception_date) if assessment.inception_date else None,
+        "expiry_date": str(assessment.expiry_date) if assessment.expiry_date else None,
+        "risk_score": assessment.risk_score,
         "ai_analysis": assessment.ai_analysis or {},
         "rapidrate_results": assessment.rapidrate_results or {},
+        "broker_name": assessment.broker_name,
+        "commission_rate": float(assessment.commission_rate) if assessment.commission_rate else None,
+        "insured_entity_name": assessment.insured_entity_name,
+        "companies_house_number": assessment.companies_house_number,
+        "renewal_date": str(assessment.renewal_date) if assessment.renewal_date else None,
+        "loss_run_reporting_rules": assessment.loss_run_reporting_rules,
+        "regulatory_framework": assessment.regulatory_framework,
     }
 
     # Queue background task — returns immediately

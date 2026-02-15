@@ -86,54 +86,47 @@ async def create_assessment(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ) -> Assessment:
-    """
-    Create a new risk assessment.
+    """Create a new risk assessment."""
+    try:
+        reference_number = generate_reference_number()
 
-    Args:
-        assessment_data: Assessment creation data.
-        background_tasks: FastAPI background tasks.
-        current_user: The authenticated user.
-        db: Database session.
+        assessment = Assessment(
+            reference_number=reference_number,
+            title=assessment_data.title,
+            description=assessment_data.description,
+            risk_category=assessment_data.risk_category,
+            created_by=current_user.id,
+            syndicate_id=getattr(assessment_data, 'syndicate_id', None),
+            insured_name=getattr(assessment_data, 'insured_name', None),
+            insured_entity_name=getattr(assessment_data, 'insured_entity_name', None),
+            companies_house_number=getattr(assessment_data, 'companies_house_number', None),
+            broker_reference=getattr(assessment_data, 'broker_reference', None),
+            broker_name=getattr(assessment_data, 'broker_name', None),
+            commission_rate=getattr(assessment_data, 'commission_rate', None),
+            premium=getattr(assessment_data, 'premium', None),
+            sum_insured=getattr(assessment_data, 'sum_insured', None),
+            deductible=getattr(assessment_data, 'deductible', None),
+            inception_date=getattr(assessment_data, 'inception_date', None),
+            expiry_date=getattr(assessment_data, 'expiry_date', None),
+            renewal_date=getattr(assessment_data, 'renewal_date', None),
+            territory=getattr(assessment_data, 'territory', None),
+            exposure_details=getattr(assessment_data, 'exposure_details', None) or {},
+            loss_run_reporting_rules=getattr(assessment_data, 'loss_run_reporting_rules', None),
+            regulatory_framework=getattr(assessment_data, 'regulatory_framework', None),
+            status=AssessmentStatus.DRAFT,
+            decision=AssessmentDecision.PENDING
+        )
 
-    Returns:
-        Assessment: The created assessment object.
-    """
-    # Generate unique reference number
-    reference_number = generate_reference_number()
+        db.add(assessment)
+        await db.commit()
+        await db.refresh(assessment)
 
-    # Create assessment
-    assessment = Assessment(
-        reference_number=reference_number,
-        title=assessment_data.title,
-        description=assessment_data.description,
-        risk_category=assessment_data.risk_category,
-        created_by=current_user.id,
-        syndicate_id=assessment_data.syndicate_id,
-        insured_name=assessment_data.insured_name,
-        insured_entity_name=assessment_data.insured_entity_name,
-        companies_house_number=assessment_data.companies_house_number,
-        broker_reference=assessment_data.broker_reference,
-        broker_name=assessment_data.broker_name,
-        commission_rate=assessment_data.commission_rate,
-        premium=assessment_data.premium,
-        sum_insured=assessment_data.sum_insured,
-        deductible=assessment_data.deductible,
-        inception_date=assessment_data.inception_date,
-        expiry_date=assessment_data.expiry_date,
-        renewal_date=assessment_data.renewal_date,
-        territory=assessment_data.territory,
-        exposure_details=assessment_data.exposure_details or {},
-        loss_run_reporting_rules=assessment_data.loss_run_reporting_rules,
-        regulatory_framework=assessment_data.regulatory_framework,
-        status=AssessmentStatus.DRAFT,
-        decision=AssessmentDecision.PENDING
-    )
-
-    db.add(assessment)
-    await db.commit()
-    await db.refresh(assessment)
-
-    return assessment
+        return assessment
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"CREATE ASSESSMENT ERROR: {error_detail}")
+        raise HTTPException(status_code=500, detail=f"Failed to create assessment: {str(e)}")
 
 
 @router.get("/", response_model=AssessmentListResponse)
@@ -165,63 +158,69 @@ async def list_assessments(
     Returns:
         dict: Paginated list of assessments.
     """
-    # Build query
-    query = select(Assessment)
-    count_query = select(func.count(Assessment.id))
+    try:
+        # Build query
+        query = select(Assessment)
+        count_query = select(func.count(Assessment.id))
 
-    # Filter by user's role (case-insensitive comparison)
-    user_role = current_user.role.lower() if current_user.role else ""
-    if user_role == "broker":
-        query = query.where(Assessment.created_by == current_user.id)
-        count_query = count_query.where(Assessment.created_by == current_user.id)
-    elif user_role == "syndicate" and current_user.syndicate_id:
-        query = query.where(Assessment.syndicate_id == current_user.syndicate_id)
-        count_query = count_query.where(Assessment.syndicate_id == current_user.syndicate_id)
+        # Filter by user's role (case-insensitive comparison)
+        user_role = current_user.role.lower() if current_user.role else ""
+        if user_role == "broker":
+            query = query.where(Assessment.created_by == current_user.id)
+            count_query = count_query.where(Assessment.created_by == current_user.id)
+        elif user_role == "syndicate" and current_user.syndicate_id:
+            query = query.where(Assessment.syndicate_id == current_user.syndicate_id)
+            count_query = count_query.where(Assessment.syndicate_id == current_user.syndicate_id)
 
-    # Apply filters
-    if status:
-        query = query.where(Assessment.status == status)
-        count_query = count_query.where(Assessment.status == status)
-    if decision:
-        query = query.where(Assessment.decision == decision)
-        count_query = count_query.where(Assessment.decision == decision)
-    if risk_category:
-        query = query.where(Assessment.risk_category == risk_category)
-        count_query = count_query.where(Assessment.risk_category == risk_category)
-    if syndicate_id:
-        query = query.where(Assessment.syndicate_id == syndicate_id)
-        count_query = count_query.where(Assessment.syndicate_id == syndicate_id)
-    if search:
-        search_filter = (
-            Assessment.title.ilike(f"%{search}%") |
-            Assessment.insured_name.ilike(f"%{search}%") |
-            Assessment.reference_number.ilike(f"%{search}%")
-        )
-        query = query.where(search_filter)
-        count_query = count_query.where(search_filter)
+        # Apply filters
+        if status:
+            query = query.where(Assessment.status == status)
+            count_query = count_query.where(Assessment.status == status)
+        if decision:
+            query = query.where(Assessment.decision == decision)
+            count_query = count_query.where(Assessment.decision == decision)
+        if risk_category:
+            query = query.where(Assessment.risk_category == risk_category)
+            count_query = count_query.where(Assessment.risk_category == risk_category)
+        if syndicate_id:
+            query = query.where(Assessment.syndicate_id == syndicate_id)
+            count_query = count_query.where(Assessment.syndicate_id == syndicate_id)
+        if search:
+            search_filter = (
+                Assessment.title.ilike(f"%{search}%") |
+                Assessment.insured_name.ilike(f"%{search}%") |
+                Assessment.reference_number.ilike(f"%{search}%")
+            )
+            query = query.where(search_filter)
+            count_query = count_query.where(search_filter)
 
-    # Get total count
-    total_result = await db.execute(count_query)
-    total = total_result.scalar()
+        # Get total count
+        total_result = await db.execute(count_query)
+        total = total_result.scalar()
 
-    # Order and paginate
-    query = query.order_by(Assessment.created_at.desc())
-    offset = (page - 1) * page_size
-    query = query.offset(offset).limit(page_size)
+        # Order and paginate
+        query = query.order_by(Assessment.created_at.desc())
+        offset = (page - 1) * page_size
+        query = query.offset(offset).limit(page_size)
 
-    result = await db.execute(query)
-    assessments = result.scalars().all()
+        result = await db.execute(query)
+        assessments = result.scalars().all()
 
-    # Calculate pagination
-    pages = (total + page_size - 1) // page_size
+        # Calculate pagination
+        pages = (total + page_size - 1) // page_size
 
-    return {
-        "items": assessments,
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-        "pages": pages
-    }
+        return {
+            "items": assessments,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "pages": pages
+        }
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"LIST ASSESSMENTS ERROR: {error_detail}")
+        raise HTTPException(status_code=500, detail=f"Failed to list assessments: {str(e)}")
 
 
 @router.get("/summary", response_model=AssessmentSummary)
@@ -355,11 +354,11 @@ async def get_assessment_status(
     if not assessment:
         raise HTTPException(status_code=404, detail="Assessment not found")
 
-    if assessment.status == AssessmentStatus.COMPLETED:
+    if assessment.status in (AssessmentStatus.COMPLETED, AssessmentStatus.PENDING_REVIEW):
         return {
             "status": "completed",
             "result": {
-                "decision": assessment.decision.value if assessment.decision else "NO_GO",
+                "decision": assessment.decision.value if assessment.decision else "PENDING",
                 "confidence": (assessment.confidence_score or 70) / 100,
                 "risk_score": assessment.risk_score or 50,
                 "processing_time": int((assessment.completed_at - assessment.created_at).total_seconds()) if assessment.completed_at else 0,
@@ -367,6 +366,13 @@ async def get_assessment_status(
         }
     elif assessment.status == AssessmentStatus.FAILED:
         return {"status": "failed", "error": "Analysis failed"}
+    elif assessment.status == AssessmentStatus.DRAFT:
+        # DRAFT after analysis means it errored but was caught
+        has_analysis = bool(assessment.ai_analysis and not isinstance(assessment.ai_analysis, dict))
+        has_error = isinstance(assessment.ai_analysis, dict) and "error" in assessment.ai_analysis
+        if has_error:
+            return {"status": "failed", "error": assessment.ai_analysis.get("error", "Analysis failed")}
+        return {"status": "in_progress", "progress": 10}
     else:
         return {"status": "in_progress", "progress": 50}
 

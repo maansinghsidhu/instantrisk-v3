@@ -19,6 +19,62 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def classify_document(text: str, filename: str) -> str:
+    """
+    Auto-classify a training document based on filename and content keywords.
+
+    Returns one of: loss_run, claims, underwriting, regulatory, slip_template,
+    endorsement, clause_library, market, policy
+    """
+    text_lower = text[:5000].lower()
+    fname_lower = filename.lower()
+
+    # Filename-based hints (highest confidence)
+    if any(k in fname_lower for k in ["loss_run", "lossrun", "loss run", "loss-run"]):
+        return "loss_run"
+    if any(k in fname_lower for k in ["claim", "claims", "bordereaux"]):
+        return "claims"
+    if any(k in fname_lower for k in ["guideline", "guide", "manual", "underwriting", "appetite"]):
+        return "underwriting"
+    if any(k in fname_lower for k in ["regulat", "compliance", "sanction", "solvency"]):
+        return "regulatory"
+    if any(k in fname_lower for k in ["slip", "mrc", "placing"]):
+        return "slip_template"
+    if any(k in fname_lower for k in ["endorse", "amendment", "rider"]):
+        return "endorsement"
+    if any(k in fname_lower for k in ["clause", "lma", "nma", "icc", "wordings"]):
+        return "clause_library"
+    if any(k in fname_lower for k in ["market", "rate", "pricing", "benchmark"]):
+        return "market"
+
+    # Content-based classification (scan first 5000 chars)
+    if any(k in text_lower for k in ["loss ratio", "incurred losses", "paid losses", "claim count", "earned premium"]):
+        return "loss_run"
+    if any(k in text_lower for k in ["claimant", "date of loss", "reserve amount", "indemnity payment", "adjuster"]):
+        return "claims"
+    if any(k in text_lower for k in ["risk appetite", "binding authority", "underwriting guideline",
+                                      "delegated authority", "class of business appetite"]):
+        return "underwriting"
+    if any(k in text_lower for k in ["fca regulation", "pra", "solvency ii", "regulatory requirement",
+                                      "compliance framework", "sanctions list"]):
+        return "regulatory"
+    if any(k in text_lower for k in ["unique market reference", "umr", "placing slip", "market reform contract",
+                                      "mrc", "signed line", "order hereon"]):
+        return "slip_template"
+    if any(k in text_lower for k in ["endorsement no", "it is hereby agreed", "amendment to policy",
+                                      "rider to", "addendum"]):
+        return "endorsement"
+    if any(k in text_lower for k in ["lma5", "lma3", "nma1", "icc-a", "icc-b", "institute cargo",
+                                      "clause library", "standard clause"]):
+        return "clause_library"
+    if any(k in text_lower for k in ["premium rate", "market rate", "benchmark rate", "rate on line",
+                                      "pricing model", "actuarial"]):
+        return "market"
+
+    # Default: genuinely unclassifiable → "policy" (most common document type)
+    return "policy"
+
+
 @router.get("/documents")
 async def get_training_documents(
     current_user: User = Depends(get_current_user)
@@ -41,13 +97,29 @@ async def get_training_documents(
 @router.post("/upload")
 async def upload_training_document(
     file: UploadFile = File(...),
-    category: str = Form("policy"),
+    category: str = Form("auto"),
     current_user: User = Depends(get_current_user)
 ):
-    """Upload a document for AI training."""
+    """Upload a document for AI training. Auto-classifies if category is 'auto'."""
     try:
         content = await file.read()
         doc_id = str(uuid.uuid4())
+
+        # Auto-classify document if category is generic/default
+        if category in ("auto", "policy", "all"):
+            # Extract text for classification (first pass — qdrant_service will do full extraction)
+            text_preview = ""
+            try:
+                text_preview = content.decode("utf-8", errors="ignore")[:5000]
+            except Exception:
+                pass
+            detected = classify_document(text_preview, file.filename or "unknown")
+            if category == "policy" and detected != "policy":
+                # Only override "policy" default if we detected something more specific
+                category = detected
+            elif category in ("auto", "all"):
+                category = detected
+            logger.info(f"Auto-classified '{file.filename}' as '{category}'")
 
         result = await qdrant_service.add_training_document(
             doc_id=doc_id,
@@ -58,7 +130,7 @@ async def upload_training_document(
             content_type=file.content_type
         )
 
-        logger.info(f"Training document uploaded: {file.filename} by user {current_user.email}")
+        logger.info(f"Training document uploaded: {file.filename} as '{category}' by user {current_user.email}")
 
         # Check if user now has enough data for adapter training
         status = await qdrant_service.get_training_status(user_id=str(current_user.id))
