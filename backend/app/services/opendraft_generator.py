@@ -527,36 +527,9 @@ Return ONLY valid JSON:
         risk_category = assessment_data.get("risk_category", "").lower()
         insured_name = assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", "")
 
-        # Base exclusions (always present)
-        exclusions = (
-            "War & terrorism (LMA5021), Nuclear (NMA1191), Sanctions (LMA3100), "
-            "Fraud or criminal acts of the Insured, "
-            "Contractual liability (unless liability would exist without contract), "
-            "Fines/penalties/punitive damages."
-        )
-
-        # Base subjectivities
-        subjectivities = (
-            "Prior to inception, receipt and approval of: completed proposal form, "
-            "current risk management report, satisfactory loss history (5 years), "
-            "current financial statements, and confirmation of security arrangements. "
-            "All subjectivities to be satisfied within 30 days of inception."
-        )
-
-        # Base warranties
-        warranties = (
-            "The Insured warrants that: all information provided is true and accurate; "
-            "appropriate risk management procedures are maintained; "
-            "Underwriters will be notified promptly of any material change; "
-            "all applicable laws and regulations are complied with; "
-            "adequate records are maintained."
-        )
-
-        # Base conditions
-        conditions = (
-            "Claims notification as soon as practicable; due diligence to prevent loss; "
-            "full cooperation with Underwriters; subrogation rights preserved; "
-            "other insurance applies in excess."
+        # Category-specific exclusions, subjectivities, warranties, conditions
+        exclusions, subjectivities, warranties, conditions = self._build_category_clauses(
+            risk_category, insured_name, assessment_data
         )
 
         # Risk-score-aware adjustments
@@ -677,6 +650,358 @@ Return ONLY valid JSON:
             "policy_number": "",
             "cover_note_number": "",
         }
+
+    def _build_category_clauses(self, category: str, insured: str, data: dict):
+        """Build category-specific exclusions, subjectivities, warranties, conditions."""
+
+        # ── COMMON BASE ──
+        base_exclusions = "War, invasion, hostilities (NMA 464)\nNuclear risks (NMA 1975)\nSanctions limitation and exclusion (LMA3100)"
+        base_conditions = (
+            "Claims Cooperation Clause: The Insured shall cooperate fully with Underwriters in the "
+            "investigation, defence and settlement of any claim.\n\n"
+            "Duty of Fair Presentation: In accordance with the Insurance Act 2015, the Insured has a "
+            "duty to make a fair presentation of the risk.\n\n"
+            "Subrogation: Underwriters shall be subrogated to all rights of recovery of the Insured."
+        )
+
+        if category == "cyber":
+            exclusions = (
+                f"{base_exclusions}\n\n"
+                "CYBER-SPECIFIC EXCLUSIONS:\n"
+                "1. Prior Knowledge: Any circumstance, act, error or omission which the Insured knew or "
+                "ought reasonably to have known prior to inception could give rise to a claim.\n\n"
+                "2. Unencrypted Data: Loss arising from unencrypted portable devices or media where the "
+                "Insured has not implemented and enforced an encryption policy.\n\n"
+                "3. Infrastructure Failure: Failure of electrical, gas, water, telephone or internet "
+                "infrastructure not under the Insured's operational control.\n\n"
+                "4. Betterment: Costs to improve, upgrade or enhance any Computer System beyond the "
+                "level of functionality existing prior to the Network Security Incident.\n\n"
+                "5. Patent & Trade Secret: Claims alleging infringement of patent rights or "
+                "misappropriation of trade secrets.\n\n"
+                "6. Contractual Penalties: Liquidated damages or contractual penalties unless liability "
+                "would have existed in the absence of such contract.\n\n"
+                "7. Bodily Injury / Property Damage: Physical bodily injury or tangible property damage "
+                "(other than destruction of or damage to Data).\n\n"
+                "8. Voluntary Shutdown: Loss arising from the Insured's voluntary shutdown of a Computer "
+                "System unless necessitated by a covered Network Security Incident."
+            )
+            subjectivities = (
+                "Prior to inception, receipt and approval of:\n"
+                f"1. Completed cyber insurance proposal form for {insured}\n"
+                "2. Current SOC2 Type II audit report (or equivalent security certification)\n"
+                "3. Evidence of Multi-Factor Authentication (MFA) across all remote access\n"
+                "4. Incident Response Plan (tested within last 12 months)\n"
+                "5. Satisfactory loss history (5 years) including all cyber incidents\n"
+                "6. Network architecture diagram and data flow mapping\n"
+                "7. Confirmation of endpoint detection and response (EDR) deployment\n"
+                "8. Data backup and recovery procedures (including offline/immutable backups)\n\n"
+                "All subjectivities to be satisfied within 30 days of inception."
+            )
+            warranties = (
+                f"The Insured ({insured}) warrants that throughout the currency of this insurance:\n\n"
+                "1. Multi-factor authentication shall be maintained on all remote access points, "
+                "email systems, and privileged accounts.\n\n"
+                "2. Critical security patches shall be applied within 30 days of release.\n\n"
+                "3. Employee security awareness training shall be conducted at least annually.\n\n"
+                "4. Data backups shall be performed daily with at least one offline/immutable copy "
+                "maintained and tested quarterly.\n\n"
+                "5. The Insured shall maintain and test an Incident Response Plan at least annually.\n\n"
+                "6. The Insured shall notify Underwriters within 30 days of any material change to "
+                "IT infrastructure, security controls, or data processing activities."
+            )
+            conditions = (
+                f"{base_conditions}\n\n"
+                "CYBER-SPECIFIC CONDITIONS:\n\n"
+                "Notice of Claim/Circumstances: The Insured shall give notice to Underwriters as soon "
+                "as practicable and in any event within 30 days of discovery of any:\n"
+                "(a) Security Incident or Data Breach\n"
+                "(b) Claim or threatened claim\n"
+                "(c) Regulatory investigation or inquiry\n\n"
+                "Breach Response Vendors: The Insured shall use pre-approved breach response vendors "
+                "from the panel set out in the Schedule. Use of non-panel vendors requires prior "
+                "written consent of Underwriters.\n\n"
+                "Ransomware Protocol: No ransom payment shall be made without prior written consent "
+                "of Underwriters. The Insured shall engage approved forensic investigators before "
+                "any payment is considered."
+            )
+
+        elif category == "property":
+            exclusions = (
+                f"{base_exclusions}\n\n"
+                "PROPERTY-SPECIFIC EXCLUSIONS:\n"
+                "1. Wear and Tear: Gradual deterioration, wear and tear, rust, corrosion, "
+                "mould, wet or dry rot.\n\n"
+                "2. Mechanical/Electrical Breakdown: Mechanical or electrical breakdown unless "
+                "fire or explosion ensues, in which case cover applies to the ensuing damage only.\n\n"
+                "3. Subsidence: Loss caused by subsidence, heave or landslip unless specifically "
+                "included by endorsement.\n\n"
+                "4. Pollution: Pollution or contamination unless caused by a sudden, identifiable, "
+                "unintended and unexpected event occurring during the Period of Insurance.\n\n"
+                "5. Cyber Attack: Loss arising from any cyber act (NMA 2914/2915) unless fire or "
+                "explosion ensues as a direct result.\n\n"
+                "6. Consequential Loss: Consequential loss of any kind unless specifically insured "
+                "under the Business Interruption section.\n\n"
+                "7. Vacant Premises: Unoccupied for more than 30 consecutive days unless agreed "
+                "by Underwriters with appropriate premium adjustment.\n\n"
+                "8. Defective Design: Faulty or defective design, materials or workmanship, but "
+                "this shall not exclude resultant damage which itself is not otherwise excluded."
+            )
+            subjectivities = (
+                "Prior to inception, receipt and approval of:\n"
+                f"1. Completed commercial property proposal form for {insured}\n"
+                "2. Current professional valuation report (Day One Reinstatement basis)\n"
+                "3. Fire risk assessment and survey report (within last 24 months)\n"
+                "4. Sprinkler system maintenance certificate (where applicable)\n"
+                "5. Satisfactory loss history (5 years)\n"
+                "6. Current fire and security alarm maintenance certificates\n"
+                "7. Electrical installation certificate (within 5 years)\n"
+                "8. Business continuity plan\n\n"
+                "All subjectivities to be satisfied within 30 days of inception."
+            )
+            warranties = (
+                f"The Insured ({insured}) warrants that throughout the currency of this insurance:\n\n"
+                "1. All fire protection systems (sprinklers, alarms, extinguishers) shall be "
+                "maintained in efficient working order and inspected as per manufacturer requirements.\n\n"
+                "2. The premises shall not be left unoccupied for more than 30 consecutive days "
+                "without prior notification to Underwriters.\n\n"
+                "3. All hot work shall be conducted under a formal hot work permit system.\n\n"
+                "4. Waste materials shall be removed from the premises at least weekly and shall "
+                "not be stored within 10 metres of any building.\n\n"
+                "5. Electrical installations shall be inspected and tested at intervals not exceeding "
+                "5 years by a qualified electrician.\n\n"
+                "6. The Insured shall maintain security arrangements as declared in the proposal form."
+            )
+            conditions = (
+                f"{base_conditions}\n\n"
+                "PROPERTY-SPECIFIC CONDITIONS:\n\n"
+                "Basis of Settlement: Reinstatement as new (Day One basis) subject to adequate "
+                "Sum Insured. Average/co-insurance applies if the Sum Insured is less than the "
+                "Reinstatement Value.\n\n"
+                "72-Hour Clause: All losses arising from a single event of storm, tempest, flood "
+                "or earthquake within a 72-hour period shall be treated as a single occurrence.\n\n"
+                "Automatic Reinstatement: Following a loss, the Sum Insured shall be automatically "
+                "reinstated subject to payment of additional premium.\n\n"
+                "Underinsurance: If at the time of loss the Sum Insured is less than the total "
+                "value at risk, Underwriters' liability shall be proportionately reduced."
+            )
+
+        elif category == "marine":
+            exclusions = (
+                f"{base_exclusions}\n\n"
+                "MARINE-SPECIFIC EXCLUSIONS:\n"
+                "1. Inherent Vice: Loss caused by inherent vice or nature of the subject-matter "
+                "insured, including ordinary leakage, loss in weight or volume.\n\n"
+                "2. Delay: Loss proximately caused by delay, even though the delay be caused by "
+                "a risk insured against.\n\n"
+                "3. Insolvency: Loss caused by insolvency or financial default of the owners, "
+                "managers, charterers or operators of the vessel.\n\n"
+                "4. Insufficiency of Packing: Loss caused by insufficiency or unsuitability of "
+                "packing or preparation of the subject-matter insured.\n\n"
+                "5. Wilful Misconduct: Loss attributable to wilful misconduct of the Assured.\n\n"
+                "6. Unseaworthiness: Where the Assured or their servants are privy to unseaworthiness "
+                "or unfitness of vessel at the time of loading.\n\n"
+                "7. Ordinary Wear and Tear: Ordinary leakage, breakage, chipping, denting, "
+                "scratching or discolouration.\n\n"
+                "8. War and Strikes: Institute War Clauses and Institute Strikes Clauses apply "
+                "separately at additional premium (if required)."
+            )
+            subjectivities = (
+                "Prior to inception, receipt and approval of:\n"
+                f"1. Completed marine cargo proposal form for {insured}\n"
+                "2. Annual cargo declaration and commodity schedule\n"
+                "3. Trade route details with estimated values per conveyance\n"
+                "4. Carrier selection and vetting procedures\n"
+                "5. Satisfactory loss history (5 years) with full bordereaux\n"
+                "6. Packing and handling standards documentation\n"
+                "7. Details of any accumulation controls\n"
+                "8. GPS tracking/security protocols for high-value shipments\n\n"
+                "All subjectivities to be satisfied within 30 days of inception."
+            )
+            warranties = (
+                f"The Insured ({insured}) warrants that throughout the currency of this insurance:\n\n"
+                "1. All shipments shall be packed in accordance with best trade practice and "
+                "suitable for the mode of transit employed.\n\n"
+                "2. Approved carriers only: All carriers must maintain membership of an approved "
+                "P&I Club and hold valid classification from a recognised society.\n\n"
+                "3. Maximum value per conveyance shall not exceed the limits stated in the Schedule "
+                "without prior agreement of Underwriters.\n\n"
+                "4. Institute Warranty Limits (IWL) shall be observed. Trading outside IWL areas "
+                "held covered at premium and conditions to be agreed.\n\n"
+                "5. The Insured shall notify Underwriters of any shipment exceeding the agreed "
+                "declaration threshold within 30 days of shipment.\n\n"
+                "6. Temperature-controlled cargo shall be shipped in appropriate reefer containers "
+                "with continuous temperature monitoring (where applicable)."
+            )
+            conditions = (
+                f"{base_conditions}\n\n"
+                "MARINE-SPECIFIC CONDITIONS:\n\n"
+                "Duration: Warehouse to warehouse as per Institute Cargo Clauses (A) Clause 8. "
+                "Cover terminates 60 days after discharge from oversea vessel.\n\n"
+                "Duty of Assured: It is the duty of the Assured and their agents to take such "
+                "measures as may be reasonable for the purpose of averting or minimising a loss.\n\n"
+                "Constructive Total Loss: No claim for constructive total loss shall be recoverable "
+                "unless the subject-matter insured is reasonably abandoned.\n\n"
+                "General Average: This insurance covers general average and salvage charges, "
+                "adjusted or determined according to the contract of carriage."
+            )
+
+        elif category == "aviation":
+            exclusions = (
+                f"{base_exclusions}\n\n"
+                "AVIATION-SPECIFIC EXCLUSIONS:\n"
+                "1. Wear and Tear: Gradual deterioration, wear and tear, or mechanical/electrical "
+                "breakdown unless resulting from an accident.\n\n"
+                "2. Unlicensed Operation: Loss whilst the aircraft is operated by or in charge of "
+                "a person not holding a valid licence or rating.\n\n"
+                "3. Airworthiness: Loss while the aircraft does not have a valid Certificate of "
+                "Airworthiness or Permit to Fly.\n\n"
+                "4. Overloading: Loss whilst the aircraft is carrying passengers or cargo in excess "
+                "of the limitations specified in the aircraft's operating manual.\n\n"
+                "5. Noise & Pollution: Third party liability arising from noise, pollution or "
+                "contamination unless directly resulting from an accident.\n\n"
+                "6. War and Allied Perils: As per AVN48B (Aviation War, Hi-Jacking and Other "
+                "Perils Exclusion Clause) unless separately covered."
+            )
+            subjectivities = (
+                "Prior to inception, receipt and approval of:\n"
+                f"1. Completed aviation proposal form for {insured}\n"
+                "2. Aircraft fleet schedule with values, registration, and type details\n"
+                "3. Pilot/crew qualifications and flight hours documentation\n"
+                "4. Satisfactory loss history (5 years)\n"
+                "5. Current Certificate of Airworthiness for each aircraft\n"
+                "6. Maintenance programme documentation (approved by CAA/EASA)\n"
+                "7. Operations manual and safety management system documentation\n\n"
+                "All subjectivities to be satisfied within 30 days of inception."
+            )
+            warranties = (
+                f"The Insured ({insured}) warrants that throughout the currency of this insurance:\n\n"
+                "1. All aircraft shall maintain a valid Certificate of Airworthiness.\n\n"
+                "2. All pilots shall hold valid licences and ratings appropriate for the aircraft "
+                "type and operation being conducted.\n\n"
+                "3. Aircraft shall be maintained in accordance with manufacturer's requirements "
+                "and an approved maintenance programme.\n\n"
+                "4. Operations shall be conducted in accordance with applicable aviation regulations "
+                "and the Insured's operations manual.\n\n"
+                "5. The aircraft shall not be used for any purpose other than stated in the Schedule."
+            )
+            conditions = (
+                f"{base_conditions}\n\n"
+                "AVIATION-SPECIFIC CONDITIONS:\n\n"
+                "Agreed Value: The aircraft values stated in the Schedule are agreed values for "
+                "the purpose of total loss settlement.\n\n"
+                "Notice of Loss: Immediate notice to Underwriters of any accident, incident or "
+                "occurrence that may give rise to a claim. The aircraft shall not be moved or "
+                "repaired without Underwriters' consent (except to prevent further damage).\n\n"
+                "Geographic Limits: As stated in the Schedule. Ferrying outside geographic limits "
+                "held covered at premium to be agreed."
+            )
+
+        elif category == "energy":
+            exclusions = (
+                f"{base_exclusions}\n\n"
+                "ENERGY-SPECIFIC EXCLUSIONS:\n"
+                "1. Wear and Tear: Gradual deterioration, wear and tear, corrosion, erosion, "
+                "oxidation, or scaling.\n\n"
+                "2. Faulty Design: Cost of making good faulty design, materials or workmanship "
+                "but resultant damage covered.\n\n"
+                "3. Existing Damage: Damage existing at inception of this insurance.\n\n"
+                "4. Consequential Loss: Loss of use, delay or consequential loss unless specifically "
+                "covered under the OEE/BI section.\n\n"
+                "5. Pollution/Seepage: Gradual pollution, seepage or contamination unless caused "
+                "by a sudden and accidental event.\n\n"
+                "6. Decommissioning: Costs of decommissioning, plugging and abandonment.\n\n"
+                "7. Reservoir/Underground: Loss of or damage to the well or reservoir below "
+                "the surface of the earth or water (unless specifically included).\n\n"
+                "8. Government Action: Confiscation, nationalisation, requisition by any government."
+            )
+            subjectivities = (
+                "Prior to inception, receipt and approval of:\n"
+                f"1. Completed energy proposal form for {insured}\n"
+                "2. Current engineering survey/condition assessment\n"
+                "3. Satisfactory loss history (5 years)\n"
+                "4. Health, Safety and Environment (HSE) audit report\n"
+                "5. Emergency response procedures and evidence of testing\n"
+                "6. Current financial statements\n"
+                "7. Details of all contractors and their insurance arrangements\n"
+                "8. Production/revenue forecasts (for BI/OEE cover)\n\n"
+                "All subjectivities to be satisfied within 30 days of inception."
+            )
+            warranties = (
+                f"The Insured ({insured}) warrants that throughout the currency of this insurance:\n\n"
+                "1. All operations shall comply with applicable HSE regulations and industry "
+                "best practice.\n\n"
+                "2. Planned maintenance programmes shall be maintained and all safety-critical "
+                "equipment inspected per manufacturer specifications.\n\n"
+                "3. All personnel shall hold appropriate qualifications and certifications.\n\n"
+                "4. Emergency response procedures shall be tested at least annually.\n\n"
+                "5. Any material change in operations, equipment or personnel shall be notified "
+                "to Underwriters within 30 days."
+            )
+            conditions = (
+                f"{base_conditions}\n\n"
+                "ENERGY-SPECIFIC CONDITIONS:\n\n"
+                "Operators Extra Expense: OEE cover applies to the additional costs necessarily "
+                "incurred in controlling, re-drilling or making safe following a well out of control.\n\n"
+                "Sue and Labour: Underwriters shall contribute to charges properly and reasonably "
+                "incurred for the preservation of the insured property.\n\n"
+                "Removal of Debris: Costs of removal of wreck and debris covered up to 25% of "
+                "the loss amount."
+            )
+
+        else:
+            # Casualty / General Liability / Other
+            exclusions = (
+                f"{base_exclusions}\n\n"
+                "LIABILITY-SPECIFIC EXCLUSIONS:\n"
+                "1. Employers Liability: Bodily injury to any employee arising out of and in "
+                "the course of employment (unless EL section applies).\n\n"
+                "2. Professional Liability: Claims arising from professional advice or services "
+                "(unless Professional Indemnity section applies).\n\n"
+                "3. Product Recall: Costs of recalling, removing, repairing, replacing or "
+                "disposing of any product.\n\n"
+                "4. Contractual Liability: Liability assumed under contract unless such liability "
+                "would have existed in the absence of the contract.\n\n"
+                "5. Asbestos: Claims arising from or relating to asbestos in any form.\n\n"
+                "6. Pollution: Gradual pollution or contamination unless caused by a sudden, "
+                "identifiable, unintended event during the Policy Period.\n\n"
+                "7. Punitive Damages: Fines, penalties, punitive or exemplary damages.\n\n"
+                "8. Known Circumstances: Any claim arising from circumstances known to the "
+                "Insured prior to inception."
+            )
+            subjectivities = (
+                "Prior to inception, receipt and approval of:\n"
+                f"1. Completed liability proposal form for {insured}\n"
+                "2. Current risk assessment and health & safety documentation\n"
+                "3. Satisfactory loss history (5 years)\n"
+                "4. Current financial statements\n"
+                "5. Details of contractual liabilities and hold harmless agreements\n"
+                "6. Product/service descriptions and quality control procedures\n\n"
+                "All subjectivities to be satisfied within 30 days of inception."
+            )
+            warranties = (
+                f"The Insured ({insured}) warrants that throughout the currency of this insurance:\n\n"
+                "1. All information provided in the proposal form is true, complete and accurate.\n\n"
+                "2. Appropriate risk management and health & safety procedures shall be maintained.\n\n"
+                "3. All applicable laws, regulations and industry standards shall be complied with.\n\n"
+                "4. The Insured shall notify Underwriters promptly of any material change in "
+                "the business, operations or risk profile.\n\n"
+                "5. Adequate records of all incidents and near-misses shall be maintained."
+            )
+            conditions = (
+                f"{base_conditions}\n\n"
+                "LIABILITY-SPECIFIC CONDITIONS:\n\n"
+                "Defence and Settlement: Underwriters shall have the right but not the duty to "
+                "defend any claim. No admission of liability or settlement without Underwriters' "
+                "prior written consent.\n\n"
+                "Notice of Claim: The Insured shall give notice to Underwriters as soon as "
+                "practicable and in any event within 30 days of:\n"
+                "(a) receipt of any claim or legal proceedings\n"
+                "(b) becoming aware of any circumstance likely to give rise to a claim\n\n"
+                "Other Insurance: This insurance shall apply in excess of any other valid and "
+                "collectible insurance."
+            )
+
+        return exclusions, subjectivities, warranties, conditions
 
     def _build_interest_description(self, data: dict) -> str:
         """Build a detailed INTEREST section based on risk category and description."""

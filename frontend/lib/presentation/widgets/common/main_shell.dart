@@ -29,6 +29,8 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
+    final isDark = AppTheme.isDark(context);
+
     // Desktop: Permanent sidebar (>1000px)
     if (screenWidth > 1000) {
       return Scaffold(
@@ -36,7 +38,7 @@ class _MainShellState extends State<MainShell> {
           children: [
             _Sidebar(onNavigate: null),
             // Subtle divider between sidebar and content
-            Container(width: 0.5, color: AppTheme.border.withOpacity(0.3)),
+            Container(width: 0.5, color: AppTheme.borderOf(context).withOpacity(0.3)),
             Expanded(child: widget.child),
           ],
         ),
@@ -48,10 +50,10 @@ class _MainShellState extends State<MainShell> {
       return Scaffold(
         key: _scaffoldKey,
         appBar: AppBar(
-          backgroundColor: AppTheme.darkBg,
+          backgroundColor: AppTheme.surfaceOf(context),
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.menu_rounded, color: Colors.white70, size: 22),
+            icon: Icon(Icons.menu_rounded, color: AppTheme.text2(context), size: 22),
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
           title: Row(
@@ -63,8 +65,8 @@ class _MainShellState extends State<MainShell> {
               const SizedBox(width: 10),
               Text(
                 AppLocalizations.of(context)?.appName ?? 'InstantRisk',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: AppTheme.text1(context),
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   letterSpacing: -0.3,
@@ -156,9 +158,15 @@ class _Sidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final selectedIndex = _calculateSelectedIndex(context);
 
+    final isDark = AppTheme.isDark(context);
+    final sidebarBg = isDark ? AppTheme.darkBg : AppTheme.surfaceVariant;
+    final sidebarText = isDark ? Colors.white : AppTheme.textPrimary;
+    final sidebarTextMuted = isDark ? Colors.white.withOpacity(0.7) : AppTheme.textSecondary;
+    final sidebarDivider = isDark ? Colors.white.withOpacity(0.08) : AppTheme.border;
+
     return Container(
       width: 260,
-      color: AppTheme.darkBg,
+      color: sidebarBg,
       child: Column(
         children: [
           // Logo Header
@@ -174,8 +182,8 @@ class _Sidebar extends StatelessWidget {
                 Expanded(
                   child: Text(
                     AppLocalizations.of(context).appName,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: sidebarText,
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
                       letterSpacing: -0.3,
@@ -189,7 +197,7 @@ class _Sidebar extends StatelessWidget {
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
             height: 0.5,
-            color: Colors.white.withOpacity(0.08),
+            color: sidebarDivider,
           ),
           const SizedBox(height: 12),
 
@@ -277,7 +285,7 @@ class _SectionLabel extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          color: Colors.white.withOpacity(0.3),
+          color: AppTheme.textH(context),
           fontSize: 10,
           fontWeight: FontWeight.w600,
           letterSpacing: 1.5,
@@ -315,6 +323,13 @@ class _SidebarItemState extends State<_SidebarItem> {
   Widget build(BuildContext context) {
     final isActive = widget.isSelected;
     final showHover = _isHovered && !isActive;
+    final isDark = AppTheme.isDark(context);
+    final activeColor = isDark ? Colors.white : AppTheme.textPrimary;
+    final inactiveColor = isDark ? Colors.white.withOpacity(0.55) : AppTheme.textSecondary;
+    final activeLabelColor = isDark ? Colors.white : AppTheme.textPrimary;
+    final inactiveLabelColor = isDark ? Colors.white.withOpacity(0.7) : AppTheme.textSecondary;
+    final hoverBg = isDark ? Colors.white.withOpacity(0.06) : AppTheme.border.withOpacity(0.5);
+    final activeBg = isDark ? Colors.white.withOpacity(0.12) : AppTheme.primaryDark.withOpacity(0.08);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
@@ -329,9 +344,9 @@ class _SidebarItemState extends State<_SidebarItem> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: isActive
-                  ? Colors.white.withOpacity(0.12)
+                  ? activeBg
                   : showHover
-                      ? Colors.white.withOpacity(0.06)
+                      ? hoverBg
                       : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
             ),
@@ -339,7 +354,7 @@ class _SidebarItemState extends State<_SidebarItem> {
               children: [
                 Icon(
                   widget.icon,
-                  color: isActive ? Colors.white : Colors.white.withOpacity(0.55),
+                  color: isActive ? activeColor : inactiveColor,
                   size: 20,
                 ),
                 const SizedBox(width: 12),
@@ -349,7 +364,7 @@ class _SidebarItemState extends State<_SidebarItem> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                      color: isActive ? Colors.white : Colors.white.withOpacity(0.7),
+                      color: isActive ? activeLabelColor : inactiveLabelColor,
                       letterSpacing: -0.1,
                     ),
                   ),
@@ -450,9 +465,9 @@ class _BottomNavBar extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         border: Border(
-          top: BorderSide(color: AppTheme.border.withOpacity(0.5), width: 0.5),
+          top: BorderSide(color: AppTheme.borderOf(context).withOpacity(0.5), width: 0.5),
         ),
       ),
       child: SafeArea(
@@ -546,7 +561,7 @@ class _NavItem extends StatelessWidget {
               children: [
                 Icon(
                   icon,
-                  color: isSelected ? AppTheme.primaryDark : AppTheme.textHint,
+                  color: isSelected ? AppTheme.primaryDark : AppTheme.textH(context),
                   size: 22,
                 ),
                 if (showBadge && !isSelected)
@@ -559,7 +574,7 @@ class _NavItem extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppTheme.accent,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.surface, width: 1.5),
+                        border: Border.all(color: AppTheme.surfaceOf(context), width: 1.5),
                       ),
                     ),
                   ),
@@ -574,7 +589,7 @@ class _NavItem extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? AppTheme.primaryDark : AppTheme.textHint,
+                    color: isSelected ? AppTheme.primaryDark : AppTheme.textH(context),
                     letterSpacing: 0.1,
                   ),
                 ),
@@ -609,19 +624,23 @@ class _UserProfileMenu extends StatelessWidget {
     );
 
     final l10n = AppLocalizations.of(context);
+    final menuBg = AppTheme.isDark(context) ? AppTheme.darkCard : AppTheme.surface;
+    final menuText = AppTheme.isDark(context) ? Colors.white : AppTheme.textPrimary;
+    final menuTextMuted = AppTheme.isDark(context) ? Colors.white70 : AppTheme.textSecondary;
+
     showMenu<String>(
       context: context,
       position: position,
-      color: AppTheme.darkCard,
+      color: menuBg,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       items: [
         PopupMenuItem<String>(
           value: 'settings',
           child: Row(
             children: [
-              Icon(Icons.tune_rounded, size: 18, color: Colors.white70),
+              Icon(Icons.tune_rounded, size: 18, color: menuTextMuted),
               const SizedBox(width: 10),
-              Text(l10n?.settings ?? 'Settings', style: const TextStyle(color: Colors.white, fontSize: 13)),
+              Text(l10n?.settings ?? 'Settings', style: TextStyle(color: menuText, fontSize: 13)),
             ],
           ),
         ),
@@ -629,9 +648,9 @@ class _UserProfileMenu extends StatelessWidget {
           value: 'profile',
           child: Row(
             children: [
-              Icon(Icons.person_outline_rounded, size: 18, color: Colors.white70),
+              Icon(Icons.person_outline_rounded, size: 18, color: menuTextMuted),
               const SizedBox(width: 10),
-              Text(l10n?.profile ?? 'Profile', style: const TextStyle(color: Colors.white, fontSize: 13)),
+              Text(l10n?.profile ?? 'Profile', style: TextStyle(color: menuText, fontSize: 13)),
             ],
           ),
         ),
@@ -665,13 +684,12 @@ class _UserProfileMenu extends StatelessWidget {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: AppTheme.darkSurface,
-        title: Text(l10n?.logOut ?? 'Log Out', style: const TextStyle(color: Colors.white)),
-        content: Text(l10n?.logOutConfirmation ?? 'Are you sure you want to log out?', style: const TextStyle(color: Colors.white70)),
+        title: Text(l10n?.logOut ?? 'Log Out'),
+        content: Text(l10n?.logOutConfirmation ?? 'Are you sure you want to log out?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l10n?.cancel ?? 'Cancel', style: const TextStyle(color: Colors.white60)),
+            child: Text(l10n?.cancel ?? 'Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -706,7 +724,7 @@ class _UserProfileMenu extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: Colors.white.withOpacity(0.06))),
+            border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
           ),
           child: Row(
             children: [
@@ -739,8 +757,8 @@ class _UserProfileMenu extends StatelessWidget {
                   children: [
                     Text(
                       fullName,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: AppTheme.text1(context),
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
@@ -749,7 +767,7 @@ class _UserProfileMenu extends StatelessWidget {
                       Text(
                         email,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.4),
+                          color: AppTheme.textH(context),
                           fontSize: 11,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -757,7 +775,7 @@ class _UserProfileMenu extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.unfold_more_rounded, color: Colors.white.withOpacity(0.3), size: 18),
+              Icon(Icons.unfold_more_rounded, color: AppTheme.textH(context), size: 18),
             ],
           ),
         ),

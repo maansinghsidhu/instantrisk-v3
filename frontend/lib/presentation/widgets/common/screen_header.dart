@@ -26,10 +26,10 @@ class ScreenHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         border: Border(
           bottom: BorderSide(
-            color: AppTheme.border.withOpacity(0.5),
+            color: AppTheme.borderOf(context).withOpacity(0.5),
             width: 0.5,
           ),
         ),
@@ -66,15 +66,15 @@ class ScreenHeader extends StatelessWidget {
   }
 
   Widget _buildTitle() {
-    return Column(
+    return Builder(builder: (context) => Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
             fontFamily: 'Inter',
             letterSpacing: -0.4,
           ),
@@ -85,16 +85,16 @@ class ScreenHeader extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             subtitle!,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w400,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
               fontFamily: 'Inter',
             ),
           ),
         ],
       ],
-    );
+    ));
   }
 
   Widget _buildBadge() {

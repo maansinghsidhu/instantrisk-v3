@@ -69,6 +69,33 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
       if (_startTime != null && !_isComplete && !_hasError) {
         setState(() {
           _elapsedSeconds = DateTime.now().difference(_startTime!).inSeconds;
+          // Smooth progress simulation — never appears stuck
+          // Progress advances asymptotically toward 95% over time
+          // Real completion (via polling/WebSocket) will jump to 100%
+          if (_progressPercent < 95) {
+            final expectedSeconds = widget.mode == 'quick' ? 30.0 :
+                                    widget.mode == 'go_no_go' ? 60.0 : 120.0;
+            final simulated = 5 + (90 * (1 - 1 / (1 + _elapsedSeconds / expectedSeconds)));
+            if (simulated > _progressPercent) {
+              _progressPercent = simulated;
+            }
+          }
+          // Update agent description based on simulated progress
+          if (_currentAgent.isEmpty || _currentAgent == 'Document Classifier') {
+            if (_progressPercent > 70) {
+              _currentAgent = 'Underwriter';
+              _currentDescription = 'Making underwriting decision...';
+            } else if (_progressPercent > 50) {
+              _currentAgent = 'Risk Analyst';
+              _currentDescription = 'Analyzing risk factors...';
+            } else if (_progressPercent > 30) {
+              _currentAgent = 'Data Extractor';
+              _currentDescription = 'Extracting data from documents...';
+            } else if (_progressPercent > 10) {
+              _currentAgent = 'Document Classifier';
+              _currentDescription = 'Classifying documents...';
+            }
+          }
         });
       }
     });
@@ -216,26 +243,13 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
   DateTime? _stuckAt95Since;
 
   void _startBackupPolling() {
-    _backupPollTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+    // Poll every 3 seconds regardless of progress — catches stuck WebSockets
+    _backupPollTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
       if (_isComplete || _hasError) {
         _backupPollTimer?.cancel();
         return;
       }
-      // Track time stuck at 95%+
-      if (_progressPercent >= 95) {
-        _stuckAt95Since ??= DateTime.now();
-        final stuckDuration = DateTime.now().difference(_stuckAt95Since!);
-        if (stuckDuration.inSeconds > 60) {
-          // Stuck too long - force poll for completion
-          await _pollProgress();
-        }
-      } else {
-        _stuckAt95Since = null;
-      }
-      // Always poll if progress >= 90% (approaching completion)
-      if (_progressPercent >= 90) {
-        await _pollProgress();
-      }
+      await _pollProgress();
     });
   }
 
@@ -315,15 +329,17 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
   Timer? _pollTimer;
 
   void _startPolling() {
-    _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
+    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
       await _pollProgress();
     });
   }
 
   Future<void> _pollProgress() async {
+    // Use actual assessment ID if available, otherwise try upload session ID
+    final pollId = _assessmentId ?? widget.assessmentId;
     try {
       final response = await authService.get(
-        '/assessments/${widget.assessmentId}/status',
+        '/assessments/$pollId/status',
       );
 
       if (response.statusCode == 200) {
@@ -331,6 +347,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
 
         if (data['status'] == 'completed') {
           _pollTimer?.cancel();
+          _backupPollTimer?.cancel();
           setState(() {
             _isComplete = true;
             _progressPercent = 100;
@@ -339,20 +356,30 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
           _elapsedTimer?.cancel();
         } else if (data['status'] == 'failed') {
           _pollTimer?.cancel();
+          _backupPollTimer?.cancel();
           _handleError(data['error'] ?? 'Analysis failed');
         } else {
-          // Update progress based on status
+          // Update progress based on status — smoothly advance
           setState(() {
             _currentAgent = data['current_agent'] ?? _currentAgent;
             _currentDescription = data['description'] ?? _currentDescription;
             if (data['progress'] != null) {
-              _progressPercent = (data['progress'] as num).toDouble();
+              final newProgress = (data['progress'] as num).toDouble();
+              // Only advance, never go backwards
+              if (newProgress > _progressPercent) {
+                _progressPercent = newProgress;
+              }
+            }
+            // If in_progress and we have no progress data, ensure we show movement
+            if (_progressPercent < 10) {
+              _progressPercent = 10;
+              _currentDescription = 'Processing documents...';
             }
           });
         }
       }
     } catch (e) {
-      // Ignore polling errors
+      // Ignore polling errors — will retry on next interval
     }
   }
 
@@ -465,7 +492,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
         // Progress header
         Container(
           padding: const EdgeInsets.all(24),
-          color: AppTheme.surface,
+          color: AppTheme.surfaceOf(context),
           child: Column(
             children: [
               // Animated progress indicator
@@ -482,7 +509,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                       child: CircularProgressIndicator(
                         value: 1,
                         strokeWidth: 8,
-                        color: AppTheme.border,
+                        color: AppTheme.borderOf(context),
                       ),
                     ),
                     // Progress circle

@@ -84,6 +84,37 @@ class AppTheme {
     Color(0xFFEC407A),
   ];
 
+  // ─── Theme-aware color helpers (use these in widgets) ───
+  static bool isDark(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark;
+
+  static Color bg(BuildContext context) =>
+      isDark(context) ? darkBg : background;
+
+  static Color surfaceOf(BuildContext context) =>
+      isDark(context) ? darkSurface : surface;
+
+  static Color cardOf(BuildContext context) =>
+      isDark(context) ? darkCard : surface;
+
+  static Color cardAltOf(BuildContext context) =>
+      isDark(context) ? darkCardAlt : surfaceVariant;
+
+  static Color text1(BuildContext context) =>
+      isDark(context) ? Colors.white : textPrimary;
+
+  static Color text2(BuildContext context) =>
+      isDark(context) ? Colors.white70 : textSecondary;
+
+  static Color textH(BuildContext context) =>
+      isDark(context) ? Colors.white38 : textHint;
+
+  static Color borderOf(BuildContext context) =>
+      isDark(context) ? darkBorder : border;
+
+  static Color borderLightOf(BuildContext context) =>
+      isDark(context) ? darkBorder : borderLight;
+
   // Modern shadows
   static List<BoxShadow> get subtleShadow => [
     BoxShadow(

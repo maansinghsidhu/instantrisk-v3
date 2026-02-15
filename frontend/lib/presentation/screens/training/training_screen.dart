@@ -167,7 +167,7 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       body: Column(
         children: [
           ScreenHeader(
@@ -271,11 +271,11 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> {
                 fillColor: AppTheme.surface,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppTheme.border),
+                  borderSide: BorderSide(color: AppTheme.borderOf(context)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppTheme.border),
+                  borderSide: BorderSide(color: AppTheme.borderOf(context)),
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 isDense: true,
@@ -402,7 +402,7 @@ class _EmptyState extends StatelessWidget {
           Icon(
             Icons.cloud_upload_outlined,
             size: 80,
-            color: AppTheme.textHint,
+            color: AppTheme.textH(context),
           ),
           const SizedBox(height: 16),
           Text(
@@ -410,7 +410,7 @@ class _EmptyState extends StatelessWidget {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
             ),
           ),
           const SizedBox(height: 8),
@@ -419,7 +419,7 @@ class _EmptyState extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
             ),
           ),
           const SizedBox(height: 24),

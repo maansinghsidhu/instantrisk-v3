@@ -186,7 +186,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
     // Premium gate - chat is premium-only
     if (!SubscriptionService().isPremium) {
       return Scaffold(
-        backgroundColor: AppTheme.darkCardAlt,
+        backgroundColor: AppTheme.bg(context),
         body: SafeArea(
           child: Center(
             child: Padding(
@@ -205,10 +205,10 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                     child: const Icon(Icons.chat_bubble_outline, size: 48, color: AppTheme.accentBright),
                   ),
                   const SizedBox(height: 24),
-                  const Text('InstantRisk Assistant', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700, fontFamily: 'Inter')),
+                  Text('InstantRisk Assistant', style: TextStyle(color: AppTheme.text1(context), fontSize: 22, fontWeight: FontWeight.w700, fontFamily: 'Inter')),
                   const SizedBox(height: 12),
                   Text('Get instant answers about insurance policies, risk analysis, and underwriting decisions.',
-                      textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14, height: 1.5)),
+                      textAlign: TextAlign.center, style: TextStyle(color: AppTheme.text2(context), fontSize: 14, height: 1.5)),
                   const SizedBox(height: 32),
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -221,8 +221,8 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                       children: [
                         const Icon(Icons.workspace_premium, color: AppTheme.accentBright, size: 20),
                         const SizedBox(width: 12),
-                        const Expanded(
-                          child: Text('Premium Feature', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                        Expanded(
+                          child: Text('Premium Feature', style: TextStyle(color: AppTheme.text1(context), fontSize: 14, fontWeight: FontWeight.w600)),
                         ),
                         TextButton(
                           onPressed: () => context.go('/settings/subscription'),
@@ -240,7 +240,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.darkCardAlt,
+      backgroundColor: AppTheme.bg(context),
       appBar: _isWelcomeState ? null : _buildAppBar(),
       body: SafeArea(
         child: Column(
@@ -261,10 +261,10 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: AppTheme.darkCardAlt,
+      backgroundColor: AppTheme.bg(context),
       elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white70),
+        icon: Icon(Icons.arrow_back, color: AppTheme.text2(context)),
         onPressed: () {
           if (_messages.isNotEmpty) {
             setState(() {
@@ -277,13 +277,13 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
           }
         },
       ),
-      title: const Text(
+      title: Text(
         'InstantRisk Assistant',
-        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+        style: TextStyle(color: AppTheme.text1(context), fontSize: 18, fontWeight: FontWeight.w600),
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.add_circle_outline, color: Colors.white70),
+          icon: Icon(Icons.add_circle_outline, color: AppTheme.text2(context)),
           tooltip: 'Attach context',
           onPressed: _showContextPicker,
         ),
@@ -294,7 +294,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
   Widget _buildContextBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: AppTheme.darkCard,
+      color: AppTheme.cardOf(context),
       child: Row(
         children: [
           Container(
@@ -348,10 +348,10 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
             child: const Icon(Icons.auto_awesome, color: Colors.white, size: 32),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'What can I help you with?',
             style: TextStyle(
-              color: Colors.white,
+              color: AppTheme.text1(context),
               fontSize: 24,
               fontWeight: FontWeight.w600,
             ),
@@ -359,7 +359,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
           const SizedBox(height: 8),
           Text(
             'Insurance AI with 112K+ knowledge base records',
-            style: TextStyle(color: Colors.white38, fontSize: 14),
+            style: TextStyle(color: AppTheme.textH(context), fontSize: 14),
           ),
           const SizedBox(height: 32),
           // Recent Conversations
@@ -369,7 +369,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
               child: Text(
                 'Recent Conversations',
                 style: TextStyle(
-                  color: Colors.white54,
+                  color: AppTheme.text2(context),
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
@@ -394,18 +394,18 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: AppTheme.darkCard,
+          color: AppTheme.cardOf(context),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: const Icon(Icons.chat_bubble_outline, color: Colors.white38, size: 16),
+        child: Icon(Icons.chat_bubble_outline, color: AppTheme.textH(context), size: 16),
       ),
       title: Text(
         convo.title,
-        style: const TextStyle(color: Colors.white70, fontSize: 13),
+        style: TextStyle(color: AppTheme.text2(context), fontSize: 13),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: Text(timeAgo, style: const TextStyle(color: Colors.white24, fontSize: 11)),
+      trailing: Text(timeAgo, style: TextStyle(color: AppTheme.textH(context), fontSize: 11)),
       onTap: () {
         setState(() {
           _conversationId = convo.id;
@@ -469,7 +469,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppTheme.darkCard,
+              color: AppTheme.cardOf(context),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(4),
                 topRight: Radius.circular(18),
@@ -480,7 +480,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
             child: SelectableText(
               message.text,
               style: TextStyle(
-                color: message.isError ? Colors.redAccent : Colors.white.withValues(alpha: 0.9),
+                color: message.isError ? Colors.redAccent : AppTheme.text1(context),
                 fontSize: 14,
                 height: 1.6,
               ),
@@ -498,12 +498,12 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color: AppTheme.text1(context).withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '$name ${(score * 100).toInt()}%',
-                      style: const TextStyle(color: Colors.white24, fontSize: 10),
+                      style: TextStyle(color: AppTheme.textH(context), fontSize: 10),
                     ),
                   );
                 }).toList(),
@@ -599,7 +599,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppTheme.darkCard,
+              color: AppTheme.cardOf(context),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(4),
                 topRight: Radius.circular(18),
@@ -628,7 +628,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                 if (_streamingResponse.isNotEmpty)
                   SelectableText(
                     _streamingResponse,
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 14, height: 1.6),
+                    style: TextStyle(color: AppTheme.text1(context), fontSize: 14, height: 1.6),
                   ),
                 if (_streamingResponse.isEmpty && _thinkingMessage.isEmpty)
                   Row(
@@ -652,7 +652,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
       width: 8,
       height: 8,
       decoration: BoxDecoration(
-        color: Colors.white24,
+        color: AppTheme.textH(context),
         shape: BoxShape.circle,
       ),
     );
@@ -661,15 +661,15 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
   Widget _buildInputArea() {
     return Container(
       padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(context).padding.bottom + 12),
-      decoration: const BoxDecoration(
-        color: AppTheme.darkBg,
-        border: Border(top: BorderSide(color: Colors.white10)),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceOf(context),
+        border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
       ),
       child: Row(
         children: [
           // Attach button
           IconButton(
-            icon: const Icon(Icons.attach_file, color: Colors.white38, size: 22),
+            icon: Icon(Icons.attach_file, color: AppTheme.textH(context), size: 22),
             onPressed: _showContextPicker,
           ),
           // Text input
@@ -677,20 +677,20 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
             child: Container(
               constraints: const BoxConstraints(maxHeight: 120),
               decoration: BoxDecoration(
-                color: AppTheme.darkCard,
+                color: AppTheme.cardOf(context),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white10),
+                border: Border.all(color: AppTheme.borderOf(context)),
               ),
               child: TextField(
                 controller: _messageController,
                 focusNode: _inputFocusNode,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(color: AppTheme.text1(context), fontSize: 14),
                 maxLines: null,
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _sendMessage(),
                 decoration: InputDecoration(
                   hintText: _isWelcomeState ? 'Ask about insurance...' : 'Type a message...',
-                  hintStyle: const TextStyle(color: Colors.white24, fontSize: 14),
+                  hintStyle: TextStyle(color: AppTheme.textH(context), fontSize: 14),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                 ),

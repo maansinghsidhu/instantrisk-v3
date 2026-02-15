@@ -19,6 +19,65 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+
+async def _fetch_training_context(assessment_data: Dict[str, Any], user_id: str = None) -> str:
+    """Search user's training documents for context relevant to this assessment."""
+    if not user_id:
+        return ""
+
+    try:
+        from app.services.unified_rag import unified_rag
+
+        risk_category = assessment_data.get("risk_category", "")
+        territory = assessment_data.get("territory", "")
+        insured = assessment_data.get("insured_name", "")
+
+        # Search user's training docs for relevant context
+        queries = [
+            f"{risk_category} underwriting guidelines appetite",
+            f"{risk_category} {territory} loss history claims experience",
+            f"{risk_category} pricing premium rate benchmarks",
+        ]
+
+        all_results = []
+        for q in queries:
+            results = await unified_rag.search(
+                query=q,
+                user_id=user_id,
+                top_k=3,
+                min_score=0.3,
+                source_tiers=["user"],
+            )
+            all_results.extend(results)
+
+        if not all_results:
+            return ""
+
+        # Deduplicate by text
+        seen = set()
+        unique = []
+        for r in all_results:
+            txt = r.get("text", "")[:200]
+            if txt not in seen:
+                seen.add(txt)
+                unique.append(r)
+
+        # Format as context
+        parts = []
+        for r in unique[:8]:  # Max 8 chunks
+            cat = r.get("category", "")
+            fname = r.get("filename", "")
+            text = r.get("text", "")[:500]
+            parts.append(f"[{cat}|{fname}]: {text}")
+
+        context = "\n\n".join(parts)
+        logger.info(f"Training context: {len(unique)} relevant chunks from user docs")
+        return context
+
+    except Exception as e:
+        logger.warning(f"Training context fetch failed: {e}")
+        return ""
+
 # System prompt for insurance risk analysis
 ANALYSIS_SYSTEM_PROMPT = """You are an expert Lloyd's of London insurance underwriter and risk analyst.
 
@@ -57,12 +116,13 @@ class AIService:
         self._bedrock = BedrockClient()
         self._initialized = True
 
-    async def analyze_risk(self, assessment) -> Dict[str, Any]:
+    async def analyze_risk(self, assessment, user_id: str = None) -> Dict[str, Any]:
         """
         Perform comprehensive AI risk analysis using Bedrock Claude.
 
         Args:
             assessment: The Assessment model instance to analyze.
+            user_id: Optional user ID to fetch training document context.
 
         Returns:
             dict: Analysis results including risk_score, recommendations, etc.
@@ -70,10 +130,13 @@ class AIService:
         # Prepare assessment data
         assessment_data = self._prepare_assessment_data(assessment)
 
+        # Fetch relevant training document context
+        training_context = await _fetch_training_context(assessment_data, user_id)
+
         # Try AI analysis first
         if self._initialized:
             try:
-                ai_result = await self._run_ai_analysis(assessment_data)
+                ai_result = await self._run_ai_analysis(assessment_data, training_context)
                 if ai_result:
                     return ai_result
             except Exception as e:
@@ -101,13 +164,23 @@ class AIService:
             "ocr_extracted_text": (assessment.ocr_extracted_text or "")[:2000],  # Limit context
         }
 
-    async def _run_ai_analysis(self, assessment_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def _run_ai_analysis(self, assessment_data: Dict[str, Any], training_context: str = "") -> Dict[str, Any]:
         """Execute AI-powered risk analysis using AWS Bedrock Claude."""
 
-        # Build the analysis prompt
+        # Build the analysis prompt with training context
+        training_section = ""
+        if training_context:
+            training_section = f"""
+
+RELEVANT UNDERWRITING KNOWLEDGE (from uploaded training documents):
+{training_context}
+
+Use this knowledge to inform your analysis — apply any relevant guidelines, loss history patterns,
+pricing benchmarks, and risk appetite criteria from these documents."""
+
         user_prompt = f"""Analyze this insurance risk:
 
-{json.dumps(assessment_data, indent=2, default=str)}
+{json.dumps(assessment_data, indent=2, default=str)}{training_section}
 
 Return JSON with: risk_score, confidence_score, risk_factors, recommendations, decision, summary"""
 

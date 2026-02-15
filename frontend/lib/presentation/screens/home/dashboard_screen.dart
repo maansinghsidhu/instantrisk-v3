@@ -223,7 +223,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             Text(
               '${_uploadedDocs.length} document(s) uploaded from mobile:',
-              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+              style: TextStyle(color: AppTheme.text2(context), fontSize: 14),
             ),
             const SizedBox(height: 16),
             Container(
@@ -310,7 +310,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.border, width: 2),
+                  border: Border.all(color: AppTheme.borderOf(context), width: 2),
                 ),
                 child: _qrUrl != null
                     ? QrImageView(
@@ -343,7 +343,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Expanded(
                       child: Text(
                         '${AppLocalizations.of(context).loading}\n${AppLocalizations.of(context).uploadDocument}',
-                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                        style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
                       ),
                     ),
                   ],
@@ -398,7 +398,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -460,41 +460,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (_isBasicOrHigher)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(
-                          title: l10n.reports,
-                          value: _isLoadingStats ? '-' : '$_totalAssessments',
-                          subtitle: l10n.reports,
-                          icon: Icons.assessment_outlined,
-                          color: AppTheme.primaryDark,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _buildStatCard(
-                          title: l10n.goDecision,
-                          value: _isLoadingStats ? '-' : '$_approvedCount',
-                          subtitle: _totalAssessments > 0
-                              ? '${((_approvedCount / _totalAssessments) * 100).toInt()}%'
-                              : '0%',
-                          icon: Icons.check_circle_outline,
-                          color: AppTheme.success,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _buildStatCard(
-                          title: l10n.pending,
-                          value: _isLoadingStats ? '-' : '$_pendingCount',
-                          subtitle: l10n.processing,
-                          icon: Icons.pending_outlined,
-                          color: AppTheme.warning,
-                        ),
-                      ),
-                    ],
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final narrow = constraints.maxWidth < 380;
+                      final gap = narrow ? 6.0 : 10.0;
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatCard(
+                              title: l10n.reports,
+                              value: _isLoadingStats ? '-' : '$_totalAssessments',
+                              subtitle: l10n.reports,
+                              icon: Icons.assessment_outlined,
+                              color: AppTheme.primaryDark,
+                              compact: narrow,
+                            ),
+                          ),
+                          SizedBox(width: gap),
+                          Expanded(
+                            child: _buildStatCard(
+                              title: l10n.goDecision,
+                              value: _isLoadingStats ? '-' : '$_approvedCount',
+                              subtitle: _totalAssessments > 0
+                                  ? '${((_approvedCount / _totalAssessments) * 100).toInt()}%'
+                                  : '0%',
+                              icon: Icons.check_circle_outline,
+                              color: AppTheme.success,
+                              compact: narrow,
+                            ),
+                          ),
+                          SizedBox(width: gap),
+                          Expanded(
+                            child: _buildStatCard(
+                              title: l10n.pending,
+                              value: _isLoadingStats ? '-' : '$_pendingCount',
+                              subtitle: l10n.processing,
+                              icon: Icons.pending_outlined,
+                              color: AppTheme.warning,
+                              compact: narrow,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -504,7 +513,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             // New Assessment Button - Upload Documents
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Container(
                   decoration: BoxDecoration(
                     color: AppTheme.primaryDark,
@@ -524,24 +533,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       onTap: () => context.go('/home/intake'),
                       borderRadius: BorderRadius.circular(20),
                       child: Padding(
-                        padding: const EdgeInsets.all(22.0),
+                        padding: const EdgeInsets.all(16.0),
                         child: Row(
                           children: [
                             Container(
-                              width: 58,
-                              height: 58,
+                              width: 44,
+                              height: 44,
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
                                 Icons.bolt_rounded,
                                 color: Colors.white,
-                                size: 32,
+                                size: 24,
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -549,37 +557,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   Text(
                                     l10n.startAnalysis,
                                     style: const TextStyle(
-                                      fontSize: 19,
+                                      fontSize: 16,
                                       fontWeight: FontWeight.w700,
                                       color: Colors.white,
                                       fontFamily: 'Inter',
-                                      letterSpacing: -0.3,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 2),
                                   Text(
-                                    'Upload documents for InstantRisk Engine analysis',
+                                    'Upload documents for analysis',
                                     style: TextStyle(
-                                      fontSize: 13,
+                                      fontSize: 12,
                                       color: Colors.white.withValues(alpha: 0.85),
-                                      fontFamily: 'Inter',
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.arrow_forward_rounded,
-                                color: Colors.white,
-                                size: 22,
-                              ),
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Colors.white,
+                              size: 20,
                             ),
                           ],
                         ),
@@ -595,12 +593,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SliverToBoxAdapter(child: SizedBox(height: 12)),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: AppTheme.surface,
+                      color: AppTheme.surfaceOf(context),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.border),
+                      border: Border.all(color: AppTheme.borderOf(context)),
                     ),
                     child: Material(
                       color: Colors.transparent,
@@ -638,19 +636,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   children: [
                                     Text(
                                       l10n.uploadDocument,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
-                                        color: AppTheme.textPrimary,
+                                        color: AppTheme.text1(context),
                                         fontFamily: 'Inter',
                                       ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       l10n.uploadDocument,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 13,
-                                        color: AppTheme.textSecondary,
+                                        color: AppTheme.text2(context),
                                         fontFamily: 'Inter',
                                       ),
                                     ),
@@ -659,7 +657,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                               Icon(
                                 Icons.arrow_forward_ios,
-                                color: AppTheme.textHint,
+                                color: AppTheme.textH(context),
                                 size: 16,
                               ),
                             ],
@@ -677,16 +675,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             // Recent Assessments Section
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       l10n.recentAssessments,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
+                        color: AppTheme.text1(context),
                         fontFamily: 'Inter',
                       ),
                     ),
@@ -707,23 +705,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             // Recent Assessment List
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               sliver: _recentAssessments.isEmpty && !_isLoadingStats
                   ? SliverToBoxAdapter(
                       child: Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: AppTheme.surface,
+                          color: AppTheme.surfaceOf(context),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.border),
+                          border: Border.all(color: AppTheme.borderOf(context)),
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.folder_open_outlined, size: 48, color: AppTheme.textHint),
+                            Icon(Icons.folder_open_outlined, size: 48, color: AppTheme.textH(context)),
                             const SizedBox(height: 12),
-                            Text(l10n.noData, style: const TextStyle(color: AppTheme.textSecondary)),
+                            Text(l10n.noData, style: TextStyle(color: AppTheme.text2(context))),
                             const SizedBox(height: 4),
-                            Text(l10n.uploadDocument, style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
+                            Text(l10n.uploadDocument, style: TextStyle(color: AppTheme.textH(context), fontSize: 12)),
                           ],
                         ),
                       ),
@@ -767,13 +765,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required String subtitle,
     required IconData icon,
     required Color color,
+    bool compact = false,
   }) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(compact ? 12 : 18),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.border),
+        color: AppTheme.surfaceOf(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderOf(context)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -785,41 +784,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: color,
-                  ),
-                ),
-              ),
-            ],
+          Container(
+            padding: EdgeInsets.all(compact ? 6 : 10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: compact ? 16 : 20),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: compact ? 8 : 14),
           Text(
             value,
             style: TextStyle(
-              fontSize: 32,
+              fontSize: compact ? 22 : 32,
               fontWeight: FontWeight.w800,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
               fontFamily: 'Inter',
               letterSpacing: -1,
             ),
@@ -827,10 +806,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 2),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 13,
+            style: TextStyle(
+              fontSize: compact ? 11 : 13,
               fontWeight: FontWeight.w500,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
               fontFamily: 'Inter',
             ),
           ),
@@ -866,9 +845,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -902,10 +881,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       Text(
                         company,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                           fontFamily: 'Inter',
                         ),
                         maxLines: 1,
@@ -914,14 +893,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: 3),
                       Row(
                         children: [
-                          Icon(Icons.tag_rounded, size: 13, color: AppTheme.textHint),
+                          Icon(Icons.tag_rounded, size: 13, color: AppTheme.textH(context)),
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
                               title,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: AppTheme.textSecondary,
+                                color: AppTheme.text2(context),
                                 fontFamily: 'Inter',
                               ),
                               maxLines: 1,
@@ -929,13 +908,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Icon(Icons.calendar_today_rounded, size: 11, color: AppTheme.textHint),
+                          Icon(Icons.calendar_today_rounded, size: 11, color: AppTheme.textH(context)),
                           const SizedBox(width: 3),
                           Text(
                             date,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: AppTheme.textHint,
+                              color: AppTheme.textH(context),
                             ),
                           ),
                         ],

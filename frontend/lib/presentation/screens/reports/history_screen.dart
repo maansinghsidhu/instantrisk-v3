@@ -197,7 +197,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/home/intake'),
         backgroundColor: AppTheme.primaryDark,
@@ -213,21 +213,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     l10n.reports,
-                    style: const TextStyle(
-                      fontSize: 28,
+                    style: TextStyle(
+                      fontSize: 22,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.text1(context),
                       fontFamily: 'Inter',
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.refresh, color: AppTheme.textPrimary),
+                    icon: Icon(Icons.refresh, color: AppTheme.text1(context), size: 20),
                     onPressed: _fetchAssessments,
                   ),
                 ],
@@ -282,7 +282,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             children: [
                               Icon(Icons.error_outline, size: 48, color: AppTheme.danger),
                               const SizedBox(height: 16),
-                              Text(_error!, style: const TextStyle(color: AppTheme.textSecondary)),
+                              Text(_error!, style: TextStyle(color: AppTheme.text2(context))),
                               const SizedBox(height: 16),
                               ElevatedButton(
                                 onPressed: _fetchAssessments,
@@ -297,28 +297,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Container(
-                                    width: 80,
-                                    height: 80,
+                                    width: 60,
+                                    height: 60,
                                     decoration: BoxDecoration(
                                       color: AppTheme.primaryDark.withOpacity(0.1),
                                       shape: BoxShape.circle,
                                     ),
-                                    child: Icon(Icons.assessment_outlined, size: 40, color: AppTheme.primaryDark),
+                                    child: Icon(Icons.assessment_outlined, size: 28, color: AppTheme.primaryDark),
                                   ),
-                                  const SizedBox(height: 20),
+                                  const SizedBox(height: 16),
                                   Text(
                                     l10n.noData,
-                                    style: const TextStyle(
-                                      fontSize: 20,
+                                    style: TextStyle(
+                                      fontSize: 16,
                                       fontWeight: FontWeight.w600,
-                                      color: AppTheme.textPrimary,
+                                      color: AppTheme.text1(context),
                                     ),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
                                     l10n.uploadDocument,
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(color: AppTheme.textSecondary),
+                                    style: TextStyle(color: AppTheme.text2(context)),
                                   ),
                                   const SizedBox(height: 24),
                                   ElevatedButton.icon(
@@ -376,9 +376,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -404,17 +404,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 : '#${assessment.id}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.textHint,
+                              color: AppTheme.textH(context),
                               fontFamily: 'Inter',
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             assessment.title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimary,
+                              color: AppTheme.text1(context),
                               fontFamily: 'Inter',
                             ),
                             maxLines: 1,
@@ -444,14 +444,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.business, size: 16, color: AppTheme.textHint),
+                    Icon(Icons.business, size: 16, color: AppTheme.textH(context)),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         assessment.company,
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.text2(context),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -489,7 +489,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       'Long press to rename',
                       style: TextStyle(
                         fontSize: 10,
-                        color: AppTheme.textHint.withOpacity(0.6),
+                        color: AppTheme.textH(context).withOpacity(0.6),
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -497,7 +497,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       _formatDate(assessment.date),
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.textHint,
+                        color: AppTheme.textH(context),
                       ),
                     ),
                   ],

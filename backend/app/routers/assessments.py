@@ -43,13 +43,14 @@ def generate_reference_number() -> str:
     return f"IR-{date_part}-{unique_part}"
 
 
-async def run_ai_analysis(assessment_id: str, db: AsyncSession):
+async def run_ai_analysis(assessment_id: str, db: AsyncSession, user_id: str = None):
     """
     Background task to run AI analysis on an assessment.
 
     Args:
         assessment_id: ID of the assessment to analyze.
         db: Database session.
+        user_id: User ID for fetching training document context.
     """
     result = await db.execute(select(Assessment).where(Assessment.id == assessment_id))
     assessment = result.scalar_one_or_none()
@@ -61,9 +62,9 @@ async def run_ai_analysis(assessment_id: str, db: AsyncSession):
         assessment.status = AssessmentStatus.IN_PROGRESS
         await db.commit()
 
-        # Run AI analysis
+        # Run AI analysis (with user training doc context)
         ai_service = AIService()
-        analysis_result = await ai_service.analyze_risk(assessment)
+        analysis_result = await ai_service.analyze_risk(assessment, user_id=str(user_id) if user_id else None)
 
         assessment.risk_score = analysis_result.get("risk_score")
         assessment.confidence_score = analysis_result.get("confidence_score")
@@ -511,8 +512,8 @@ async def trigger_ai_analysis(
             detail="Access denied"
         )
 
-    # Queue AI analysis
-    background_tasks.add_task(run_ai_analysis, assessment.id, db)
+    # Queue AI analysis (pass user_id so training docs inform the analysis)
+    background_tasks.add_task(run_ai_analysis, assessment.id, db, user_id=current_user.id)
 
     return {
         "message": "AI analysis queued",

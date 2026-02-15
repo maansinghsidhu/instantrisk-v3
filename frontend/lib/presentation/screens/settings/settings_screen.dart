@@ -50,7 +50,7 @@ class SettingsScreen extends ConsumerWidget {
     final currentLanguageInfo = getLanguageInfo(languageState.languageCode);
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -68,9 +68,9 @@ class SettingsScreen extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppTheme.surface,
+                    color: AppTheme.surfaceOf(context),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.border),
+                    border: Border.all(color: AppTheme.borderOf(context)),
                   ),
                   child: InkWell(
                     onTap: () => context.go('/settings/profile'),
@@ -94,28 +94,28 @@ class SettingsScreen extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'John Doe',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
-                                  color: AppTheme.textPrimary,
+                                  color: AppTheme.text1(context),
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              const Text(
+                              Text(
                                 'john.doe@company.com',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: AppTheme.textSecondary,
+                                  color: AppTheme.text2(context),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const Icon(
+                        Icon(
                           Icons.arrow_forward_ios,
-                          color: AppTheme.textHint,
+                          color: AppTheme.textH(context),
                           size: 18,
                         ),
                       ],
@@ -126,8 +126,8 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // Account Section
-              _buildSectionTitle(l10n.account),
-              _buildSettingsGroup([
+              _buildSectionTitle(context, l10n.account),
+              _buildSettingsGroup(context, [
                 _buildSettingsItem(
                   context,
                   icon: Icons.person_outline,
@@ -154,8 +154,8 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // Team & Admin Section
-              _buildSectionTitle(l10n.teamAdmin),
-              _buildSettingsGroup([
+              _buildSectionTitle(context, l10n.teamAdmin),
+              _buildSettingsGroup(context, [
                 _buildSettingsItem(
                   context,
                   icon: Icons.groups_outlined,
@@ -185,8 +185,8 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // App Settings Section
-              _buildSectionTitle(l10n.appSettings),
-              _buildSettingsGroup([
+              _buildSectionTitle(context, l10n.appSettings),
+              _buildSettingsGroup(context, [
                 _buildSettingsItem(
                   context,
                   icon: Icons.language_outlined,
@@ -216,8 +216,8 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // Support Section
-              _buildSectionTitle(l10n.support),
-              _buildSettingsGroup([
+              _buildSectionTitle(context, l10n.support),
+              _buildSettingsGroup(context, [
                 _buildSettingsItem(
                   context,
                   icon: Icons.help_outline,
@@ -249,8 +249,8 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // About Section
-              _buildSectionTitle(l10n.about),
-              _buildSettingsGroup([
+              _buildSectionTitle(context, l10n.about),
+              _buildSettingsGroup(context, [
                 _buildSettingsItem(
                   context,
                   icon: Icons.info_outline,
@@ -311,29 +311,29 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: AppTheme.textSecondary,
+          color: AppTheme.text2(context),
           letterSpacing: 0.5,
         ),
       ),
     );
   }
 
-  Widget _buildSettingsGroup(List<Widget> children) {
+  Widget _buildSettingsGroup(BuildContext context, List<Widget> children) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: AppTheme.surfaceOf(context),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.border),
+          border: Border.all(color: AppTheme.borderOf(context)),
         ),
         child: Column(
           children: children,
@@ -376,10 +376,10 @@ class SettingsScreen extends ConsumerWidget {
                       children: [
                         Text(
                           title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.text1(context),
                           ),
                         ),
                         if (badge != null) ...[
@@ -406,18 +406,18 @@ class SettingsScreen extends ConsumerWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.text2(context),
                         ),
                       ),
                     ],
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios,
-                color: AppTheme.textHint,
+                color: AppTheme.textH(context),
                 size: 16,
               ),
             ],
@@ -441,7 +441,7 @@ class SettingsScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               l10n.cancel,
-              style: const TextStyle(color: AppTheme.textSecondary),
+              style: TextStyle(color: AppTheme.text2(context)),
             ),
           ),
           TextButton(
