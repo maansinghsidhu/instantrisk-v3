@@ -72,6 +72,19 @@ class OpenDraftGenerator:
             self._unified_rag = unified_rag
         return self._unified_rag
 
+    @staticmethod
+    def _fmt_currency(value, currency="GBP"):
+        """Format a numeric value as currency string: 15000000.0 -> 'GBP 15,000,000'."""
+        if value is None or str(value).strip() in ("", "None", "none"):
+            return "TBA"
+        try:
+            num = float(value)
+            if num == int(num):
+                return f"{currency} {int(num):,}"
+            return f"{currency} {num:,.2f}"
+        except (ValueError, TypeError):
+            return str(value)
+
     def _resolve_model_id(self, model_alias: str) -> Optional[str]:
         """Resolve short model alias to full Bedrock model ID."""
         from app.config import settings
@@ -106,6 +119,19 @@ class OpenDraftGenerator:
         except Exception as e:
             logger.error(f"Agent {name} failed: {e}")
             return None
+
+    @staticmethod
+    def _fmt_currency(value, currency="GBP"):
+        """Format a numeric value as currency string (e.g. 'GBP 15,000,000')."""
+        if value is None:
+            return "TBA"
+        try:
+            amount = float(value)
+            if amount == int(amount):
+                return f"{currency} {int(amount):,}"
+            return f"{currency} {amount:,.2f}"
+        except (ValueError, TypeError):
+            return str(value)
 
     async def _run_agent_json(
         self,
@@ -151,9 +177,9 @@ class OpenDraftGenerator:
             "companies_house_number": assessment_data.get("companies_house_number", ""),
             "broker_name": assessment_data.get("broker_name", ""),
             "commission_rate": assessment_data.get("commission_rate"),
-            "premium": assessment_data.get("premium"),
-            "sum_insured": assessment_data.get("sum_insured"),
-            "deductible": assessment_data.get("deductible"),
+            "premium": self._fmt_currency(assessment_data.get("premium"), assessment_data.get("currency", "GBP")),
+            "sum_insured": self._fmt_currency(assessment_data.get("sum_insured"), assessment_data.get("currency", "GBP")),
+            "deductible": self._fmt_currency(assessment_data.get("deductible"), assessment_data.get("currency", "GBP")),
             "inception_date": assessment_data.get("inception_date", ""),
             "expiry_date": assessment_data.get("expiry_date", ""),
             "renewal_date": assessment_data.get("renewal_date", ""),
@@ -506,8 +532,8 @@ Return ONLY valid JSON:
                 "unique_market_reference": f"B0000/IR/{datetime.utcnow().strftime('%Y')}",
                 "insured": assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", "TBA"),
                 "period": f"{assessment_data.get('inception_date', 'TBA')} to {assessment_data.get('expiry_date', 'TBA')}",
-                "premium": str(assessment_data.get("premium", "TBA")),
-                "sum_insured": str(assessment_data.get("sum_insured", "TBA")),
+                "premium": self._fmt_currency(assessment_data.get("premium"), assessment_data.get("currency", "GBP")),
+                "sum_insured": self._fmt_currency(assessment_data.get("sum_insured"), assessment_data.get("currency", "GBP")),
                 "broker": assessment_data.get("broker_name", "TBA"),
                 "brokerage": f"{assessment_data.get('commission_rate', 'TBA')}%",
                 "territory": assessment_data.get("territory", "TBA"),
@@ -604,52 +630,126 @@ Return ONLY valid JSON:
                 f"Standard terms apply with additional monitoring requirements."
             )
 
+        # Helper to convert None/empty to TBA for template rendering
+        def _tba(value, suffix=""):
+            """Return value as string, or 'TBA' if empty/None."""
+            if value is None or str(value).strip() == "" or str(value).strip().lower() == "none":
+                return "TBA"
+            return str(value) + suffix
+
+        def _format_number(value):
+            """Format a numeric value with comma separators (e.g. 15,000,000).
+            Currency symbol is added by the template via {currency} placeholder."""
+            if value is None:
+                return "TBA"
+            try:
+                amount = float(value)
+                if amount == int(amount):
+                    return f"{int(amount):,}"
+                else:
+                    return f"{amount:,.2f}"
+            except (ValueError, TypeError):
+                return str(value)
+
+        currency = assessment_data.get("currency") or "GBP"
+
+        # Determine basis of cover from risk category if not explicitly set
+        explicit_basis = assessment_data.get("basis_of_cover")
+        if explicit_basis:
+            basis_of_cover = explicit_basis
+        else:
+            basis_map = {
+                "property": "All Risks",
+                "marine": "All Risks - Institute Cargo Clauses (A)",
+                "cargo": "All Risks - Institute Cargo Clauses (A)",
+                "aviation": "All Risks - AVN1C",
+                "energy": "All Risks - Industrial All Risks",
+                "hull": "All Risks - Institute Time Clauses",
+                "fire": "All Risks",
+                "motor": "Comprehensive",
+                "cyber": "Claims Made",
+                "professional": "Claims Made",
+                "professional_lines": "Claims Made",
+                "d_and_o": "Claims Made",
+                "e_and_o": "Claims Made",
+                "financial": "Claims Made",
+                "casualty": "Losses Occurring",
+                "liability": "Losses Occurring",
+            }
+            basis_of_cover = basis_map.get(risk_category, "All Risks")
+
         return {
             "umr": f"B0000/IR/{datetime.utcnow().strftime('%Y')}",
             "broker_ref": f"IR/{datetime.utcnow().strftime('%Y')}/001",
-            "type_of_business": assessment_data.get("type_of_business", "New"),
-            "class_of_business": assessment_data.get("risk_category", "").replace("_", " ").title(),
-            "risk_code": assessment_data.get("risk_code", ""),
+            "type_of_business": assessment_data.get("type_of_business") or "New",
+            "class_of_business": (assessment_data.get("risk_category") or "General").replace("_", " ").title(),
+            "risk_code": assessment_data.get("risk_code") or self._derive_risk_code(risk_category),
             "placing_type": "Open Market",
-            "insured_name": insured_name,
-            "named_insured": insured_name,
-            "insured_address": assessment_data.get("insured_address", ""),
-            "insured_country": assessment_data.get("territory", ""),
-            "period_from": str(assessment_data.get("inception_date", "")),
-            "period_to": str(assessment_data.get("expiry_date", "")),
+            "insured_name": insured_name or "TBA",
+            "named_insured": insured_name or "TBA",
+            "insured_address": assessment_data.get("insured_address") or "TBA",
+            "insured_country": assessment_data.get("territory") or "TBA",
+            "period_from": _tba(assessment_data.get("inception_date")),
+            "period_to": _tba(assessment_data.get("expiry_date")),
             "inception_time": "00:01",
             "interest": self._build_interest_description(assessment_data),
             "territorial_limits": self._build_territorial_limits(assessment_data),
-            "limit_of_liability": str(assessment_data.get("sum_insured", "")),
+            "limit_of_liability": _format_number(assessment_data.get("sum_insured")),
             "sub_limits": "",
-            "deductible": str(assessment_data.get("deductible", "")),
-            "currency": assessment_data.get("currency", "GBP"),
-            "basis_of_cover": assessment_data.get("basis_of_cover", "Claims Made"),
+            "deductible": _format_number(assessment_data.get("deductible")),
+            "currency": currency,
+            "basis_of_cover": basis_of_cover,
             "retroactive_date": "",
-            "premium_amount": str(assessment_data.get("premium", "")),
-            "premium": str(assessment_data.get("premium", "")),
-            "premium_terms": "",
+            "premium_amount": _format_number(assessment_data.get("premium")),
+            "premium": _format_number(assessment_data.get("premium")),
+            "premium_terms": "Net of brokerage at {commission}%".format(
+                commission=assessment_data.get("commission_rate", "TBA")
+            ) if assessment_data.get("commission_rate") else "Net premium as agreed",
             "subjectivities": subjectivities,
             "warranties": warranties,
             "exclusions": exclusions,
             "conditions": conditions,
-            "claims_contact": assessment_data.get("broker_name", ""),
+            "claims_contact": assessment_data.get("broker_name") or "TBA",
             "claims_location": "London",
-            "lead_underwriter": "",
-            "lead_syndicate": "",
-            "lead_reference": "",
-            "signed_line": "",
-            "order_percentage": "",
-            "following_markets": "",
-            "broker_name": assessment_data.get("broker_name") or "",
-            "broker_address": "",
-            "broker_pin": "",
-            "broker_reference": assessment_data.get("broker_reference") or "",
-            "commission_rate": str(assessment_data.get("commission_rate") or "") + ("%" if assessment_data.get("commission_rate") else ""),
+            "lead_underwriter": "TBA",
+            "lead_syndicate": "TBA",
+            "lead_reference": "TBA",
+            "signed_line": "TBA",
+            "order_percentage": "TBA",
+            "following_markets": "TBA",
+            "broker_name": assessment_data.get("broker_name") or "TBA",
+            "broker_address": "TBA",
+            "broker_pin": "TBA",
+            "broker_reference": assessment_data.get("broker_reference") or "TBA",
+            "commission_rate": _tba(assessment_data.get("commission_rate"), suffix="%" if assessment_data.get("commission_rate") else ""),
             "additional_information": additional,
-            "policy_number": "",
-            "cover_note_number": "",
+            "policy_number": "TBA",
+            "cover_note_number": "TBA",
         }
+
+    @staticmethod
+    def _derive_risk_code(risk_category: str) -> str:
+        """Map risk_category to Lloyd's standard risk code."""
+        risk_code_map = {
+            "property": "1681",
+            "fire": "1681",
+            "commercial_property": "1681",
+            "marine": "0510",
+            "marine_cargo": "0540",
+            "marine_hull": "0510",
+            "cyber": "3379",
+            "liability": "3000",
+            "professional": "3250",
+            "professional_lines": "3250",
+            "d_and_o": "3230",
+            "e_and_o": "3250",
+            "casualty": "3000",
+            "financial": "3200",
+            "energy": "1500",
+            "aviation": "0100",
+            "motor": "0700",
+        }
+        return risk_code_map.get(risk_category, "")
 
     def _build_category_clauses(self, category: str, insured: str, data: dict):
         """Build category-specific exclusions, subjectivities, warranties, conditions."""
@@ -1190,17 +1290,28 @@ Return ONLY valid JSON:
                 try:
                     from app.services.clauses_library_service import ClausesLibraryService
                     clause_lib = ClausesLibraryService()
+                    # Search with risk category + section title for better relevance
+                    search_query = f"{title} {risk_category}" if risk_category else title
                     lib_results, lib_total = clause_lib.search(
-                        query=title,
+                        query=search_query,
                         line_of_business=risk_category,
-                        page_size=3,
+                        page_size=5,
                     )
                     if lib_results:
-                        best = lib_results[0]
-                        best_text = best.get("text", "")
-                        if best_text and len(best_text) > 30:
-                            full_lib_text = best_text
-                            clause_sources.append({"id": best.get("id", "clause_library"), "source": "clause_library"})
+                        # Pick best result that has substantial content
+                        for candidate in lib_results:
+                            cand_text = candidate.get("text", "")
+                            cand_cat = (candidate.get("category", "") or "").lower()
+                            # Skip results that are too short or from wrong domain
+                            if not cand_text or len(cand_text) < 50:
+                                continue
+                            # Skip generic contract clauses that aren't insurance-relevant
+                            non_insurance = ["employment", "real estate", "merger", "acquisition", "stock purchase"]
+                            if any(ni in cand_cat for ni in non_insurance):
+                                continue
+                            full_lib_text = cand_text
+                            clause_sources.append({"id": candidate.get("id", "clause_library"), "source": "clause_library"})
+                            break
                 except Exception as e:
                     logger.debug(f"Clause library search for '{title}': {e}")
 
@@ -1323,13 +1434,44 @@ Return ONLY valid JSON:
             try:
                 results = await asyncio.wait_for(
                     self.unified_rag.search(
-                        query=f"{section['title']} Lloyd's insurance policy {risk_category} wording",
+                        query=f"{section['title']} {risk_category} insurance policy clause wording",
                         user_id=user_id,
-                        top_k=3,
-                        min_score=0.5,
+                        top_k=5,
+                        min_score=0.6,  # Higher threshold to avoid garbage
                     ),
                     timeout=30,
                 )
+                # Filter out cross-category results (e.g. marine cargo in cyber policy)
+                if results and risk_category:
+                    cat_lower = risk_category.lower()
+                    # Categories that shouldn't cross-pollinate
+                    exclusive_cats = {"marine", "cargo", "hull", "aviation", "cyber", "property", "motor", "liability"}
+                    filtered = []
+                    for r in results:
+                        text_lower = (r.get("text", "") or "")[:500].lower()
+                        source_label = (r.get("source_label", "") or "").lower()
+                        # Reject results from wrong category
+                        is_wrong_cat = False
+                        for excl_cat in exclusive_cats:
+                            if excl_cat != cat_lower and excl_cat in source_label:
+                                is_wrong_cat = True
+                                break
+                            # Check content for strong category signals
+                            if excl_cat != cat_lower and excl_cat not in cat_lower:
+                                cat_signals = {
+                                    "marine": ["vessel", "hull", "cargo", "maritime", "shipping", "charterer"],
+                                    "cargo": ["goods in transit", "cargo", "bill of lading", "consignment"],
+                                    "aviation": ["aircraft", "aviation", "flight", "airworthiness"],
+                                    "motor": ["vehicle", "motor car", "driving", "road traffic"],
+                                }
+                                if excl_cat in cat_signals:
+                                    signal_count = sum(1 for sig in cat_signals[excl_cat] if sig in text_lower)
+                                    if signal_count >= 2:
+                                        is_wrong_cat = True
+                                        break
+                        if not is_wrong_cat:
+                            filtered.append(r)
+                    results = filtered if filtered else results[:1]  # Keep at least 1 result
                 rag_content = self.unified_rag.format_as_context(results, max_chars=2000)
             except Exception as e:
                 logger.warning(f"SectionDrafter RAG gap-fill failed for '{section['title']}': {e}")
@@ -1350,7 +1492,7 @@ Return ONLY valid JSON:
                             "SectionDrafter",
                             "You are a Lloyd's insurance document drafter. Write professional insurance wording.",
                             f"""Draft the '{section['title']}' section for a {structure.get('document_type', 'policy')} document.
-Risk: {risk_category}, Insured: {insured_name}, Territory: {assessment_data.get('territory', '')}, Sum Insured: {assessment_data.get('sum_insured', '')}
+Risk: {risk_category}, Insured: {insured_name}, Territory: {assessment_data.get('territory', '')}, Sum Insured: {self._fmt_currency(assessment_data.get('sum_insured'), assessment_data.get('currency', 'GBP'))}
 Write concise, professional Lloyd's market standard wording.""",
                             temperature=0.2,
                         ),
@@ -1395,9 +1537,9 @@ Assessment values:
 - Insured: {assessment_data.get('insured_entity_name') or assessment_data.get('insured_name', '')}
 - Broker: {assessment_data.get('broker_name', '')}
 - Commission: {assessment_data.get('commission_rate', '')}%
-- Premium: {assessment_data.get('premium', '')}
-- Sum insured: {assessment_data.get('sum_insured', '')}
-- Deductible: {assessment_data.get('deductible', '')}
+- Premium: {self._fmt_currency(assessment_data.get('premium'), assessment_data.get('currency', 'GBP'))}
+- Sum insured: {self._fmt_currency(assessment_data.get('sum_insured'), assessment_data.get('currency', 'GBP'))}
+- Deductible: {self._fmt_currency(assessment_data.get('deductible'), assessment_data.get('currency', 'GBP'))}
 - Territory: {assessment_data.get('territory', '')}
 - Inception: {assessment_data.get('inception_date', '')}
 - Expiry: {assessment_data.get('expiry_date', '')}

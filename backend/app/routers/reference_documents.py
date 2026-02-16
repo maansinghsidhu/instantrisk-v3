@@ -34,7 +34,7 @@ from app.config import settings
 router = APIRouter()
 
 # Upload directory
-UPLOAD_DIR = os.path.join(settings.upload_dir, "reference_docs")
+UPLOAD_DIR = os.path.join(settings.resolved_upload_dir, "reference_docs")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 

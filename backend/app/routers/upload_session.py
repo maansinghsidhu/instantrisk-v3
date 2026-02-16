@@ -24,7 +24,7 @@ router = APIRouter()
 
 # Use settings for upload directory (works on both EC2 and Fargate)
 from app.config import settings
-UPLOAD_DIR = settings.upload_dir
+UPLOAD_DIR = settings.resolved_upload_dir
 BASE_URL = "https://d2f065h47nuk0c.cloudfront.net"
 
 def is_expired(expires_at):

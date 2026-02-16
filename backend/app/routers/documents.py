@@ -180,7 +180,7 @@ async def upload_document(
     checksum = calculate_checksum(content)
 
     # Save file to disk
-    storage_dir = Path(settings.upload_dir) / "documents" / str(current_user.id)
+    storage_dir = Path(settings.resolved_upload_dir) / "documents" / str(current_user.id)
     storage_dir.mkdir(parents=True, exist_ok=True)
     full_path = storage_dir / f"{file_id}{extension}"
     with open(full_path, "wb") as f:

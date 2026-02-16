@@ -1358,12 +1358,18 @@ def render_template(template_id: str, data: Dict) -> str:
 
     # Replace placeholders with data
     for key, value in data.items():
-        if value is not None:
-            placeholder = "{" + key + "}"
+        placeholder = "{" + key + "}"
+        if value is not None and str(value).strip() and str(value).strip().lower() != "none":
             content = content.replace(placeholder, str(value))
+        elif value is not None and str(value).strip() == "":
+            # Explicitly empty — leave blank (not TBA)
+            content = content.replace(placeholder, "")
+        else:
+            # None or "none" — genuinely unknown
+            content = content.replace(placeholder, "TBA")
 
-    # Remove any remaining empty placeholders
-    content = re.sub(r'\{[a-z_]+\}', '', content)
+    # Remove any remaining empty placeholders with TBA
+    content = re.sub(r'\{[a-z_]+\}', 'TBA', content)
 
     return content
 
@@ -2198,19 +2204,23 @@ def auto_select_template(risk_category: str, document_type: str = None) -> str:
 
 def render_template(template_id: str, data: Dict) -> str:
     """Render a template with the provided data."""
+    import re
     template = INSURANCE_TEMPLATES.get(template_id)
     if not template or "content_template" not in template:
         return ""
 
     content = template["content_template"]
 
+    # Replace placeholders with data — skip None/empty values
     for key, value in data.items():
-        if value is not None:
-            placeholder = "{" + key + "}"
+        placeholder = "{" + key + "}"
+        if value is not None and str(value).strip() and str(value).strip().lower() != "none":
             content = content.replace(placeholder, str(value))
+        else:
+            content = content.replace(placeholder, "TBA")
 
-    import re
-    content = re.sub(r'\{[a-z_]+\}', '', content)
+    # Replace any remaining empty placeholders with TBA
+    content = re.sub(r'\{[a-z_]+\}', 'TBA', content)
 
     return content
 

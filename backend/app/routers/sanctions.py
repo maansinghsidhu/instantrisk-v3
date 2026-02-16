@@ -690,7 +690,7 @@ async def download_sanctions_report(
         try:
             from weasyprint import HTML
 
-            pdf_dir = os.path.join(settings.upload_dir, "generated")
+            pdf_dir = os.path.join(settings.resolved_upload_dir, "generated")
             os.makedirs(pdf_dir, exist_ok=True)
             pdf_filename = f"sanctions_report_{assessment_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.pdf"
             pdf_path = os.path.join(pdf_dir, pdf_filename)
