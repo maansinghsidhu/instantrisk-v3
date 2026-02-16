@@ -297,6 +297,27 @@ class QdrantService:
             logger.error(f"Failed to delete training document: {e}")
             return False
 
+    async def update_document_category(self, doc_id: str, user_id: str, new_category: str) -> int:
+        """Update category for all chunks of a training document. Returns rows updated."""
+        try:
+            engine = self._get_sync_engine()
+            from sqlalchemy import text as sql_text
+
+            with engine.begin() as conn:
+                result = conn.execute(sql_text("""
+                    UPDATE user_doc_vectors
+                    SET category = :new_category
+                    WHERE doc_id = :doc_id AND user_id = :user_id
+                """), {"new_category": new_category, "doc_id": doc_id, "user_id": user_id})
+
+            count = result.rowcount
+            logger.info(f"Updated category to '{new_category}' for doc {doc_id}: {count} chunks")
+            return count
+
+        except Exception as e:
+            logger.error(f"Failed to update document category: {e}")
+            raise
+
     async def search_similar(
         self,
         query: str,

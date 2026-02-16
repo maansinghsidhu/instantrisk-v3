@@ -3,6 +3,7 @@ Training API Router - Upload documents, train per-user ML adapters, run predicti
 """
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, BackgroundTasks
+from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 import uuid
@@ -19,78 +20,149 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def classify_document(text: str, filename: str) -> str:
+VALID_CATEGORIES = {
+    "loss_run", "claims", "underwriting", "regulatory",
+    "slip_template", "endorsement", "clause_library", "market", "policy",
+}
+
+
+def classify_document(text: str, filename: str) -> dict:
     """
     Auto-classify a training document based on filename and content keywords.
 
-    Returns one of: loss_run, claims, underwriting, regulatory, slip_template,
-    endorsement, clause_library, market, policy
+    Returns dict with:
+        category: one of the 9 training categories
+        method: "filename" | "content" | "default"
+        matched_keywords: list of keywords that triggered the match
     """
     text_lower = text[:5000].lower()
     fname_lower = filename.lower()
 
+    def _check(keywords, category, method):
+        matched = [k for k in keywords if k in (fname_lower if method == "filename" else text_lower)]
+        if matched:
+            return {"category": category, "method": method, "matched_keywords": matched}
+        return None
+
     # Filename-based hints (highest confidence — order matters: specific before generic)
-    if any(k in fname_lower for k in ["loss_run", "lossrun", "loss run", "loss-run"]):
-        return "loss_run"
-    if any(k in fname_lower for k in ["claim", "claims", "bordereaux"]):
-        return "claims"
-    if any(k in fname_lower for k in ["guideline", "guide", "manual", "underwriting", "appetite"]):
-        return "underwriting"
-    if any(k in fname_lower for k in ["regulat", "compliance", "sanction", "solvency"]):
-        return "regulatory"
-    if any(k in fname_lower for k in ["slip", "mrc", "placing"]):
-        return "slip_template"
-    if any(k in fname_lower for k in ["endorse", "amendment", "rider"]):
-        return "endorsement"
-    if any(k in fname_lower for k in ["market", "rate", "pricing", "benchmark"]):
-        return "market"
-    # "policy" or "wording" in filename → policy (check BEFORE clause to avoid "policy_wording" → clause)
-    if any(k in fname_lower for k in ["policy", "wording"]):
-        return "policy"
-    if any(k in fname_lower for k in ["clause", "lma", "nma", "icc", "wordings"]):
-        return "clause_library"
+    checks = [
+        (["loss_run", "lossrun", "loss run", "loss-run"], "loss_run"),
+        (["claim", "claims", "bordereaux"], "claims"),
+        (["guideline", "guide", "manual", "underwriting", "appetite"], "underwriting"),
+        (["regulat", "compliance", "sanction", "solvency"], "regulatory"),
+        (["slip", "mrc", "placing"], "slip_template"),
+        (["endorse", "amendment", "rider"], "endorsement"),
+        (["market", "rate", "pricing", "benchmark"], "market"),
+        (["policy", "wording"], "policy"),
+        (["clause", "lma", "nma", "icc", "wordings"], "clause_library"),
+    ]
+    for keywords, category in checks:
+        result = _check(keywords, category, "filename")
+        if result:
+            return result
 
     # Content-based classification (scan first 5000 chars — order matters)
-    if any(k in text_lower for k in ["loss ratio", "incurred losses", "paid losses", "claim count", "earned premium"]):
-        return "loss_run"
-    if any(k in text_lower for k in ["claimant", "date of loss", "reserve amount", "indemnity payment", "adjuster"]):
-        return "claims"
-    if any(k in text_lower for k in ["risk appetite", "binding authority", "underwriting guideline",
-                                      "delegated authority", "class of business appetite"]):
-        return "underwriting"
-    if any(k in text_lower for k in ["fca regulation", "pra", "solvency ii", "regulatory requirement",
-                                      "compliance framework", "sanctions list"]):
-        return "regulatory"
-    if any(k in text_lower for k in ["unique market reference", "umr", "placing slip", "market reform contract",
-                                      "mrc", "signed line", "order hereon"]):
-        return "slip_template"
-    if any(k in text_lower for k in ["endorsement no", "it is hereby agreed", "amendment to policy",
-                                      "rider to", "addendum"]):
-        return "endorsement"
-    if any(k in text_lower for k in ["premium rate", "market rate", "benchmark rate", "rate on line",
-                                      "pricing model", "actuarial"]):
-        return "market"
-    # Policy wording: insuring clause, coverage, deductible, sum insured (before clause_library to avoid false matches)
-    if any(k in text_lower for k in ["insuring clause", "policy number", "coverage", "sum insured",
-                                      "deductible", "general conditions", "policy period"]):
-        return "policy"
-    if any(k in text_lower for k in ["lma5", "lma3", "nma1", "icc-a", "icc-b",
-                                      "clause library", "standard clause"]):
-        return "clause_library"
+    content_checks = [
+        (["loss ratio", "incurred losses", "paid losses", "claim count", "earned premium"], "loss_run"),
+        (["claimant", "date of loss", "reserve amount", "indemnity payment", "adjuster"], "claims"),
+        (["risk appetite", "binding authority", "underwriting guideline",
+          "delegated authority", "class of business appetite"], "underwriting"),
+        (["fca regulation", "pra", "solvency ii", "regulatory requirement",
+          "compliance framework", "sanctions list"], "regulatory"),
+        (["unique market reference", "umr", "placing slip", "market reform contract",
+          "mrc", "signed line", "order hereon"], "slip_template"),
+        (["endorsement no", "it is hereby agreed", "amendment to policy",
+          "rider to", "addendum"], "endorsement"),
+        (["premium rate", "market rate", "benchmark rate", "rate on line",
+          "pricing model", "actuarial"], "market"),
+        (["insuring clause", "policy number", "coverage", "sum insured",
+          "deductible", "general conditions", "policy period"], "policy"),
+        (["lma5", "lma3", "nma1", "icc-a", "icc-b",
+          "clause library", "standard clause"], "clause_library"),
+    ]
+    for keywords, category in content_checks:
+        result = _check(keywords, category, "content")
+        if result:
+            return result
 
-    # Default: genuinely unclassifiable → "policy" (most common document type)
-    return "policy"
+    # Default: genuinely unclassifiable → "policy"
+    return {"category": "policy", "method": "default", "matched_keywords": []}
+
+
+def _get_training_impact(category: str) -> dict:
+    """Return human-readable description of how this category affects the AI model."""
+    impacts = {
+        "loss_run": {
+            "appetite_effect": "Biases toward Refer/Decline (cautious underwriting)",
+            "pricing_effect": "Boosts High pricing signal",
+            "rag_effect": "Used for loss history context in document generation",
+            "description": "Loss history helps the AI learn your risk tolerance and claims patterns",
+        },
+        "claims": {
+            "appetite_effect": "Biases toward Refer/Decline (cautious underwriting)",
+            "pricing_effect": "Boosts High pricing signal",
+            "rag_effect": "Used for claims pattern recognition",
+            "description": "Claims data trains the AI to recognize risky patterns in submissions",
+        },
+        "underwriting": {
+            "appetite_effect": "Biases toward Accept (your guidelines define what you write)",
+            "pricing_effect": "Neutral",
+            "rag_effect": "Used for underwriting criteria context",
+            "description": "Underwriting guidelines teach the AI your acceptance criteria",
+        },
+        "regulatory": {
+            "appetite_effect": "Biases toward Refer/Decline (compliance awareness)",
+            "pricing_effect": "Neutral",
+            "rag_effect": "Used for compliance checking in document generation",
+            "description": "Regulatory docs help the AI flag compliance-sensitive risks",
+        },
+        "slip_template": {
+            "appetite_effect": "Mild Accept bias (slips represent placed risks)",
+            "pricing_effect": "Neutral",
+            "rag_effect": "Used as templates for MRC slip generation",
+            "description": "Slip templates improve document generation formatting and structure",
+        },
+        "endorsement": {
+            "appetite_effect": "Mild Accept bias (endorsed risks were accepted)",
+            "pricing_effect": "Neutral",
+            "rag_effect": "Used for endorsement clause context",
+            "description": "Endorsements help the AI understand policy modifications and amendments",
+        },
+        "market": {
+            "appetite_effect": "Neutral",
+            "pricing_effect": "Boosts Medium pricing signal (benchmark data)",
+            "rag_effect": "Used for market rate context",
+            "description": "Market data helps calibrate pricing recommendations against benchmarks",
+        },
+        "clause_library": {
+            "appetite_effect": "Neutral",
+            "pricing_effect": "Neutral",
+            "rag_effect": "Directly used for clause recommendations in document generation",
+            "description": "Clause libraries improve clause selection and recommendation accuracy",
+        },
+        "policy": {
+            "appetite_effect": "Neutral",
+            "pricing_effect": "Neutral",
+            "rag_effect": "Used for general policy language context",
+            "description": "General policy data improves overall insurance language understanding",
+        },
+    }
+    return impacts.get(category, impacts["policy"])
 
 
 @router.get("/documents")
 async def get_training_documents(
     current_user: User = Depends(get_current_user)
 ):
-    """Get list of uploaded training documents."""
+    """Get list of uploaded training documents with training impact info."""
     try:
         documents = await qdrant_service.get_training_documents(
             user_id=str(current_user.id)
         )
+
+        # Enrich each document with training impact info
+        for doc in documents:
+            doc["training_impact"] = _get_training_impact(doc.get("category", "policy"))
 
         return {
             "documents": documents,
@@ -112,21 +184,24 @@ async def upload_training_document(
         content = await file.read()
         doc_id = str(uuid.uuid4())
 
+        classification_info = {"category": category, "method": "user_selected", "matched_keywords": []}
+
         # Auto-classify document if category is generic/default
         if category in ("auto", "policy", "all"):
-            # Extract text for classification (first pass — qdrant_service will do full extraction)
             text_preview = ""
             try:
                 text_preview = content.decode("utf-8", errors="ignore")[:5000]
             except Exception as e:
                 logger.debug(f"Text preview extraction failed: {e}")
             detected = classify_document(text_preview, file.filename or "unknown")
-            if category == "policy" and detected != "policy":
-                # Only override "policy" default if we detected something more specific
-                category = detected
+            if category == "policy" and detected["category"] != "policy":
+                category = detected["category"]
+                classification_info = detected
             elif category in ("auto", "all"):
-                category = detected
-            logger.info(f"Auto-classified '{file.filename}' as '{category}'")
+                category = detected["category"]
+                classification_info = detected
+            logger.info(f"Auto-classified '{file.filename}' as '{category}' "
+                       f"(method={classification_info['method']}, keywords={classification_info['matched_keywords']})")
 
         result = await qdrant_service.add_training_document(
             doc_id=doc_id,
@@ -148,6 +223,9 @@ async def upload_training_document(
             "document_id": doc_id,
             "filename": file.filename,
             "category": category,
+            "classification_method": classification_info["method"],
+            "classification_keywords": classification_info["matched_keywords"],
+            "training_impact": _get_training_impact(category),
             "processed": result.get("processed", False),
             "chunks_created": result.get("chunks", 0),
             "can_train_adapter": can_train,
@@ -177,6 +255,52 @@ async def delete_training_document(
 
     except Exception as e:
         logger.error(f"Failed to delete training document: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class CategoryUpdateRequest(BaseModel):
+    new_category: str
+
+
+@router.patch("/documents/{doc_id}/category")
+async def update_document_category(
+    doc_id: str,
+    body: CategoryUpdateRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Change the category of an uploaded training document."""
+    if body.new_category not in VALID_CATEGORIES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid category '{body.new_category}'. "
+                   f"Valid categories: {', '.join(sorted(VALID_CATEGORIES))}"
+        )
+
+    try:
+        chunks_updated = await qdrant_service.update_document_category(
+            doc_id=doc_id,
+            user_id=str(current_user.id),
+            new_category=body.new_category
+        )
+
+        if chunks_updated == 0:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        # Invalidate adapter cache since training data changed
+        user_model_service.invalidate_cache(str(current_user.id))
+
+        return {
+            "success": True,
+            "document_id": doc_id,
+            "new_category": body.new_category,
+            "chunks_updated": chunks_updated,
+            "training_impact": _get_training_impact(body.new_category),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update document category: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -2508,8 +2508,19 @@ Certificate issued on behalf of Certain Underwriters at Lloyd's, London.""",
             results["progress"] = progress.to_dict()
             return results
 
+    @staticmethod
+    def _fmt_currency(val, currency="GBP"):
+        """Format a numeric value as currency for AI prompt context."""
+        if val is None:
+            return "N/A"
+        try:
+            return f"{currency} {float(val):,.0f}"
+        except (ValueError, TypeError):
+            return str(val)
+
     def _build_assessment_summary(self, assessment: Dict[str, Any]) -> str:
         """Build assessment summary for agents."""
+        fmt = self._fmt_currency
         return f"""
 ASSESSMENT DETAILS:
 - Reference: {assessment.get('reference_number', 'N/A')}
@@ -2522,9 +2533,9 @@ ASSESSMENT DETAILS:
 - Broker: {assessment.get('broker_name', 'N/A')}
 - Broker Reference: {assessment.get('broker_reference', 'N/A')}
 - Commission: {assessment.get('commission_rate', 'N/A')}%
-- Premium: {assessment.get('premium', 'N/A')}
-- Sum Insured: {assessment.get('sum_insured', 'N/A')}
-- Deductible: {assessment.get('deductible', 'N/A')}
+- Premium: {fmt(assessment.get('premium'))}
+- Sum Insured: {fmt(assessment.get('sum_insured'))}
+- Deductible: {fmt(assessment.get('deductible'))}
 - Territory: {assessment.get('territory', 'N/A')}
 - Inception Date: {assessment.get('inception_date', 'N/A')}
 - Expiry Date: {assessment.get('expiry_date', 'N/A')}

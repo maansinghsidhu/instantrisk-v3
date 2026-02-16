@@ -119,7 +119,8 @@ class ClausesLibraryService:
 
         print("Loading InstantRisk Engine clauses library...")
 
-        # Load from each source (LMA removed — stubs were incomplete)
+        # Load from each source
+        self._load_lma_clauses()
         self._load_ledgar_clauses()
         self._load_cuad_clauses()
         self._load_contract_nli_clauses()
@@ -131,6 +132,38 @@ class ClausesLibraryService:
         self._loaded = True
         print(f"Loaded {len(self._clauses)} clauses from {len(self._sources)} sources")
         print(f"Categories: {len(self._categories)}")
+
+    def _load_lma_clauses(self) -> None:
+        """Load LMA (Lloyd's Market Association) standard insurance clauses."""
+        lma_path = os.path.join(self.INSURANCE_DATA_PATH, "lma", "all_lma_clauses.json")
+        if not os.path.exists(lma_path):
+            print(f"LMA clauses file not found: {lma_path}")
+            return
+
+        try:
+            with open(lma_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            for clause_data in data.get("clauses", []):
+                clause = Clause(
+                    id=clause_data.get("id", ""),
+                    name=clause_data.get("name", ""),
+                    text=clause_data.get("text", ""),
+                    category=clause_data.get("category", "LMA"),
+                    source="lma",
+                    clause_type=clause_data.get("clause_type"),
+                    line_of_business=clause_data.get("line_of_business", "all"),
+                    is_exclusion=clause_data.get("is_exclusion", False),
+                    is_mandatory=False,  # No mandatory clauses - all recommendations are based on relevance
+                    keywords=self._extract_keywords(clause_data.get("text", ""))
+                )
+                self._clauses.append(clause)
+                self._categories[clause.category] += 1
+                self._sources["lma"] += 1
+
+            print(f"Loaded {self._sources['lma']} LMA clauses")
+        except Exception as e:
+            print(f"Error loading LMA clauses: {e}")
 
     def _load_ledgar_clauses(self) -> None:
         """Load LEDGAR clauses (80,000 provisions in 100 categories)."""

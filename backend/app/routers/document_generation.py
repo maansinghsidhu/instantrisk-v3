@@ -148,6 +148,15 @@ async def suggest_documents(
         if "ai" in summary.lower() or "artificial intelligence" in summary.lower():
             special_features.append("ai")
 
+    def _fmt_currency(val, currency="GBP"):
+        if val is None:
+            return "TBA"
+        try:
+            n = float(val)
+            return f"{currency} {int(n):,}" if n == int(n) else f"{currency} {n:,.2f}"
+        except (ValueError, TypeError):
+            return str(val)
+
     assessment_data = {
         "id": assessment.id,
         "reference_number": assessment.reference_number,
@@ -159,6 +168,9 @@ async def suggest_documents(
         "premium": assessment.premium,
         "sum_insured": assessment.sum_insured,
         "deductible": assessment.deductible,
+        "premium_display": _fmt_currency(assessment.premium),
+        "sum_insured_display": _fmt_currency(assessment.sum_insured),
+        "deductible_display": _fmt_currency(assessment.deductible),
         "territory": territory,
         "inception_date": str(assessment.inception_date) if assessment.inception_date else None,
         "expiry_date": str(assessment.expiry_date) if assessment.expiry_date else None,
@@ -407,7 +419,7 @@ async def generate_documents(
     await db.commit()
     await db.refresh(job)
 
-    # Build assessment dict
+    # Build assessment dict from top-level fields
     assessment_data = {
         "id": assessment.id,
         "reference_number": assessment.reference_number,
@@ -433,6 +445,43 @@ async def generate_documents(
         "regulatory_framework": assessment.regulatory_framework,
         "rapidrate_results": assessment.rapidrate_results or {},
     }
+
+    # CRITICAL: Enrich from ai_analysis when top-level fields are empty.
+    # The AI analysis often extracts data that isn't saved to top-level columns.
+    ai_data = assessment.ai_analysis or {}
+    if isinstance(ai_data, str):
+        import json as _json
+        try:
+            ai_data = _json.loads(ai_data)
+        except Exception:
+            ai_data = {}
+
+    if isinstance(ai_data, dict):
+        # Fields to backfill from ai_analysis when top-level is empty/zero/None
+        _backfill_map = {
+            "territory": "territory",
+            "broker_name": "broker_name",
+            "broker_reference": "broker_reference",
+            "premium": "premium",
+            "sum_insured": "sum_insured",
+            "deductible": "deductible",
+            "inception_date": "inception_date",
+            "expiry_date": "expiry_date",
+            "currency": "currency",
+            "insured_entity_name": "company_name",
+            "risk_category": "risk_type",
+        }
+        for field, ai_key in _backfill_map.items():
+            current_val = assessment_data.get(field)
+            # Consider empty if None, empty string, or zero for numeric fields
+            is_empty = current_val is None or current_val == "" or current_val == "None"
+            if field in ("premium", "sum_insured", "deductible"):
+                is_empty = is_empty or current_val == 0 or current_val == 0.0
+            if is_empty:
+                ai_val = ai_data.get(ai_key)
+                if ai_val is not None and str(ai_val).strip() and str(ai_val).strip().lower() != "none":
+                    assessment_data[field] = ai_val
+                    logger.info(f"Backfilled {field} from ai_analysis.{ai_key}: {ai_val}")
 
     # Get extracted data from linked documents
     extracted_data = {}
@@ -899,7 +948,7 @@ async def finalize_document(
 
     # Generate PDF using WeasyPrint
     pdf_filename = f"{doc.document_type}_{doc.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-    pdf_dir = os.path.join(settings.upload_dir, "generated")
+    pdf_dir = os.path.join(settings.resolved_upload_dir, "generated")
     os.makedirs(pdf_dir, exist_ok=True)
     pdf_path = os.path.join(pdf_dir, pdf_filename)
 
@@ -1282,55 +1331,117 @@ def _get_clause_by_id(clause_id: str) -> Optional[dict]:
 
 
 def _get_mandatory_clauses(line_of_business: str, document_type: str) -> List[dict]:
-    """Get mandatory clauses for a line of business and document type."""
-    mandatory = []
+    """Get mandatory clauses for a line of business and document type.
 
-    # Define mandatory clauses by line and document type
-    mandatory_map = {
-        "general": ["cond_001", "cond_008", "cond_010", "excl_001", "excl_002"],
-        "cyber": ["excl_015", "cond_001", "cond_004"],
-        "marine": ["cond_002", "cond_003", "cond_007", "excl_013"],
-        "aviation": ["cond_006", "excl_014"],
-        "property": ["excl_003", "excl_008", "cond_009"],
-        "casualty": ["excl_006", "excl_007", "excl_012"],
-        "professional_lines": ["excl_005", "excl_010", "excl_011"]
+    Returns inline clause definitions (LMA standard) so they work
+    regardless of whether template JSON files exist on disk.
+    """
+    # Core mandatory clauses for ALL Lloyd's policies
+    core_mandatory = [
+        {
+            "id": "LMA5021", "name": "War & Civil War Exclusion",
+            "clause_type": "exclusion", "line_of_business": "general",
+            "text": "This insurance excludes loss, damage, liability or expense directly or indirectly caused by war, invasion, acts of foreign enemies, hostilities, civil war, revolution, rebellion, insurrection, or military power."
+        },
+        {
+            "id": "LMA3100", "name": "Sanctions Limitation & Exclusion",
+            "clause_type": "exclusion", "line_of_business": "general",
+            "text": "No insurer shall provide cover or pay any claim to the extent that doing so would expose that insurer to any sanction under United Nations resolutions or EU, UK, or US trade sanctions laws."
+        },
+        {
+            "id": "LMA5400", "name": "Several Liability Clause",
+            "clause_type": "condition", "line_of_business": "general",
+            "text": "The liability of an insurer under this contract is several and not joint with other insurers. An insurer is liable only for the proportion of liability it has underwritten."
+        },
+        {
+            "id": "LMA5027", "name": "Market Reform Contract",
+            "clause_type": "condition", "line_of_business": "general",
+            "text": "This insurance is subject to the Market Reform Contract provisions as agreed by the Lloyd's Market Association."
+        },
+        {
+            "id": "LMA5515", "name": "Law & Jurisdiction (England & Wales)",
+            "clause_type": "condition", "line_of_business": "general",
+            "text": "This insurance shall be governed by and construed in accordance with the law of England and Wales. Each party agrees to submit to the exclusive jurisdiction of the English courts."
+        },
+        {
+            "id": "LMA5406", "name": "Claims Cooperation Clause",
+            "clause_type": "condition", "line_of_business": "general",
+            "text": "The Insured shall cooperate fully with Underwriters in the investigation, defence and settlement of any claim. The Insured shall not admit liability or make any payment without the written consent of Underwriters."
+        },
+    ]
+
+    # Line-specific mandatory clauses
+    line_specific = {
+        "property": [
+            {"id": "LMA5567", "name": "Terrorism Exclusion (Property)",
+             "clause_type": "exclusion", "line_of_business": "property",
+             "text": "This insurance excludes loss or damage directly or indirectly caused by any act of terrorism."},
+        ],
+        "marine": [
+            {"id": "ICC-A", "name": "Institute Cargo Clauses (A)",
+             "clause_type": "coverage", "line_of_business": "marine",
+             "text": "This insurance covers all risks of loss of or damage to the subject-matter insured except as excluded."},
+        ],
+        "cyber": [
+            {"id": "LMA5401", "name": "Cyber Attack Exclusion",
+             "clause_type": "exclusion", "line_of_business": "cyber",
+             "text": "This insurance excludes loss directly or indirectly caused by a cyber attack unless specifically covered under this policy."},
+        ],
+        "aviation": [
+            {"id": "AVN48B", "name": "War, Hi-jacking and Other Perils Exclusion",
+             "clause_type": "exclusion", "line_of_business": "aviation",
+             "text": "This insurance excludes claims arising from war, hi-jacking, confiscation, and related perils in aviation."},
+        ],
     }
 
-    # Get line-specific mandatory clauses
     line_key = line_of_business.lower().replace(" ", "_")
-    mandatory_ids = mandatory_map.get(line_key, []) + mandatory_map.get("general", [])
-    mandatory_ids = list(set(mandatory_ids))  # Remove duplicates
-
-    for clause_id in mandatory_ids:
-        clause = _get_clause_by_id(clause_id)
-        if clause:
-            mandatory.append(clause)
-
-    return mandatory
+    return core_mandatory + line_specific.get(line_key, [])
 
 
 def _get_recommended_clauses(line_of_business: str, document_type: str) -> List[dict]:
     """Get recommended clauses for a line of business and document type."""
-    recommended = []
-
-    # Define recommended clauses by line
-    recommended_map = {
-        "cyber": ["lim_001", "lim_002", "ind_001", "def_001"],
-        "marine": ["sub_001", "lim_003", "war_001"],
-        "aviation": ["lim_004", "cond_011"],
-        "property": ["cond_005", "cond_012", "lim_005"],
-        "casualty": ["cond_004", "cond_013", "def_002"]
+    line_recommended = {
+        "property": [
+            {"id": "NMA2914", "name": "Joint Excess Loss Clause",
+             "clause_type": "condition", "line_of_business": "property",
+             "text": "If other insurance covers the same loss, the Company shall not be liable for more than its rateable proportion of the amount exceeding the total of other deductibles."},
+            {"id": "LMA5014", "name": "Duty of Fair Presentation",
+             "clause_type": "condition", "line_of_business": "property",
+             "text": "The Insured shall make a fair presentation of the risk in accordance with the Insurance Act 2015."},
+            {"id": "LMA5096", "name": "Premium Payment Clause",
+             "clause_type": "condition", "line_of_business": "general",
+             "text": "Premium is payable in accordance with the London Market settlement procedures within 30 days."},
+        ],
+        "marine": [
+            {"id": "ICC-B", "name": "Institute Cargo Clauses (B)",
+             "clause_type": "coverage", "line_of_business": "marine",
+             "text": "Named perils coverage for marine cargo including fire, explosion, stranding, and collision."},
+            {"id": "IWC-CARGO", "name": "Institute War Clauses (Cargo)",
+             "clause_type": "coverage", "line_of_business": "marine",
+             "text": "War risk coverage extension for marine cargo shipments."},
+        ],
+        "cyber": [
+            {"id": "LMA5402", "name": "Cyber Act War Exclusion",
+             "clause_type": "exclusion", "line_of_business": "cyber",
+             "text": "Excludes losses from cyber operations linked to war, whether declared or not."},
+            {"id": "LMA5394", "name": "Pandemic Exclusion",
+             "clause_type": "exclusion", "line_of_business": "general",
+             "text": "Excludes losses arising from or in connection with any pandemic or epidemic."},
+        ],
+        "aviation": [
+            {"id": "AVN52E", "name": "War and Allied Perils Extension",
+             "clause_type": "coverage", "line_of_business": "aviation",
+             "text": "Extends coverage to include war and allied perils for aviation risks."},
+        ],
+        "casualty": [
+            {"id": "LMA3200", "name": "Employer's Liability Clause",
+             "clause_type": "coverage", "line_of_business": "casualty",
+             "text": "Coverage for employer's liability arising from bodily injury to employees."},
+        ],
     }
 
     line_key = line_of_business.lower().replace(" ", "_")
-    recommended_ids = recommended_map.get(line_key, [])
-
-    for clause_id in recommended_ids:
-        clause = _get_clause_by_id(clause_id)
-        if clause:
-            recommended.append(clause)
-
-    return recommended
+    return line_recommended.get(line_key, [])
 
 
 def _substitute_variables(text: str, variables: dict) -> str:
@@ -1527,80 +1638,92 @@ async def generate_document_v3(
 async def suggest_clauses(
     line_of_business: str,
     document_type: str = "policy",
+    territory: Optional[str] = None,
+    sum_insured: Optional[float] = None,
     current_user: User = Depends(get_current_user)
 ):
     """
     Get pre-selected clause suggestions for a line of business and document type.
 
-    Analyzes the line of business and document type to recommend
-    mandatory, recommended, and optional clauses.
+    Uses the LMA clauses service to recommend mandatory, recommended, and optional
+    clauses based on risk category, territory, and sum insured.
 
     Args:
         line_of_business: Insurance line (cyber, property, marine, etc.)
         document_type: Type of document (policy, endorsement, certificate)
+        territory: Optional territory for territory-specific recommendations
+        sum_insured: Optional sum insured for large-risk recommendations
 
     Returns:
         SuggestClausesResponse with categorized clause suggestions.
     """
-    line_lower = line_of_business.lower().replace(" ", "_")
+    # Use the proper LMA clauses service which has real clause IDs
+    recommendations = lma_clauses_service.recommend_clauses(
+        risk_category=line_of_business,
+        territory=territory,
+        sum_insured=sum_insured,
+    )
 
-    # Get mandatory clauses
-    mandatory_clauses = _get_mandatory_clauses(line_lower, document_type)
     mandatory_suggestions = [
         ClauseSuggestion(
             clause_id=c.get("id", ""),
             clause_name=c.get("name", ""),
-            clause_type=c.get("clause_type", ""),
+            clause_type=c.get("category", ""),
             is_mandatory=True,
             is_recommended=True,
-            reason=f"Required for {line_of_business} {document_type}",
-            line_of_business=c.get("line_of_business", "general")
+            reason=f"Required for {line_of_business} {document_type} — Lloyd's market standard",
+            line_of_business=c.get("category", "general")
         )
-        for c in mandatory_clauses
+        for c in recommendations.get("mandatory", [])
     ]
 
-    # Get recommended clauses
-    recommended_clauses = _get_recommended_clauses(line_lower, document_type)
     recommended_suggestions = [
         ClauseSuggestion(
             clause_id=c.get("id", ""),
             clause_name=c.get("name", ""),
-            clause_type=c.get("clause_type", ""),
+            clause_type=c.get("category", ""),
             is_mandatory=False,
             is_recommended=True,
             reason=f"Commonly included in {line_of_business} policies",
-            line_of_business=c.get("line_of_business", "general")
+            line_of_business=c.get("category", "general")
         )
-        for c in recommended_clauses
+        for c in recommendations.get("recommended", [])
     ]
 
-    # Get optional clauses from full 33k+ clause library
-    optional_suggestions = []
+    optional_from_lma = [
+        ClauseSuggestion(
+            clause_id=c.get("id", ""),
+            clause_name=c.get("name", ""),
+            clause_type=c.get("category", ""),
+            is_mandatory=False,
+            is_recommended=False,
+            reason=f"Available for {line_of_business} placements",
+            line_of_business=c.get("category", "general")
+        )
+        for c in recommendations.get("optional", [])
+    ]
 
+    # Also include clauses from the full 33k+ clause library
     already_suggested = set(
         [c.clause_id for c in mandatory_suggestions] +
-        [c.clause_id for c in recommended_suggestions]
+        [c.clause_id for c in recommended_suggestions] +
+        [c.clause_id for c in optional_from_lma]
     )
 
-    # Use the comprehensive clause service (33k+ clauses)
+    line_lower = line_of_business.lower().replace(" ", "_")
+    optional_suggestions = list(optional_from_lma)
+
+    # Add clauses from the comprehensive library
     all_clauses = clause_service.get_all_clauses()
-
-    # Also get clauses by category for the specific line
     line_clauses = clause_service.get_clauses_by_category(line_lower)
-
-    # Combine and dedupe
     clause_map = {c.get("id"): c for c in all_clauses}
     for c in line_clauses:
         clause_map[c.get("id")] = c
 
     for clause_id, clause in clause_map.items():
-        # Skip if already suggested
         if clause_id in already_suggested:
             continue
-
         clause_category = clause.get("category", "general")
-
-        # Include if matches line or is a core/general clause
         if clause_category == line_lower or clause_category in ["core", "general", "claims", "sanctions"]:
             optional_suggestions.append(
                 ClauseSuggestion(
@@ -1613,13 +1736,10 @@ async def suggest_clauses(
                     line_of_business=clause_category
                 )
             )
-
-        # Limit to prevent overwhelming response
         if len(optional_suggestions) >= 500:
             break
 
     total = len(mandatory_suggestions) + len(recommended_suggestions) + len(optional_suggestions)
-    total_available = len(clause_service.get_all_clauses())
 
     return SuggestClausesResponse(
         line_of_business=line_of_business,
@@ -1628,7 +1748,6 @@ async def suggest_clauses(
         recommended_clauses=recommended_suggestions,
         optional_clauses=optional_suggestions,
         total_suggested=total
-        # Note: total_available is {total_available} clauses in full library
     )
 
 
@@ -1762,22 +1881,68 @@ async def ai_clause_search(
             # 3. Also search RAG for user-specific docs if available
             try:
                 from app.services.unified_rag import unified_rag
-                rag_results = await unified_rag.search(
-                    query=f"{doc_type} insurance clauses",
-                    user_id=str(current_user.id),
-                    top_k=5,
-                    source_tiers=["user"],
-                )
-                for r in rag_results:
-                    doc_clauses.append({
-                        "clause_id": f"user_{hash(r.get('text',''))%100000}",
-                        "name": r.get("source_label", "User Document"),
-                        "source": "user_uploaded",
-                        "content_preview": (r.get("text", ""))[:200] + "...",
-                        "is_mandatory": False,
-                    })
+
+                # Get assessment context for better search
+                assess_query = select(Assessment).where(Assessment.id == assessment_id)
+                assess_result = await db.execute(assess_query)
+                assess = assess_result.scalars().first()
+
+                risk_cat = ""
+                insured = ""
+                if assess:
+                    risk_cat = assess.risk_category.value if assess.risk_category else ""
+                    insured = assess.insured_name or assess.insured_entity_name or ""
+
+                # Use risk-category-aware search instead of generic query
+                user_search_queries = [
+                    f"{risk_cat} {doc_type} insurance policy wording",
+                    f"{risk_cat} exclusions conditions warranties",
+                ]
+                if insured:
+                    user_search_queries.append(f"{insured} insurance policy")
+
+                seen_texts = set()
+                for uq in user_search_queries:
+                    if len(doc_clauses) >= 25:
+                        break
+                    rag_results = await unified_rag.search(
+                        query=uq,
+                        user_id=str(current_user.id),
+                        top_k=3,
+                        min_score=0.5,  # Higher threshold to avoid garbage
+                        source_tiers=["user"],
+                    )
+                    for r in rag_results:
+                        text = (r.get("text", "") or "").strip()
+                        if not text or len(text) < 50:
+                            continue  # Skip tiny/empty chunks
+                        # Deduplicate by content
+                        text_key = text[:100]
+                        if text_key in seen_texts:
+                            continue
+                        seen_texts.add(text_key)
+
+                        # Use filename + category for meaningful name
+                        filename = r.get("filename", "")
+                        category = r.get("category", "")
+                        name_parts = []
+                        if filename:
+                            # Clean filename for display
+                            clean_name = filename.rsplit(".", 1)[0].replace("_", " ").replace("-", " ").title()
+                            name_parts.append(clean_name)
+                        if category and category != "policy":
+                            name_parts.append(f"({category})")
+                        display_name = " ".join(name_parts) if name_parts else "User Document"
+
+                        doc_clauses.append({
+                            "clause_id": f"user_{abs(hash(text[:200]))%100000}",
+                            "name": display_name,
+                            "source": "user_uploaded",
+                            "content_preview": text[:200] + ("..." if len(text) > 200 else ""),
+                            "is_mandatory": False,
+                        })
             except Exception as e:
-                logging.getLogger(__name__).debug(f"Clause search for {doc_type} skipped: {e}")
+                logging.getLogger(__name__).debug(f"User clause search for {doc_type} skipped: {e}")
 
             clauses_by_doc[doc_type] = doc_clauses
 
@@ -1862,6 +2027,37 @@ async def generate_documents_opendraft(
         "loss_run_reporting_rules": assessment.loss_run_reporting_rules,
         "regulatory_framework": assessment.regulatory_framework,
     }
+
+    # Backfill from ai_analysis when top-level fields are empty
+    ai_data = assessment.ai_analysis or {}
+    if isinstance(ai_data, str):
+        import json as _json
+        try:
+            ai_data = _json.loads(ai_data)
+        except Exception:
+            ai_data = {}
+    if isinstance(ai_data, dict):
+        _backfill_map = {
+            "territory": "territory",
+            "broker_name": "broker_name",
+            "broker_reference": "broker_reference",
+            "premium": "premium",
+            "sum_insured": "sum_insured",
+            "deductible": "deductible",
+            "inception_date": "inception_date",
+            "expiry_date": "expiry_date",
+            "currency": "currency",
+            "insured_entity_name": "company_name",
+        }
+        for field, ai_key in _backfill_map.items():
+            current_val = assessment_data.get(field)
+            is_empty = current_val is None or current_val == "" or current_val == "None"
+            if field in ("premium", "sum_insured", "deductible"):
+                is_empty = is_empty or current_val == 0 or current_val == 0.0
+            if is_empty:
+                ai_val = ai_data.get(ai_key)
+                if ai_val is not None and str(ai_val).strip() and str(ai_val).strip().lower() != "none":
+                    assessment_data[field] = ai_val
 
     # Queue background task — returns immediately
     background_tasks.add_task(

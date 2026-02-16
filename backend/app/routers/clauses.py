@@ -279,23 +279,37 @@ async def recommend_clauses_for_assessment(
             for clause in results:
                 add_rec(clause, 0.85, f"Relevant to {risk_category} insurance: '{term}'")
 
-        # 2. Standard insurance clauses every policy needs
+        # 2. Core insurance clauses (highly recommended for comprehensive coverage)
+        core_searches = [
+            ("indemnification", 0.85, "Core: Indemnification and compensation terms"),
+            ("limitation of liability", 0.85, "Core: Liability caps and limitations"),
+            ("exclusions", 0.85, "Core: Standard policy exclusions"),
+            ("conditions", 0.80, "Core: Policy conditions and warranties"),
+            ("definitions", 0.80, "Core: Key term definitions"),
+            ("claims procedure", 0.80, "Core: Claims notification and handling"),
+            ("governing law jurisdiction", 0.75, "Core: Governing law and dispute resolution"),
+        ]
+        for query, score, reason in core_searches:
+            results, _ = clauses_library_service.search(query=query, page_size=3)
+            for clause in results:
+                add_rec(clause, score, reason)
+
+        # 3. Standard insurance clauses (additional recommended provisions)
         standard_searches = [
-            ("indemnification", 0.8, "Standard indemnification provision"),
-            ("limitation of liability", 0.8, "Liability limitation clause"),
-            ("termination", 0.75, "Contract termination provisions"),
-            ("governing law", 0.75, "Governing law and jurisdiction"),
-            ("confidentiality", 0.7, "Confidentiality obligations"),
-            ("warranties", 0.7, "Warranty provisions"),
-            ("notice", 0.65, "Notice requirements"),
-            ("assignment", 0.65, "Assignment and transfer provisions"),
+            ("termination cancellation", 0.75, "Termination and cancellation provisions"),
+            ("subrogation", 0.70, "Subrogation rights and waiver"),
+            ("confidentiality", 0.70, "Confidentiality and data protection"),
+            ("warranties representations", 0.70, "Warranties and representations"),
+            ("notice requirements", 0.65, "Notice and communication requirements"),
+            ("assignment transfer", 0.65, "Assignment and transfer provisions"),
+            ("premium payment", 0.65, "Premium payment terms"),
         ]
         for query, score, reason in standard_searches:
             results, _ = clauses_library_service.search(query=query, page_size=3)
             for clause in results:
                 add_rec(clause, score, reason)
 
-        # 3. Search terms from summary/extracted data
+        # 4. Search terms from summary/extracted data
         if summary:
             for term in ["cyber", "marine", "property", "liability", "professional",
                          "terrorism", "war", "flood", "earthquake", "pandemic",
@@ -305,21 +319,21 @@ async def recommend_clauses_for_assessment(
                     for clause in results:
                         add_rec(clause, 0.7, f"Related to '{term}' in assessment")
 
-        # Sort by relevance score (ML predictions first, then keyword)
+        # Sort by relevance score (highest first)
         recommendations.sort(key=lambda r: r.relevance_score, reverse=True)
 
         # Limit to max_recommendations
         recommendations = recommendations[:max_recommendations]
 
-        # Count mandatory vs optional
-        mandatory_count = len([r for r in recommendations if r.is_mandatory])
-        optional_count = len(recommendations) - mandatory_count
+        # Count core vs standard clauses (core = score >= 0.75)
+        core_count = len([r for r in recommendations if r.relevance_score >= 0.75])
+        standard_count = len(recommendations) - core_count
 
         return ClauseRecommendationsResponse(
             assessment_id=assessment_id,
             recommended_clauses=recommendations,
-            mandatory_count=mandatory_count,
-            optional_count=optional_count,
+            mandatory_count=core_count,
+            optional_count=standard_count,
         )
 
     except HTTPException:
