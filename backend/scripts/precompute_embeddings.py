@@ -1,105 +1,188 @@
 """
-Pre-compute embeddings for RAG datasets locally.
+Precompute embeddings for all training datasets using insurance-BERT.
 
-Reads JSONL files, generates 768-dim embeddings using llmware/industry-bert-insurance-v0.1,
-and writes new JSONL files with "embedding" field included. This eliminates the need for
-the Fargate task to compute embeddings at index time (30min -> 1min).
+Uses sentence-transformers with llmware/industry-bert-insurance-v0.1 (768-dim).
+Can run locally or on AWS (SageMaker Processing, EC2 with GPU).
 
-Usage:
-    pip install sentence-transformers
-    python scripts/precompute_embeddings.py
+For speed: Use AWS EC2 with GPU (g4dn.xlarge or g5.xlarge recommended).
 """
 
 import json
 import os
 import sys
-import time
+import logging
+import numpy as np
+import hashlib
 from pathlib import Path
+from datetime import datetime
 
-# Add parent to path so we can find the data
-SCRIPT_DIR = Path(__file__).parent
-BACKEND_DIR = SCRIPT_DIR.parent
-DATA_DIR = BACKEND_DIR / "app" / "data" / "training_data" / "embeddings"
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
 
+# Paths
+BASE_DIR = Path(__file__).parent.parent
+INPUT_DIR = BASE_DIR / "app" / "data" / "training_data" / "embeddings"
+OUTPUT_DIR = INPUT_DIR / "computed"
+
+# Model settings
 EMBEDDING_MODEL = "llmware/industry-bert-insurance-v0.1"
-BATCH_SIZE = 256  # Larger batches for local machine with more RAM
+EMBEDDING_DIM = 768
+BATCH_SIZE = 64  # Adjust based on available memory
 
-DATASETS = [
-    "acord_clauses.jsonl",
-    "cuad_clauses.jsonl",
-    "jetech_blocks.jsonl",
-    "ledgar_provisions.jsonl",
-    "maud_clauses.jsonl",
-    "insurance_qa.jsonl",
-]
+
+def load_model():
+    """Load the embedding model."""
+    from sentence_transformers import SentenceTransformer
+
+    logger.info(f"Loading model: {EMBEDDING_MODEL}")
+    model = SentenceTransformer(EMBEDDING_MODEL)
+    logger.info(f"Model loaded. Embedding dimension: {EMBEDDING_DIM}")
+
+    # Check if GPU is available
+    import torch
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    logger.info(f"Using device: {device}")
+    if device == "cuda":
+        logger.info(f"GPU: {torch.cuda.get_device_name(0)}")
+
+    model = model.to(device)
+    return model
+
+
+def compute_embeddings_for_file(model, input_file: Path, output_file: Path):
+    """
+    Compute embeddings for a single JSONL file.
+
+    Saves as .npz with:
+    - embeddings: numpy array of shape (N, 768)
+    - metadata: JSON array with text_hash, text_preview, category, source
+    """
+    logger.info(f"Processing: {input_file.name}")
+
+    # Read all records
+    records = []
+    with open(input_file, "r", encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                records.append(json.loads(line))
+
+    if not records:
+        logger.warning(f"No records in {input_file.name}")
+        return 0
+
+    logger.info(f"  Loaded {len(records):,} records")
+
+    # Extract text for embedding
+    texts = []
+    metadata = []
+
+    for record in records:
+        text = record.get("text", "")[:512]  # First 512 chars for embedding
+        full_text = record.get("text", "")[:2000]  # Full text up to 2000 chars
+
+        # Compute text hash for deduplication
+        text_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()
+
+        texts.append(text)
+        metadata.append({
+            "text_hash": text_hash,
+            "text_preview": text,
+            "full_text": full_text,
+            "category": record.get("category", ""),
+            "source": record.get("source", ""),
+            "metadata": record.get("metadata", {}),
+        })
+
+    # Compute embeddings in batches
+    logger.info(f"  Computing embeddings (batch_size={BATCH_SIZE})...")
+    embeddings = []
+
+    for i in range(0, len(texts), BATCH_SIZE):
+        batch = texts[i:i+BATCH_SIZE]
+        batch_embeddings = model.encode(batch, show_progress_bar=False, convert_to_numpy=True)
+        embeddings.append(batch_embeddings)
+
+        if (i // BATCH_SIZE + 1) % 10 == 0:
+            logger.info(f"    Processed {i+len(batch):,} / {len(texts):,} ({100*(i+len(batch))/len(texts):.1f}%)")
+
+    embeddings = np.vstack(embeddings)
+    logger.info(f"  Computed {embeddings.shape[0]:,} embeddings of dimension {embeddings.shape[1]}")
+
+    # Save as .npz
+    os.makedirs(output_file.parent, exist_ok=True)
+    np.savez_compressed(
+        output_file,
+        embeddings=embeddings,
+        metadata=json.dumps(metadata),  # Store as JSON string
+    )
+
+    # Also save metadata as separate JSON for easy inspection
+    metadata_file = output_file.with_suffix('.json')
+    with open(metadata_file, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=2)
+
+    logger.info(f"  Saved: {output_file}")
+    logger.info(f"  Size: {output_file.stat().st_size / 1024 / 1024:.1f} MB")
+
+    return len(embeddings)
 
 
 def main():
-    from sentence_transformers import SentenceTransformer
-    import numpy as np
+    """Compute embeddings for all JSONL files."""
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    print(f"Loading model: {EMBEDDING_MODEL}")
-    model = SentenceTransformer(EMBEDDING_MODEL)
-    print(f"Model loaded. Embedding dim: {model.get_sentence_embedding_dimension()}")
+    # Find all JSONL files
+    jsonl_files = list(INPUT_DIR.glob("*.jsonl"))
 
-    total_embedded = 0
-    start_time = time.time()
+    if not jsonl_files:
+        logger.error(f"No .jsonl files found in {INPUT_DIR}")
+        logger.info("Run process_raw_datasets.py or download_datasets.py first")
+        return 1
 
-    for filename in DATASETS:
-        input_path = DATA_DIR / filename
-        if not input_path.exists():
-            print(f"SKIP: {filename} not found")
+    logger.info(f"Found {len(jsonl_files)} JSONL files to process")
+
+    # Load model once
+    model = load_model()
+
+    # Process each file
+    results = {}
+    start_time = datetime.now()
+
+    for jsonl_file in sorted(jsonl_files):
+        output_file = OUTPUT_DIR / f"{jsonl_file.stem}.npz"
+
+        # Skip if already computed (unless --force flag)
+        if output_file.exists() and "--force" not in sys.argv:
+            logger.info(f"Skipping {jsonl_file.name} (already computed)")
+            # Load count from metadata
+            with np.load(output_file, allow_pickle=True) as data:
+                metadata = json.loads(str(data["metadata"]))
+                results[jsonl_file.stem] = len(metadata)
             continue
 
-        # Read all records
-        records = []
-        texts = []
-        with open(input_path, "r", encoding="utf-8") as f:
-            for line in f:
-                try:
-                    record = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                text = record.get("text", "")
-                if not text or len(text.strip()) < 10:
-                    continue
-                records.append(record)
-                texts.append(text[:512])  # Same truncation as rag_indexer
+        try:
+            count = compute_embeddings_for_file(model, jsonl_file, output_file)
+            results[jsonl_file.stem] = count
+        except Exception as e:
+            logger.error(f"Failed to process {jsonl_file.name}: {e}")
+            results[jsonl_file.stem] = 0
 
-        print(f"\n{'='*60}")
-        print(f"Embedding {filename}: {len(records)} records")
-        print(f"{'='*60}")
+    elapsed = datetime.now() - start_time
 
-        # Batch encode
-        all_embeddings = []
-        for i in range(0, len(texts), BATCH_SIZE):
-            batch = texts[i:i + BATCH_SIZE]
-            embeddings = model.encode(batch, show_progress_bar=False, batch_size=BATCH_SIZE)
-            all_embeddings.extend(embeddings)
-            done = min(i + BATCH_SIZE, len(texts))
-            pct = done / len(texts) * 100
-            print(f"  {done}/{len(texts)} ({pct:.0f}%)", end="\r")
+    # Summary
+    print("\n" + "=" * 70)
+    print("EMBEDDING COMPUTATION SUMMARY")
+    print("=" * 70)
+    for name, count in sorted(results.items()):
+        status = "✓" if count > 0 else "✗"
+        print(f"  {status} {name}: {count:,} embeddings")
+    print(f"\n  Total: {sum(results.values()):,} embeddings")
+    print(f"  Time: {elapsed}")
+    print(f"  Output: {OUTPUT_DIR}")
+    print("=" * 70)
 
-        print(f"  {len(texts)}/{len(texts)} (100%) - Done!")
-
-        # Write back with embeddings
-        output_path = input_path  # Overwrite in place
-        with open(output_path, "w", encoding="utf-8") as f:
-            for record, emb in zip(records, all_embeddings):
-                if isinstance(emb, np.ndarray):
-                    emb = emb.tolist()
-                record["embedding"] = emb
-                f.write(json.dumps(record, ensure_ascii=False) + "\n")
-
-        file_size = output_path.stat().st_size / 1024 / 1024
-        print(f"  Written: {output_path.name} ({file_size:.1f} MB)")
-        total_embedded += len(records)
-
-    elapsed = time.time() - start_time
-    print(f"\n{'='*60}")
-    print(f"COMPLETE: {total_embedded} records embedded in {elapsed:.0f}s")
-    print(f"{'='*60}")
+    return 0 if sum(results.values()) > 0 else 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

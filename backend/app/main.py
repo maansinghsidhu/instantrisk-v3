@@ -436,8 +436,9 @@ app.add_middleware(
 
 # Configure CORS - whitelist specific origins
 ALLOWED_ORIGINS = [
-    "https://d2f065h47nuk0c.cloudfront.net",  # Frontend CloudFront
-    "https://instantrisk-alb-307384033.us-east-1.elb.amazonaws.com",  # ALB
+    "https://d2ci3ptu2ygeo3.cloudfront.net",  # Frontend CloudFront (S3 frontend)
+    "https://d2f065h47nuk0c.cloudfront.net",  # API CloudFront (ALB origin)
+    "https://instantrisk-alb-307384033.us-east-1.elb.amazonaws.com",  # ALB direct
     "https://app.instantrisk.com",  # Production domain (future)
     "http://localhost:3000",  # Local dev
     "http://localhost:8200",  # Local dev alt
@@ -445,8 +446,8 @@ ALLOWED_ORIGINS = [
 ]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],  # TEMPORARY: Allow all origins for demo
+    allow_credentials=False,  # Must be False when using wildcard
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
