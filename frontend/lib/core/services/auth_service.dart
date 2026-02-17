@@ -598,6 +598,16 @@ class AuthService {
     return _handleResponse(response);
   }
 
+  /// Make authenticated PATCH request
+  Future<http.Response> patch(String endpoint, {Map<String, dynamic>? body}) async {
+    final response = await http.patch(
+      Uri.parse("$_baseUrl$endpoint"),
+      headers: authHeaders,
+      body: body != null ? jsonEncode(body) : null,
+    ).timeout(const Duration(seconds: 30));
+    return _handleResponse(response);
+  }
+
   /// Make authenticated DELETE request
   Future<http.Response> delete(String endpoint) async {
     final response = await http.delete(

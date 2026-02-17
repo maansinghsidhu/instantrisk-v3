@@ -12,7 +12,7 @@ class WelcomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -32,11 +32,11 @@ class WelcomeScreen extends StatelessWidget {
                       const SizedBox(width: 12),
                       Text(
                         l10n.appName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                         ),
                       ),
                     ],
@@ -47,9 +47,9 @@ class WelcomeScreen extends StatelessWidget {
                       // Show language selector
                       _showLanguageSelector(context);
                     },
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.language,
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.text2(context),
                     ),
                   ),
                 ],
@@ -85,11 +85,11 @@ class WelcomeScreen extends StatelessWidget {
                   // Welcome text
                   Text(
                     l10n.welcomeBack,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 28,
                       fontWeight: FontWeight.w400,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.text1(context),
                     ),
                   ),
                   Text(
@@ -107,11 +107,11 @@ class WelcomeScreen extends StatelessWidget {
                   Text(
                     AppConfig.appTagline,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 16,
                       fontWeight: FontWeight.w400,
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.text2(context),
                       height: 1.5,
                     ),
                   ),
@@ -160,7 +160,7 @@ class WelcomeScreen extends StatelessWidget {
                         onPressed: () {},
                         child: Text(
                           l10n.termsOfService,
-                          style: const TextStyle(fontFamily: 'Inter', fontSize: 13, color: AppTheme.textSecondary),
+                          style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: AppTheme.text2(context)),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -168,7 +168,7 @@ class WelcomeScreen extends StatelessWidget {
                         onPressed: () {},
                         child: Text(
                           l10n.privacyPolicy,
-                          style: const TextStyle(fontFamily: 'Inter', fontSize: 13, color: AppTheme.textSecondary),
+                          style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: AppTheme.text2(context)),
                         ),
                       ),
                     ],

@@ -14,7 +14,7 @@ class PortfolioScreen extends StatelessWidget {
     // Check if user has Basic+ access for analytics
     if (!_hasAccess) {
       return Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppTheme.bg(context),
         body: SafeArea(
           child: Center(
             child: Padding(
@@ -31,15 +31,15 @@ class PortfolioScreen extends StatelessWidget {
                     child: const Icon(Icons.pie_chart_outline, size: 64, color: AppTheme.primaryDark),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     'Portfolio Analytics',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppTheme.text1(context)),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
+                  Text(
                     'View your portfolio distribution, risk breakdown, and performance metrics.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 15, color: AppTheme.textSecondary, height: 1.5),
+                    style: TextStyle(fontSize: 15, color: AppTheme.text2(context), height: 1.5),
                   ),
                   const SizedBox(height: 32),
                   Container(
@@ -49,13 +49,13 @@ class PortfolioScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppTheme.primaryDark.withValues(alpha: 0.2)),
                     ),
-                    child: const Column(
+                    child: Column(
                       children: [
                         Icon(Icons.workspace_premium, color: AppTheme.primaryDark, size: 32),
                         SizedBox(height: 8),
                         Text('Basic+ Feature', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.primaryDark)),
                         SizedBox(height: 4),
-                        Text('Upgrade to Basic to access portfolio analytics', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                        Text('Upgrade to Basic to access portfolio analytics', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppTheme.text2(context))),
                       ],
                     ),
                   ),
@@ -82,7 +82,7 @@ class PortfolioScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -96,12 +96,12 @@ class PortfolioScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Portfolio Analytics',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.text1(context),
                             fontFamily: 'Inter',
                           ),
                         ),
@@ -115,11 +115,11 @@ class PortfolioScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    const Text(
+                    Text(
                       'January 2026',
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.text2(context),
                         fontFamily: 'Inter',
                       ),
                     ),
@@ -211,7 +211,7 @@ class PortfolioScreen extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      child: _buildStatCard(
+                      child: _buildStatCard(context,
                         title: 'Active Policies',
                         value: '156',
                         icon: Icons.policy_outlined,
@@ -220,7 +220,7 @@ class PortfolioScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildStatCard(
+                      child: _buildStatCard(context,
                         title: 'Total Premium',
                         value: '\u20AC890k',
                         icon: Icons.payments_outlined,
@@ -229,7 +229,7 @@ class PortfolioScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildStatCard(
+                      child: _buildStatCard(context,
                         title: 'Loss Ratio',
                         value: '42%',
                         icon: Icons.pie_chart_outline,
@@ -249,27 +249,27 @@ class PortfolioScreen extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppTheme.surface,
+                    color: AppTheme.surfaceOf(context),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.border),
+                    border: Border.all(color: AppTheme.borderOf(context)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Portfolio Distribution',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                           fontFamily: 'Inter',
                         ),
                       ),
                       const SizedBox(height: 20),
-                      _buildDistributionItem('Property', 0.45, AppTheme.primaryDark, '\u20AC1.89M'),
-                      _buildDistributionItem('Liability', 0.25, AppTheme.accent, '\u20AC1.05M'),
-                      _buildDistributionItem('Motor', 0.18, AppTheme.warning, '\u20AC756k'),
-                      _buildDistributionItem('Other', 0.12, AppTheme.info, '\u20AC504k'),
+                      _buildDistributionItem(context, 'Property', 0.45, AppTheme.primaryDark, '\u20AC1.89M'),
+                      _buildDistributionItem(context, 'Liability', 0.25, AppTheme.accent, '\u20AC1.05M'),
+                      _buildDistributionItem(context, 'Motor', 0.18, AppTheme.warning, '\u20AC756k'),
+                      _buildDistributionItem(context, 'Other', 0.12, AppTheme.info, '\u20AC504k'),
                     ],
                   ),
                 ),
@@ -284,12 +284,12 @@ class PortfolioScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Recent Activity',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
+                        color: AppTheme.text1(context),
                         fontFamily: 'Inter',
                       ),
                     ),
@@ -316,6 +316,7 @@ class PortfolioScreen extends StatelessWidget {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   _buildActivityItem(
+                    context,
                     'New policy issued',
                     'Property Insurance - Acme Corp',
                     Icons.add_circle_outline,
@@ -323,6 +324,7 @@ class PortfolioScreen extends StatelessWidget {
                     '2h ago',
                   ),
                   _buildActivityItem(
+                    context,
                     'Claim submitted',
                     'Motor Fleet - Logistics Pro',
                     Icons.warning_amber_outlined,
@@ -330,6 +332,7 @@ class PortfolioScreen extends StatelessWidget {
                     '5h ago',
                   ),
                   _buildActivityItem(
+                    context,
                     'Policy renewed',
                     'Liability - Tech Solutions',
                     Icons.refresh_outlined,
@@ -337,6 +340,7 @@ class PortfolioScreen extends StatelessWidget {
                     '1d ago',
                   ),
                   _buildActivityItem(
+                    context,
                     'Assessment completed',
                     'Commercial - Retail Giants',
                     Icons.check_circle_outline,
@@ -354,7 +358,7 @@ class PortfolioScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard({
+  Widget _buildStatCard(BuildContext context, {
     required String title,
     required String value,
     required IconData icon,
@@ -363,9 +367,9 @@ class PortfolioScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,19 +385,19 @@ class PortfolioScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
               fontFamily: 'Inter',
             ),
           ),
           const SizedBox(height: 2),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
             ),
           ),
         ],
@@ -401,7 +405,7 @@ class PortfolioScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDistributionItem(String label, double percentage, Color color, String value) {
+  Widget _buildDistributionItem(BuildContext context, String label, double percentage, Color color, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -423,9 +427,9 @@ class PortfolioScreen extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.text1(context),
                     ),
                   ),
                 ],
@@ -434,18 +438,18 @@ class PortfolioScreen extends StatelessWidget {
                 children: [
                   Text(
                     value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.text1(context),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     '${(percentage * 100).toInt()}%',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.text2(context),
                     ),
                   ),
                 ],
@@ -457,7 +461,7 @@ class PortfolioScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: percentage,
-              backgroundColor: AppTheme.border,
+              backgroundColor: AppTheme.borderOf(context),
               valueColor: AlwaysStoppedAnimation<Color>(color),
               minHeight: 8,
             ),
@@ -468,6 +472,7 @@ class PortfolioScreen extends StatelessWidget {
   }
 
   Widget _buildActivityItem(
+    BuildContext context,
     String title,
     String subtitle,
     IconData icon,
@@ -478,9 +483,9 @@ class PortfolioScreen extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Row(
         children: [
@@ -500,18 +505,18 @@ class PortfolioScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.text1(context),
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.text2(context),
                   ),
                 ),
               ],
@@ -519,9 +524,9 @@ class PortfolioScreen extends StatelessWidget {
           ),
           Text(
             time,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppTheme.textHint,
+              color: AppTheme.textH(context),
             ),
           ),
         ],

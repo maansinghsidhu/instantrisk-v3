@@ -62,15 +62,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: AppTheme.surfaceOf(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
+          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
           onPressed: () => context.pop(),
         ),
-        title: const Row(
+        title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.lock_outline, color: AppTheme.primaryDark, size: 22),
@@ -80,7 +80,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
+                color: AppTheme.text1(context),
               ),
             ),
           ],
@@ -102,14 +102,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppTheme.primaryDark.withOpacity(0.2)),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
                     Icon(Icons.info_outline, color: AppTheme.primaryDark),
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Choose a strong password with at least 8 characters, including numbers and symbols.',
-                        style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                        style: TextStyle(fontSize: 13, color: AppTheme.text2(context)),
                       ),
                     ),
                   ],
@@ -118,12 +118,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               const SizedBox(height: 32),
 
               // Current Password
-              const Text(
+              Text(
                 'Current Password',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.text1(context),
                 ),
               ),
               const SizedBox(height: 8),
@@ -138,7 +138,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   suffixIcon: IconButton(
                     icon: Icon(
                       _showCurrentPassword ? Icons.visibility_off : Icons.visibility,
-                      color: AppTheme.textHint,
+                      color: AppTheme.textH(context),
                     ),
                     onPressed: () => setState(() => _showCurrentPassword = !_showCurrentPassword),
                   ),
@@ -153,12 +153,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               const SizedBox(height: 20),
 
               // New Password
-              const Text(
+              Text(
                 'New Password',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.text1(context),
                 ),
               ),
               const SizedBox(height: 8),
@@ -173,7 +173,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   suffixIcon: IconButton(
                     icon: Icon(
                       _showNewPassword ? Icons.visibility_off : Icons.visibility,
-                      color: AppTheme.textHint,
+                      color: AppTheme.textH(context),
                     ),
                     onPressed: () => setState(() => _showNewPassword = !_showNewPassword),
                   ),
@@ -191,12 +191,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               const SizedBox(height: 20),
 
               // Confirm Password
-              const Text(
+              Text(
                 'Confirm New Password',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.text1(context),
                 ),
               ),
               const SizedBox(height: 8),
@@ -211,7 +211,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   suffixIcon: IconButton(
                     icon: Icon(
                       _showConfirmPassword ? Icons.visibility_off : Icons.visibility,
-                      color: AppTheme.textHint,
+                      color: AppTheme.textH(context),
                     ),
                     onPressed: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
                   ),

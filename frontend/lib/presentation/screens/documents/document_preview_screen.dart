@@ -179,7 +179,7 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.background,
+                color: AppTheme.bg(context),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -278,28 +278,28 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: AppTheme.surfaceOf(context),
         elevation: 0,
         leading: IconButton(
           onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back_ios),
-          color: AppTheme.textPrimary,
+          icon: Icon(Icons.arrow_back_ios),
+          color: AppTheme.text1(context),
         ),
-        title: const Text(
+        title: Text(
           'Document Ready',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
             fontFamily: 'Inter',
           ),
         ),
         centerTitle: true,
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: AppTheme.textPrimary),
+            icon: Icon(Icons.more_vert, color: AppTheme.text1(context)),
             onSelected: (value) {
               switch (value) {
                 case 'pdf':
@@ -377,7 +377,7 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
-                color: AppTheme.textSecondary,
+                color: AppTheme.text2(context),
               ),
             ),
             const SizedBox(height: 24),
@@ -423,7 +423,7 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
         statusColor = AppTheme.warning;
         break;
       default:
-        statusColor = AppTheme.textSecondary;
+        statusColor = AppTheme.text2(context);
     }
 
     return Column(
@@ -462,11 +462,11 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Text(
+                        Text(
                           'AI Quality Score: ',
                           style: TextStyle(
                             fontSize: 13,
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.text2(context),
                           ),
                         ),
                         Text(
@@ -542,9 +542,9 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppTheme.surface,
+                color: AppTheme.surfaceOf(context),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.border),
+                border: Border.all(color: AppTheme.borderOf(context)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
@@ -562,10 +562,10 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                       children: [
                         Text(
                           title.toUpperCase(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.text1(context),
                             letterSpacing: 1.2,
                           ),
                           textAlign: TextAlign.center,
@@ -601,10 +601,10 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                   if (content.isNotEmpty)
                     Text(
                       content,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         height: 1.6,
-                        color: AppTheme.textPrimary,
+                        color: AppTheme.text1(context),
                       ),
                     )
                   else
@@ -614,14 +614,14 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                           Icon(
                             Icons.article_outlined,
                             size: 48,
-                            color: AppTheme.textHint.withOpacity(0.5),
+                            color: AppTheme.textH(context).withOpacity(0.5),
                           ),
                           const SizedBox(height: 12),
-                          const Text(
+                          Text(
                             'Document content will be displayed here',
                             style: TextStyle(
                               fontSize: 14,
-                              color: AppTheme.textSecondary,
+                              color: AppTheme.text2(context),
                             ),
                           ),
                         ],
@@ -637,7 +637,7 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: AppTheme.surfaceOf(context),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -723,7 +723,7 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
     required VoidCallback onTap,
   }) {
     return Material(
-      color: AppTheme.background,
+      color: AppTheme.bg(context),
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: onTap,
@@ -731,20 +731,20 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            border: Border.all(color: AppTheme.border),
+            border: Border.all(color: AppTheme.borderOf(context)),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 18, color: AppTheme.textSecondary),
+              Icon(icon, size: 18, color: AppTheme.text2(context)),
               const SizedBox(width: 6),
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.text1(context),
                 ),
               ),
             ],

@@ -1014,7 +1014,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppTheme.background,
+                      color: AppTheme.bg(context),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: SelectableText(shareUrl,
@@ -1184,10 +1184,10 @@ class _ResultsScreenState extends State<ResultsScreen>
       width: fullWidth ? double.infinity : null,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: hasData ? color.withValues(alpha: 0.1) : AppTheme.surface,
+        color: hasData ? color.withValues(alpha: 0.1) : AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: hasData ? color.withValues(alpha: 0.3) : AppTheme.border,
+          color: hasData ? color.withValues(alpha: 0.3) : AppTheme.borderOf(context),
         ),
       ),
       child: Column(
@@ -1195,13 +1195,13 @@ class _ResultsScreenState extends State<ResultsScreen>
         children: [
           Row(
             children: [
-              Icon(icon, color: hasData ? color : AppTheme.textHint, size: 18),
+              Icon(icon, color: hasData ? color : AppTheme.textH(context), size: 18),
               const SizedBox(width: 8),
               Text(
                 title,
                 style: TextStyle(
                   fontSize: 12,
-                  color: hasData ? color : AppTheme.textSecondary,
+                  color: hasData ? color : AppTheme.text2(context),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1213,7 +1213,7 @@ class _ResultsScreenState extends State<ResultsScreen>
             style: TextStyle(
               fontSize: hasData ? 20 : 14,
               fontWeight: hasData ? FontWeight.w700 : FontWeight.w500,
-              color: hasData ? color : AppTheme.textHint,
+              color: hasData ? color : AppTheme.textH(context),
               fontStyle: hasData ? FontStyle.normal : FontStyle.italic,
               fontFamily: 'Inter',
             ),
@@ -1543,7 +1543,7 @@ class _ResultsScreenState extends State<ResultsScreen>
       return Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppTheme.background,
+          color: AppTheme.bg(context),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Column(
@@ -1566,7 +1566,7 @@ class _ResultsScreenState extends State<ResultsScreen>
       return Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppTheme.background,
+          color: AppTheme.bg(context),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Column(
@@ -1595,7 +1595,7 @@ class _ResultsScreenState extends State<ResultsScreen>
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppTheme.bg(context),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -1610,7 +1610,7 @@ class _ResultsScreenState extends State<ResultsScreen>
 
     if (_error != null) {
       return Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppTheme.bg(context),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -1624,7 +1624,7 @@ class _ResultsScreenState extends State<ResultsScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.error_outline, size: 64, color: AppTheme.danger),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               Text(_error!, style: TextStyle(color: AppTheme.text2(context))),
               const SizedBox(height: 16),
               ElevatedButton(onPressed: _fetchData, child: const Text('Retry')),
@@ -1648,7 +1648,7 @@ class _ResultsScreenState extends State<ResultsScreen>
     final hasData = _assessment != null || _analysis != null;
     if (!hasData) {
       return Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppTheme.bg(context),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -2050,7 +2050,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppTheme.background,
+                            color: AppTheme.bg(context),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Column(
@@ -2239,7 +2239,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppTheme.background,
+                            color: AppTheme.bg(context),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -2436,7 +2436,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppTheme.background,
+                            color: AppTheme.bg(context),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: AppTheme.borderOf(context).withValues(alpha: 0.5)),
                           ),
@@ -2480,7 +2480,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryDark,
                           foregroundColor: Colors.white,
-                          disabledBackgroundColor: AppTheme.border,
+                          disabledBackgroundColor: AppTheme.borderOf(context),
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -2514,7 +2514,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                           label: const Text('Share'),
                           onPressed: _shareResults,
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: EdgeInsets.symmetric(vertical: 14),
                             side: BorderSide(color: AppTheme.borderOf(context)),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -2529,7 +2529,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                           label: const Text('Refresh'),
                           onPressed: _fetchData,
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: EdgeInsets.symmetric(vertical: 14),
                             side: BorderSide(color: AppTheme.borderOf(context)),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -2554,9 +2554,9 @@ class _ResultsScreenState extends State<ResultsScreen>
     const modeColor = AppTheme.analysisPurple; // Deep analysis purple
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: AppTheme.surfaceOf(context),
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.close, color: AppTheme.text1(context)),
@@ -2577,7 +2577,7 @@ class _ResultsScreenState extends State<ResultsScreen>
         children: [
           // Progress header
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(24),
             color: AppTheme.surfaceOf(context),
             child: Column(
               children: [
@@ -3036,7 +3036,7 @@ class _ResultsScreenState extends State<ResultsScreen>
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

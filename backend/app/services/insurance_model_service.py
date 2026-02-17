@@ -128,6 +128,68 @@ class InsuranceModelService:
             self._available = False
             return False
 
+    def load_from_s3(self, s3_uri: str) -> bool:
+        """Download model from S3 and load it."""
+        import boto3
+        import tarfile
+
+        # Parse S3 URI
+        parts = s3_uri.replace("s3://", "").split("/", 1)
+        bucket = parts[0]
+        key = parts[1]
+
+        # Download to local models dir
+        models_dir = os.path.join(os.path.dirname(__file__), "..", "data", "models")
+        os.makedirs(models_dir, exist_ok=True)
+
+        local_tar = os.path.join(models_dir, "model.tar.gz")
+        extract_dir = os.path.join(models_dir, "instantrisk-engine-v1-best")
+
+        print(f"Downloading model from {s3_uri}...")
+        s3 = boto3.client('s3', region_name='us-east-1')
+        s3.download_file(bucket, key, local_tar)
+
+        # Extract
+        print(f"Extracting to {extract_dir}...")
+        os.makedirs(extract_dir, exist_ok=True)
+        with tarfile.open(local_tar, 'r:gz') as tar:
+            tar.extractall(extract_dir)
+
+        # The SageMaker output may have a nested directory structure
+        # Check if model.pt is in a subdirectory
+        model_file = None
+        for root, dirs, files in os.walk(extract_dir):
+            for f in files:
+                if f in ('model.pt', 'pytorch_model.bin'):
+                    model_file = root
+                    break
+            if model_file:
+                break
+
+        if model_file is None:
+            print(f"No model file found in {extract_dir}")
+            return False
+
+        # Reset loaded state so load() will run
+        self._loaded = False
+        return self.load(model_file)
+
+    def load_from_sagemaker_job(self, job_name: str) -> bool:
+        """Load model from a completed SageMaker training job."""
+        import boto3
+
+        sagemaker = boto3.client('sagemaker', region_name='us-east-1')
+        response = sagemaker.describe_training_job(TrainingJobName=job_name)
+
+        status = response['TrainingJobStatus']
+        if status != 'Completed':
+            print(f"Training job {job_name} status: {status} (not completed)")
+            return False
+
+        s3_uri = response['ModelArtifacts']['S3ModelArtifacts']
+        print(f"Training job output: {s3_uri}")
+        return self.load_from_s3(s3_uri)
+
     @property
     def is_available(self) -> bool:
         """Check if the ML model is loaded and available."""

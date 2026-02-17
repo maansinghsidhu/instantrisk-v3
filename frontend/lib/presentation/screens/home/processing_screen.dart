@@ -34,7 +34,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       title: 'Classifying Document',
       subtitle: 'Identifying document type and validating insurance relevance',
       icon: Icons.category_outlined,
-      color: AppTheme.phaseExport, // Indigo
+      color: AppTheme.phaseExport,
       tasks: [
         'Analyzing document structure',
         'Identifying document type (Slip, Policy, Certificate)',
@@ -47,7 +47,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       title: 'Extracting Data',
       subtitle: 'Pulling all insurance fields from document',
       icon: Icons.storage_outlined,
-      color: AppTheme.phaseStructure, // Violet
+      color: AppTheme.phaseStructure,
       tasks: [
         'Extracting insured information',
         'Identifying coverage details',
@@ -61,7 +61,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       title: 'Analyzing Risks',
       subtitle: 'Identifying risk factors and exposures',
       icon: Icons.analytics_outlined,
-      color: AppTheme.phaseRefine, // Pink
+      color: AppTheme.phaseRefine,
       tasks: [
         'Identifying primary risk factors',
         'Analyzing exposure areas',
@@ -75,7 +75,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       title: 'Underwriting Decision',
       subtitle: 'Making GO/NO-GO/REFER recommendation',
       icon: Icons.gavel_outlined,
-      color: AppTheme.analysisCyan, // Teal
+      color: AppTheme.analysisCyan,
       tasks: [
         'Reviewing risk assessment',
         'Calculating suggested premium',
@@ -89,7 +89,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
       title: 'Final Validation',
       subtitle: 'Ensuring accuracy and completeness',
       icon: Icons.verified_outlined,
-      color: AppTheme.success, // Green
+      color: AppTheme.success,
       tasks: [
         'Validating extracted data',
         'Cross-checking calculations',
@@ -234,8 +234,10 @@ class _ProcessingScreenState extends State<ProcessingScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppTheme.isDark(context);
+
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -249,7 +251,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                 children: [
                   IconButton(
                     onPressed: () => context.go('/home'),
-                    icon: Icon(Icons.close, color: AppTheme.textSecondary),
+                    icon: Icon(Icons.close, color: AppTheme.text2(context)),
                   ),
                   Expanded(
                     child: Text(
@@ -258,7 +260,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
+                        color: AppTheme.text1(context),
                         fontFamily: 'Inter',
                       ),
                     ),
@@ -281,7 +283,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: _errorMessage != null ? AppTheme.danger : AppTheme.textPrimary,
+                  color: _errorMessage != null ? AppTheme.danger : AppTheme.text1(context),
                   fontFamily: 'Inter',
                 ),
               ),
@@ -314,9 +316,9 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppTheme.surface,
+                    color: AppTheme.surfaceOf(context),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.border),
+                    border: Border.all(color: AppTheme.borderOf(context)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,7 +328,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.text2(context),
                           fontFamily: 'Inter',
                         ),
                       ),
@@ -344,7 +346,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppTheme.darkBg,
+                          color: isDark ? AppTheme.darkCardAlt : AppTheme.darkBg,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
@@ -366,7 +368,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
-                                    color: AppTheme.textSecondary,
+                                    color: Colors.white70,
                                     fontFamily: 'monospace',
                                   ),
                                 ),
@@ -386,7 +388,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                                       '> $log',
                                       style: TextStyle(
                                         fontSize: 11,
-                                        color: AppTheme.textSecondary,
+                                        color: Colors.white60,
                                         fontFamily: 'monospace',
                                       ),
                                     ),
@@ -415,7 +417,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.text2(context),
                         ),
                       ),
                       Text(
@@ -433,7 +435,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                     borderRadius: BorderRadius.circular(8),
                     child: LinearProgressIndicator(
                       value: _currentAgent / _agents.length,
-                      backgroundColor: AppTheme.border,
+                      backgroundColor: AppTheme.borderOf(context),
                       valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryDark),
                       minHeight: 10,
                     ),
@@ -466,7 +468,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
             ),
           ],
         ),
-        child: Icon(
+        child: const Icon(
           Icons.check,
           size: 48,
           color: Colors.white,
@@ -501,7 +503,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: AppTheme.surfaceOf(context),
             shape: BoxShape.circle,
             border: Border.all(color: agent.color, width: 2),
             boxShadow: [
@@ -539,7 +541,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                   ? agent.color
                   : isActive
                       ? agent.color.withOpacity(0.2)
-                      : AppTheme.border,
+                      : AppTheme.borderOf(context),
               shape: BoxShape.circle,
               border: isActive ? Border.all(color: agent.color, width: 2) : null,
             ),
@@ -558,7 +560,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                       : Text(
                           '${index + 1}',
                           style: TextStyle(
-                            color: AppTheme.textHint,
+                            color: AppTheme.textH(context),
                             fontWeight: FontWeight.w600,
                             fontSize: 12,
                           ),
@@ -579,7 +581,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                     fontWeight: FontWeight.w600,
                     color: isCompleted || isActive
                         ? agent.color
-                        : AppTheme.textHint,
+                        : AppTheme.textH(context),
                     fontFamily: 'Inter',
                   ),
                 ),
@@ -588,7 +590,7 @@ class _ProcessingScreenState extends State<ProcessingScreen>
                     agent.tasks[_currentTaskIndex],
                     style: TextStyle(
                       fontSize: 11,
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.text2(context),
                       fontFamily: 'Inter',
                     ),
                   ),

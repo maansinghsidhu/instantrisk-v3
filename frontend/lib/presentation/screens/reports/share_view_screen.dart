@@ -55,7 +55,7 @@ class _ShareViewScreenState extends State<ShareViewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
         backgroundColor: AppTheme.darkBg,
         elevation: 0,
@@ -165,9 +165,9 @@ class _ShareViewScreenState extends State<ShareViewScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.surface,
+                color: AppTheme.surfaceOf(context),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.border),
+                border: Border.all(color: AppTheme.borderOf(context)),
               ),
               child: Text(d['decision_rationale'], style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
             ),

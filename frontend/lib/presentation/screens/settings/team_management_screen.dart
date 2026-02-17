@@ -85,7 +85,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
         backgroundColor: AppTheme.primaryDark,
         foregroundColor: Colors.white,
@@ -153,8 +153,8 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.error_outline, size: 64, color: AppTheme.danger),
-          const SizedBox(height: 16),
-          Text(_error!, style: TextStyle(color: AppTheme.textSecondary)),
+          SizedBox(height: 16),
+          Text(_error!, style: TextStyle(color: AppTheme.text2(context))),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _loadData,
@@ -231,7 +231,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                             team['team_code'],
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.textHint,
+                              color: AppTheme.textH(context),
                             ),
                           ),
                       ],
@@ -260,7 +260,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                         teamType.toUpperCase(),
                         style: TextStyle(
                           fontSize: 10,
-                          color: AppTheme.textHint,
+                          color: AppTheme.textH(context),
                         ),
                       ),
                     ],
@@ -273,7 +273,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                   team['description'],
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.text2(context),
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -290,13 +290,13 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                       .map<Widget>((cob) => Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: AppTheme.surface,
+                              color: AppTheme.surfaceOf(context),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: AppTheme.border),
+                              border: Border.all(color: AppTheme.borderOf(context)),
                             ),
                             child: Text(
                               cob.toString(),
-                              style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                              style: TextStyle(fontSize: 11, color: AppTheme.text2(context)),
                             ),
                           ))
                       .toList(),
@@ -401,7 +401,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: isActive ? AppTheme.primaryDark : AppTheme.textHint,
+          backgroundColor: isActive ? AppTheme.primaryDark : AppTheme.textH(context),
           child: Text(
             (member['full_name'] ?? member['email'] ?? 'U')[0].toUpperCase(),
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
@@ -450,7 +450,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                 const Text(' - ', style: TextStyle(fontSize: 12)),
                 Text(
                   member['team_name'] ?? 'No Team',
-                  style: TextStyle(fontSize: 12, color: AppTheme.textHint),
+                  style: TextStyle(fontSize: 12, color: AppTheme.textH(context)),
                 ),
               ],
             ),
@@ -557,7 +557,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
           role['description'] ?? '',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+          style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -672,13 +672,13 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: TextStyle(color: AppTheme.textSecondary),
+            style: TextStyle(color: AppTheme.text2(context)),
           ),
         ],
       ),
@@ -1235,7 +1235,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
               const SizedBox(height: 8),
               Text(
                 team['description'] ?? 'No description',
-                style: TextStyle(color: AppTheme.textSecondary),
+                style: TextStyle(color: AppTheme.text2(context)),
               ),
               const SizedBox(height: 20),
               const Text('Team Members', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),

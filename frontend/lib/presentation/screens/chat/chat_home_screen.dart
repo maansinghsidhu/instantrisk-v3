@@ -58,7 +58,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadData,
@@ -168,7 +168,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: AppTheme.surface,
+                      color: AppTheme.surfaceOf(context),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: AppTheme.primaryDark.withOpacity(0.3)),
                     ),
@@ -198,21 +198,21 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
+                                    Text(
                                       'Chat with Documents',
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
-                                        color: AppTheme.textPrimary,
+                                        color: AppTheme.text1(context),
                                         fontFamily: 'Inter',
                                       ),
                                     ),
                                     const SizedBox(height: 2),
-                                    const Text(
+                                    Text(
                                       'Upload and analyze your documents',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: AppTheme.textSecondary,
+                                        color: AppTheme.text2(context),
                                         fontFamily: 'Inter',
                                       ),
                                     ),
@@ -221,7 +221,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                               ),
                               Icon(
                                 Icons.arrow_forward_ios,
-                                color: AppTheme.textHint,
+                                color: AppTheme.textH(context),
                                 size: 16,
                               ),
                             ],
@@ -244,10 +244,10 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                       children: [
                         Text(
                           l10n.quickAnalysis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.text1(context),
                             fontFamily: 'Inter',
                           ),
                         ),
@@ -276,19 +276,19 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                     children: [
                       Text(
                         l10n.chat,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                           fontFamily: 'Inter',
                         ),
                       ),
                       if (_conversations.isNotEmpty)
                         Text(
                           '${_conversations.length} ${l10n.chat}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.text2(context),
                           ),
                         ),
                     ],
@@ -332,9 +332,9 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: AppTheme.surfaceOf(context),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.border),
+            border: Border.all(color: AppTheme.borderOf(context)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -343,9 +343,9 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
               const SizedBox(width: 8),
               Text(
                 text,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.text1(context),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -360,9 +360,9 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -397,19 +397,19 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                           Expanded(
                             child: Text(
                               conversation.title,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.textPrimary,
+                                color: AppTheme.text1(context),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           Text(
                             _formatTimestamp(conversation.lastMessageAt),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.textHint,
+                              color: AppTheme.textH(context),
                             ),
                           ),
                         ],
@@ -419,16 +419,16 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                         children: [
                           Text(
                             '${conversation.messageCount}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: AppTheme.textSecondary,
+                              color: AppTheme.text2(context),
                             ),
                           ),
                           const Spacer(),
-                          const Icon(
+                          Icon(
                             Icons.arrow_forward_ios,
                             size: 14,
-                            color: AppTheme.textHint,
+                            color: AppTheme.textH(context),
                           ),
                         ],
                       ),
@@ -463,19 +463,19 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
           const SizedBox(height: 20),
           Text(
             l10n.noData,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             l10n.quickAnalysis,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
               height: 1.5,
             ),
           ),

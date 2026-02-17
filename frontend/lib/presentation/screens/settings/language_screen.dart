@@ -32,12 +32,12 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
     final selectedLanguage = languageState.languageCode;
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
+          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
           onPressed: () {
             if (hasChanges) {
               _showDiscardChangesDialog();
@@ -48,10 +48,10 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
         ),
         title: Text(
           AppLocalizations.of(context).language,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
             fontFamily: 'Inter',
           ),
         ),
@@ -101,9 +101,9 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                       hasChanges
                           ? AppLocalizations.of(context).unsavedChangesPressSave
                           : AppLocalizations.of(context).languageChangeInfo,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: AppTheme.textPrimary,
+                        color: AppTheme.text1(context),
                         height: 1.4,
                       ),
                     ),
@@ -172,10 +172,10 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
-                    color: AppTheme.surface,
+                    color: AppTheme.surfaceOf(context),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isSelected ? AppTheme.primaryDark : AppTheme.border,
+                      color: isSelected ? AppTheme.primaryDark : AppTheme.borderOf(context),
                       width: isSelected ? 2 : 1,
                     ),
                   ),
@@ -197,7 +197,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? AppTheme.primaryDark.withOpacity(0.1)
-                                    : AppTheme.border.withOpacity(0.3),
+                                    : AppTheme.borderOf(context).withOpacity(0.3),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Center(
@@ -208,7 +208,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                                     fontWeight: FontWeight.w600,
                                     color: isSelected
                                         ? AppTheme.primaryDark
-                                        : AppTheme.textSecondary,
+                                        : AppTheme.text2(context),
                                   ),
                                 ),
                               ),
@@ -225,7 +225,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                          color: AppTheme.textPrimary,
+                                          color: AppTheme.text1(context),
                                         ),
                                       ),
                                       if (language.rtl) ...[
@@ -251,9 +251,9 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                                   const SizedBox(height: 2),
                                   Text(
                                     language.nativeName,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 14,
-                                      color: AppTheme.textSecondary,
+                                      color: AppTheme.text2(context),
                                     ),
                                   ),
                                 ],
@@ -280,7 +280,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.surface,
+                color: AppTheme.surfaceOf(context),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
@@ -296,7 +296,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                     onPressed: isLoading ? null : _saveLanguage,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryDark,
-                      disabledBackgroundColor: AppTheme.border,
+                      disabledBackgroundColor: AppTheme.borderOf(context),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -368,7 +368,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               l10n.cancel,
-              style: const TextStyle(color: AppTheme.textSecondary),
+              style: TextStyle(color: AppTheme.text2(context)),
             ),
           ),
           TextButton(

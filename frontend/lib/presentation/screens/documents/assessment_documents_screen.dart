@@ -294,24 +294,24 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: AppTheme.surfaceOf(context),
         elevation: 0,
         leading: IconButton(
           onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back),
-          color: AppTheme.textPrimary,
+          icon: Icon(Icons.arrow_back),
+          color: AppTheme.text1(context),
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
+            Text(
               'Assessment Documents',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
+                color: AppTheme.text1(context),
                 fontFamily: 'Inter',
               ),
             ),
@@ -320,7 +320,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                 _assessment!['reference_number'] ?? '',
                 style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.text2(context),
                 ),
               ),
           ],
@@ -329,7 +329,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppTheme.primaryDark,
-          unselectedLabelColor: AppTheme.textSecondary,
+          unselectedLabelColor: AppTheme.text2(context),
           indicatorColor: AppTheme.primaryDark,
           tabs: [
             Tab(
@@ -440,14 +440,14 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
         children: [
           // Pending generation jobs
           if (_pendingJobs.isNotEmpty) ...[
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(bottom: 8),
               child: Text(
                 'GENERATING',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.textHint,
+                  color: AppTheme.textH(context),
                   letterSpacing: 1,
                 ),
               ),
@@ -458,14 +458,14 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
 
           // Generated documents
           if (_generatedDocs.isNotEmpty) ...[
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(bottom: 8),
               child: Text(
                 'GENERATED DOCUMENTS',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.textHint,
+                  color: AppTheme.textH(context),
                   letterSpacing: 1,
                 ),
               ),
@@ -488,7 +488,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppTheme.primaryDark.withOpacity(0.3)),
       ),
@@ -518,10 +518,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                     children: [
                       Text(
                         'Generating $docsCount Document${docsCount > 1 ? 's' : ''}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -552,7 +552,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: progress / 100,
-                backgroundColor: AppTheme.border,
+                backgroundColor: AppTheme.borderOf(context),
                 valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryDark),
                 minHeight: 6,
               ),
@@ -562,7 +562,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
               description,
               style: TextStyle(
                 fontSize: 12,
-                color: AppTheme.textSecondary,
+                color: AppTheme.text2(context),
               ),
             ),
           ],
@@ -595,10 +595,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
             const SizedBox(height: 24),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
+                color: AppTheme.text1(context),
               ),
             ),
             const SizedBox(height: 8),
@@ -607,7 +607,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.textSecondary,
+                color: AppTheme.text2(context),
               ),
             ),
             if (actionLabel != null && onAction != null) ...[
@@ -638,9 +638,9 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -668,10 +668,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                     children: [
                       Text(
                         doc['name'] ?? 'Document',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -700,7 +700,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                             doc['status'] ?? 'processed',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.textSecondary,
+                              color: AppTheme.text2(context),
                             ),
                           ),
                         ],
@@ -721,7 +721,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.background,
+                  color: AppTheme.bg(context),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -730,7 +730,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.text2(context),
                     height: 1.4,
                   ),
                 ),
@@ -754,9 +754,9 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -784,10 +784,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -799,7 +799,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                             '${confidence.toStringAsFixed(0)}% confidence',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.textSecondary,
+                              color: AppTheme.text2(context),
                             ),
                           ),
                         ],
@@ -815,9 +815,9 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppTheme.background,
+              color: AppTheme.bg(context),
               border: Border(
-                top: BorderSide(color: AppTheme.border),
+                top: BorderSide(color: AppTheme.borderOf(context)),
               ),
             ),
             child: Row(
@@ -908,8 +908,8 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
         label = 'Failed';
         break;
       default:
-        bgColor = AppTheme.border;
-        textColor = AppTheme.textSecondary;
+        bgColor = AppTheme.borderOf(context);
+        textColor = AppTheme.text2(context);
         label = status;
     }
 
@@ -939,12 +939,12 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     return Row(
       children: [
         Icon(icon, size: 16, color: color),
-        const SizedBox(width: 4),
+        SizedBox(width: 4),
         Text(
           '$label: ',
           style: TextStyle(
             fontSize: 12,
-            color: AppTheme.textSecondary,
+            color: AppTheme.text2(context),
           ),
         ),
         Text(
@@ -965,7 +965,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     if (docType.contains('cover_note')) return AppTheme.success;
     if (docType.contains('quote')) return AppTheme.warning;
     if (docType.contains('certificate')) return AppTheme.secondary;
-    return AppTheme.textSecondary;
+    return AppTheme.text2(context);
   }
 
   IconData _getDocTypeIcon(String docType) {
@@ -1000,8 +1000,8 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
         minChildSize: 0.5,
         maxChildSize: 0.95,
         builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: AppTheme.surface,
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceOf(context),
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
@@ -1012,7 +1012,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppTheme.border,
+                  color: AppTheme.borderOf(context),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1024,10 +1024,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                     Expanded(
                       child: Text(
                         doc['title'] ?? 'Document Preview',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                         ),
                       ),
                     ),
@@ -1060,8 +1060,8 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  border: Border(top: BorderSide(color: AppTheme.border)),
+                  color: AppTheme.surfaceOf(context),
+                  border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
                 ),
                 child: SafeArea(
                   child: Row(
@@ -1114,10 +1114,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: AppTheme.background,
+        color: AppTheme.bg(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isComplete ? AppTheme.border : AppTheme.warning.withOpacity(0.5),
+          color: isComplete ? AppTheme.borderOf(context) : AppTheme.warning.withOpacity(0.5),
         ),
       ),
       child: Column(
@@ -1143,10 +1143,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.text1(context),
                     ),
                   ),
                 ),
@@ -1173,10 +1173,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
             padding: const EdgeInsets.all(16),
             child: Text(
               content,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 height: 1.6,
-                color: AppTheme.textPrimary,
+                color: AppTheme.text1(context),
               ),
             ),
           ),

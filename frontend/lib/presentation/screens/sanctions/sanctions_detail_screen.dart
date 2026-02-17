@@ -132,9 +132,9 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
       case 'match':
         return const Color(0xFFDC2626);
       case 'no_entities':
-        return const Color(0xFF6B7280);
+        return Color(0xFF6B7280);
       default:
-        return AppTheme.textSecondary;
+        return AppTheme.text2(context);
     }
   }
 
@@ -177,20 +177,20 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
     // Check if user has access to sanctions screening (Premium only)
     if (!subscriptionService.hasFeature('sanctions_screening')) {
       return Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppTheme.bg(context),
         appBar: AppBar(
-          backgroundColor: AppTheme.surface,
+          backgroundColor: AppTheme.surfaceOf(context),
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+            icon: Icon(Icons.arrow_back, color: AppTheme.text1(context)),
             onPressed: () => context.canPop() ? context.pop() : context.go('/reports'),
           ),
           title: Text(
             l10n.sanctionsScreening,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
             ),
           ),
           centerTitle: true,
@@ -214,21 +214,21 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   'Sanctions Screening',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.text1(context),
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'Screen entities against global sanctions lists including OFAC, UN, EU, and UK sanctions.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.text2(context),
                     height: 1.5,
                   ),
                 ),
@@ -253,10 +253,10 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
+                      Text(
                         'Upgrade to Premium to access sanctions screening',
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                        style: TextStyle(fontSize: 13, color: AppTheme.text2(context)),
                       ),
                     ],
                   ),
@@ -283,12 +283,12 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: AppTheme.surfaceOf(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+          icon: Icon(Icons.arrow_back, color: AppTheme.text1(context)),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -299,10 +299,10 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
         ),
         title: Text(
           l10n.sanctionsScreening,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
           ),
         ),
         centerTitle: true,
@@ -365,9 +365,9 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
               if (_summary['total_screenings'] != null && _summary['total_screenings'] > 0)
                 Text(
                   'Last screened: ${_summary['last_screened']?.toString().split('T')[0] ?? 'Unknown'}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.text2(context),
                   ),
                 ),
             ],
@@ -377,8 +377,8 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
         // Stats row
         if (_summary['total_screenings'] != null && _summary['total_screenings'] > 0)
           Container(
-            padding: const EdgeInsets.all(16),
-            color: AppTheme.surface,
+            padding: EdgeInsets.all(16),
+            color: AppTheme.surfaceOf(context),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -404,10 +404,10 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
               if (_screenings.isNotEmpty) ...[
                 Text(
                   l10n.screeningHistory,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textHint,
+                    color: AppTheme.textH(context),
                     letterSpacing: 1,
                   ),
                 ),
@@ -435,33 +435,33 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: AppTheme.surfaceOf(context),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.border),
+          border: Border.all(color: AppTheme.borderOf(context)),
         ),
         child: Column(
           children: [
             Icon(
               Icons.hub_outlined,
               size: 48,
-              color: AppTheme.textHint,
+              color: AppTheme.textH(context),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Network Map',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
+                color: AppTheme.text1(context),
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Run "Extensive" screening to visualize\nentity relationships and connections',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
-                color: AppTheme.textSecondary,
+                color: AppTheme.text2(context),
               ),
             ),
           ],
@@ -473,18 +473,18 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
       return Container(
         padding: const EdgeInsets.all(40),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: AppTheme.surfaceOf(context),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.border),
+          border: Border.all(color: AppTheme.borderOf(context)),
         ),
-        child: const Center(
+        child: Center(
           child: Column(
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 12),
               Text(
                 'Loading network data...',
-                style: TextStyle(color: AppTheme.textSecondary),
+                style: TextStyle(color: AppTheme.text2(context)),
               ),
             ],
           ),
@@ -566,17 +566,17 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
                     children: [
                       Text(
                         entity['name']?.toString() ?? 'Unknown Entity',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                         ),
                       ),
                       Text(
                         entity['type']?.toString().toUpperCase() ?? 'ENTITY',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.text2(context),
                         ),
                       ),
                     ],
@@ -605,12 +605,12 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
             const SizedBox(height: 16),
 
             if (entity['datasets'] != null && (entity['datasets'] as List).isNotEmpty) ...[
-              const Text(
+              Text(
                 'Data Sources',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.text1(context),
                 ),
               ),
               const SizedBox(height: 8),
@@ -674,18 +674,18 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
       children: [
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w700,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
           ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: AppTheme.textSecondary,
+            color: AppTheme.text2(context),
           ),
         ),
       ],
@@ -698,10 +698,10 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
       children: [
         Text(
           l10n.screeningLevels,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textHint,
+            color: AppTheme.textH(context),
             letterSpacing: 1,
           ),
         ),
@@ -767,10 +767,10 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isComplete ? cardColor : AppTheme.border,
+          color: isComplete ? cardColor : AppTheme.borderOf(context),
           width: isComplete ? 2 : 1,
         ),
       ),
@@ -808,10 +808,10 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
                   children: [
                     Text(
                       name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
+                        color: AppTheme.text1(context),
                       ),
                     ),
                     if (isAuto) ...[
@@ -837,9 +837,9 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.text2(context),
                   ),
                 ),
               ],
@@ -898,9 +898,9 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: hasMatches ? statusColor : AppTheme.border),
+        border: Border.all(color: hasMatches ? statusColor : AppTheme.borderOf(context)),
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -923,17 +923,17 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
           ),
           title: Text(
             levelDisplay,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
             ),
           ),
           subtitle: Text(
             '${screening['entities'] ?? 0} entities, ${screening['matches'] ?? 0} matches',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
             ),
           ),
           trailing: Column(
@@ -950,9 +950,9 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
               ),
               Text(
                 screening['completed']?.toString().split('T')[0] ?? '',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 10,
-                  color: AppTheme.textHint,
+                  color: AppTheme.textH(context),
                 ),
               ),
             ],
@@ -965,7 +965,7 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: AppTheme.primaryDark.withOpacity(0.03),
-                  border: Border(top: BorderSide(color: AppTheme.border.withOpacity(0.5))),
+                  border: Border(top: BorderSide(color: AppTheme.borderOf(context).withOpacity(0.5))),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -987,9 +987,9 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
                         if (durationMs != null)
                           Text(
                             '${(durationMs / 1000).toStringAsFixed(1)}s',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
-                              color: AppTheme.textHint,
+                              color: AppTheme.textH(context),
                             ),
                           ),
                       ],
@@ -1012,10 +1012,10 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
                             const SizedBox(width: 4),
                             Text(
                               source,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w500,
-                                color: AppTheme.textPrimary,
+                                color: AppTheme.text1(context),
                               ),
                             ),
                           ],
@@ -1099,7 +1099,7 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1107,14 +1107,14 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
           // Entity screened
           Row(
             children: [
-              Icon(Icons.search, size: 12, color: AppTheme.textSecondary),
+              Icon(Icons.search, size: 12, color: AppTheme.text2(context)),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   'Screened: $entityName',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.text2(context),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1161,14 +1161,14 @@ class _SanctionsDetailScreenState extends State<SanctionsDetailScreen> {
           // Dataset/List
           Row(
             children: [
-              Icon(Icons.list_alt, size: 12, color: AppTheme.textHint),
+              Icon(Icons.list_alt, size: 12, color: AppTheme.textH(context)),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   'List: ${_formatDataset(dataset)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
-                    color: AppTheme.textHint,
+                    color: AppTheme.textH(context),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

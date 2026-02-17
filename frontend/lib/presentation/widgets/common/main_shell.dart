@@ -13,7 +13,7 @@ import '../../../l10n/generated/app_localizations.dart';
 class MainShell extends StatefulWidget {
   final Widget child;
 
-  const MainShell({
+  MainShell({
     super.key,
     required this.child,
   });
@@ -130,8 +130,8 @@ class _Sidebar extends StatelessWidget {
         title: Row(
           children: [
             Icon(Icons.lock_outline_rounded, color: Colors.amber.shade600, size: 20),
-            const SizedBox(width: 8),
-            const Text('Premium Feature'),
+            SizedBox(width: 8),
+            Text('Premium Feature'),
           ],
         ),
         content: Text(
@@ -140,14 +140,14 @@ class _Sidebar extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.go('/settings/subscription');
             },
-            child: const Text('Upgrade'),
+            child: Text('Upgrade'),
           ),
         ],
       ),
@@ -160,9 +160,9 @@ class _Sidebar extends StatelessWidget {
 
     final isDark = AppTheme.isDark(context);
     final sidebarBg = isDark ? AppTheme.darkBg : AppTheme.surfaceVariant;
-    final sidebarText = isDark ? Colors.white : AppTheme.textPrimary;
-    final sidebarTextMuted = isDark ? Colors.white.withOpacity(0.7) : AppTheme.textSecondary;
-    final sidebarDivider = isDark ? Colors.white.withOpacity(0.08) : AppTheme.border;
+    final sidebarText = isDark ? Colors.white : AppTheme.text1(context);
+    final sidebarTextMuted = isDark ? Colors.white.withOpacity(0.7) : AppTheme.text2(context);
+    final sidebarDivider = isDark ? Colors.white.withOpacity(0.08) : AppTheme.borderOf(context);
 
     return Container(
       width: 260,
@@ -303,7 +303,7 @@ class _SidebarItem extends StatefulWidget {
   final bool showBadge;
   final bool isPremium;
 
-  const _SidebarItem({
+  _SidebarItem({
     required this.icon,
     required this.label,
     required this.isSelected,
@@ -324,11 +324,11 @@ class _SidebarItemState extends State<_SidebarItem> {
     final isActive = widget.isSelected;
     final showHover = _isHovered && !isActive;
     final isDark = AppTheme.isDark(context);
-    final activeColor = isDark ? Colors.white : AppTheme.textPrimary;
-    final inactiveColor = isDark ? Colors.white.withOpacity(0.55) : AppTheme.textSecondary;
-    final activeLabelColor = isDark ? Colors.white : AppTheme.textPrimary;
-    final inactiveLabelColor = isDark ? Colors.white.withOpacity(0.7) : AppTheme.textSecondary;
-    final hoverBg = isDark ? Colors.white.withOpacity(0.06) : AppTheme.border.withOpacity(0.5);
+    final activeColor = isDark ? Colors.white : AppTheme.text1(context);
+    final inactiveColor = isDark ? Colors.white.withOpacity(0.55) : AppTheme.text2(context);
+    final activeLabelColor = isDark ? Colors.white : AppTheme.text1(context);
+    final inactiveLabelColor = isDark ? Colors.white.withOpacity(0.7) : AppTheme.text2(context);
+    final hoverBg = isDark ? Colors.white.withOpacity(0.06) : AppTheme.borderOf(context).withOpacity(0.5);
     final activeBg = isDark ? Colors.white.withOpacity(0.12) : AppTheme.primaryDark.withOpacity(0.08);
 
     return Padding(
@@ -610,7 +610,7 @@ class _NavItem extends StatelessWidget {
 class _UserProfileMenu extends StatelessWidget {
   final VoidCallback? onNavigate;
 
-  const _UserProfileMenu({this.onNavigate});
+  _UserProfileMenu({this.onNavigate});
 
   void _showUserMenu(BuildContext context) {
     final RenderBox button = context.findRenderObject() as RenderBox;
@@ -624,9 +624,9 @@ class _UserProfileMenu extends StatelessWidget {
     );
 
     final l10n = AppLocalizations.of(context);
-    final menuBg = AppTheme.isDark(context) ? AppTheme.darkCard : AppTheme.surface;
-    final menuText = AppTheme.isDark(context) ? Colors.white : AppTheme.textPrimary;
-    final menuTextMuted = AppTheme.isDark(context) ? Colors.white70 : AppTheme.textSecondary;
+    final menuBg = AppTheme.isDark(context) ? AppTheme.darkCard : AppTheme.surfaceOf(context);
+    final menuText = AppTheme.isDark(context) ? Colors.white : AppTheme.text1(context);
+    final menuTextMuted = AppTheme.isDark(context) ? Colors.white70 : AppTheme.text2(context);
 
     showMenu<String>(
       context: context,
@@ -750,7 +750,7 @@ class _UserProfileMenu extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

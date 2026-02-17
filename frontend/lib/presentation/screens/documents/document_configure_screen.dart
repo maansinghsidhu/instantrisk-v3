@@ -363,23 +363,23 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: AppTheme.surfaceOf(context),
         elevation: 0,
         leading: IconButton(
           onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back_ios),
-          color: AppTheme.textPrimary,
+          icon: Icon(Icons.arrow_back_ios),
+          color: AppTheme.text1(context),
         ),
         title: Column(
           children: [
             Text(
               widget.lineOfBusinessName,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
+                color: AppTheme.text1(context),
                 fontFamily: 'Inter',
               ),
             ),
@@ -387,7 +387,7 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
               widget.documentTypeName,
               style: TextStyle(
                 fontSize: 12,
-                color: AppTheme.textSecondary,
+                color: AppTheme.text2(context),
               ),
             ),
           ],
@@ -396,7 +396,7 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppTheme.primaryDark,
-          unselectedLabelColor: AppTheme.textSecondary,
+          unselectedLabelColor: AppTheme.text2(context),
           indicatorColor: AppTheme.primaryDark,
           tabs: const [
             Tab(text: 'Sections'),
@@ -489,10 +489,10 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
             fontFamily: 'Inter',
           ),
         ),
@@ -500,7 +500,7 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
           subtitle,
           style: TextStyle(
             fontSize: 13,
-            color: AppTheme.textSecondary,
+            color: AppTheme.text2(context),
           ),
         ),
       ],
@@ -513,9 +513,9 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
   ) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         children: items.entries.map((entry) {
@@ -554,14 +554,14 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: AppTheme.surfaceOf(context),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.border),
+          border: Border.all(color: AppTheme.borderOf(context)),
         ),
         child: Center(
           child: Text(
             'Loading sections...',
-            style: TextStyle(color: AppTheme.textSecondary),
+            style: TextStyle(color: AppTheme.text2(context)),
           ),
         ),
       );
@@ -569,9 +569,9 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         children: items.entries.map((entry) {
@@ -626,7 +626,7 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                         description,
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppTheme.textHint,
+                          color: AppTheme.textH(context),
                         ),
                       )
                     : null,
@@ -651,15 +651,15 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
             Icon(
               Icons.gavel_outlined,
               size: 64,
-              color: AppTheme.textHint.withOpacity(0.5),
+              color: AppTheme.textH(context).withOpacity(0.5),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No LMA Clauses Available',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textSecondary,
+                color: AppTheme.text2(context),
               ),
             ),
             const SizedBox(height: 8),
@@ -668,7 +668,7 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.textHint,
+                color: AppTheme.textH(context),
               ),
             ),
           ],
@@ -729,7 +729,7 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.text2(context),
                     ),
                   ),
                 ),
@@ -771,7 +771,7 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(
-          color: isSelected ? Colors.orange : AppTheme.border,
+          color: isSelected ? Colors.orange : AppTheme.borderOf(context),
           width: isSelected ? 2 : 1,
         ),
       ),
@@ -800,7 +800,7 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                   color: isSelected ? Colors.orange : Colors.transparent,
                   borderRadius: BorderRadius.circular(5),
                   border: Border.all(
-                    color: isSelected ? Colors.orange : AppTheme.border,
+                    color: isSelected ? Colors.orange : AppTheme.borderOf(context),
                     width: 2,
                   ),
                 ),
@@ -828,10 +828,10 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                           ),
                           child: Text(
                             clauseId,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.textSecondary,
+                              color: AppTheme.text2(context),
                               fontFamily: 'monospace',
                             ),
                           ),
@@ -862,10 +862,10 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                     const SizedBox(height: 4),
                     Text(
                       clause['name'] as String? ?? '',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: AppTheme.textPrimary,
+                        color: AppTheme.text1(context),
                       ),
                     ),
                   ],
@@ -976,12 +976,12 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'AI Pricing Benchmark',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.text1(context),
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -997,7 +997,7 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                           'Based on similar ${widget.lineOfBusinessName} risks',
                           style: TextStyle(
                             fontSize: 11,
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.text2(context),
                           ),
                         ),
                       ],
@@ -1029,14 +1029,14 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
         hintText: hint,
         prefixText: prefix,
         filled: true,
-        fillColor: AppTheme.surface,
+        fillColor: AppTheme.surfaceOf(context),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppTheme.border),
+          borderSide: BorderSide(color: AppTheme.borderOf(context)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: AppTheme.border),
+          borderSide: BorderSide(color: AppTheme.borderOf(context)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -1055,7 +1055,7 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -1075,17 +1075,17 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                 children: [
                   Text(
                     '$selectedSectionsCount sections',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.text1(context),
                     ),
                   ),
                   Text(
                     '${_selectedLmaClauses.length} LMA clauses',
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.text2(context),
                     ),
                   ),
                 ],
@@ -1120,7 +1120,7 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
 
   Widget _buildGenerationProgress() {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -1135,12 +1135,12 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                 color: AppTheme.primaryDark,
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Generating Your Document',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.text1(context),
                   fontFamily: 'Inter',
                 ),
               ),
@@ -1150,7 +1150,7 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.text2(context),
                 ),
               ),
 
@@ -1169,7 +1169,7 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                       child: CircularProgressIndicator(
                         value: _generationProgress / 100,
                         strokeWidth: 12,
-                        backgroundColor: AppTheme.border,
+                        backgroundColor: AppTheme.borderOf(context),
                         color: AppTheme.primaryDark,
                       ),
                     ),
@@ -1178,17 +1178,17 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                       children: [
                         Text(
                           '$_generationProgress%',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 36,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.text1(context),
                           ),
                         ),
-                        const Text(
+                        Text(
                           'Complete',
                           style: TextStyle(
                             fontSize: 14,
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.text2(context),
                           ),
                         ),
                       ],
@@ -1238,9 +1238,9 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppTheme.surface,
+                    color: AppTheme.surfaceOf(context),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.border),
+                    border: Border.all(color: AppTheme.borderOf(context)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1261,7 +1261,7 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                                   ? AppTheme.success
                                   : status == 'running'
                                       ? AppTheme.primaryDark
-                                      : AppTheme.textHint,
+                                      : AppTheme.textH(context),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -1270,8 +1270,8 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: status == 'running'
-                                      ? AppTheme.textPrimary
-                                      : AppTheme.textSecondary,
+                                      ? AppTheme.text1(context)
+                                      : AppTheme.text2(context),
                                   fontWeight: status == 'running'
                                       ? FontWeight.w600
                                       : FontWeight.w400,

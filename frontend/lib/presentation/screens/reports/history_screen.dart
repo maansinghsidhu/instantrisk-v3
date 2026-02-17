@@ -16,7 +16,7 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   String _selectedFilter = 'All';
-  final List<String> _filters = ['All', 'GO', 'NO-GO', 'REFER'];
+  final List<String> _filters = ['All', 'GO', 'NO-GO', 'PROCESSING'];
   List<AssessmentItem> _assessments = [];
   bool _isLoading = true;
   String? _error;
@@ -252,16 +252,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       onSelected: (selected) {
                         setState(() => _selectedFilter = filter);
                       },
-                      backgroundColor: AppTheme.surface,
+                      backgroundColor: AppTheme.surfaceOf(context),
                       selectedColor: AppTheme.primaryDark.withOpacity(0.2),
                       labelStyle: TextStyle(
-                        color: isSelected ? AppTheme.primaryDark : AppTheme.textSecondary,
+                        color: isSelected ? AppTheme.primaryDark : AppTheme.text2(context),
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
-                          color: isSelected ? AppTheme.primaryDark : AppTheme.border,
+                          color: isSelected ? AppTheme.primaryDark : AppTheme.borderOf(context),
                         ),
                       ),
                     ),
@@ -281,7 +281,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.error_outline, size: 48, color: AppTheme.danger),
-                              const SizedBox(height: 16),
+                              SizedBox(height: 16),
                               Text(_error!, style: TextStyle(color: AppTheme.text2(context))),
                               const SizedBox(height: 16),
                               ElevatedButton(
@@ -370,7 +370,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         statusColor = AppTheme.primaryDark;
         break;
       default:
-        statusColor = AppTheme.textHint;
+        statusColor = AppTheme.textH(context);
     }
 
     return Container(

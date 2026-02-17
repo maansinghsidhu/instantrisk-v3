@@ -149,7 +149,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0D1B3E),
         foregroundColor: Colors.white,
@@ -249,10 +249,10 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Create your first syndicate to get started',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppTheme.textSecondary),
+              style: TextStyle(color: AppTheme.text2(context)),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -351,7 +351,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(10),
@@ -397,9 +397,9 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
           const SizedBox(height: 2),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
             ),
           ),
         ],
@@ -438,7 +438,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -446,19 +446,19 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Market Capacity by Class',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.text1(context),
                 ),
               ),
               Text(
                 '${topLines.length} Classes',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.text2(context),
                 ),
               ),
             ],
@@ -490,7 +490,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               displayLabel,
-                              style: const TextStyle(fontSize: 9, color: AppTheme.textSecondary),
+                              style: TextStyle(fontSize: 9, color: AppTheme.text2(context)),
                             ),
                           );
                         }
@@ -505,7 +505,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
                       getTitlesWidget: (value, meta) {
                         return Text(
                           '${value.toStringAsFixed(0)}M',
-                          style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                          style: TextStyle(fontSize: 10, color: AppTheme.text2(context)),
                         );
                       },
                     ),
@@ -554,7 +554,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -562,12 +562,12 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Top Syndicates by GWP',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.text1(context),
                 ),
               ),
               TextButton(
@@ -623,9 +623,9 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
                 ),
                 Text(
                   syndicate['managing_agent'],
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.text2(context),
                   ),
                 ),
               ],
@@ -668,17 +668,17 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Recent Market Activity',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
             ),
           ),
           const SizedBox(height: 12),
@@ -735,9 +735,9 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
           ),
           Text(
             activity['time'],
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
             ),
           ),
         ],
@@ -805,7 +805,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
                   prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppTheme.border),
+                    borderSide: BorderSide(color: AppTheme.borderOf(context)),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
@@ -850,7 +850,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
         selectedColor: const Color(0xFF1565C0).withAlpha(51),
         checkmarkColor: const Color(0xFF1565C0),
         labelStyle: TextStyle(
-          color: isSelected ? const Color(0xFF1565C0) : AppTheme.textSecondary,
+          color: isSelected ? Color(0xFF1565C0) : AppTheme.text2(context),
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
@@ -869,7 +869,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -916,9 +916,9 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
                           ),
                           Text(
                             syndicate['managing_agent'],
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.textSecondary,
+                              color: AppTheme.text2(context),
                             ),
                           ),
                         ],
@@ -951,9 +951,9 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Capacity Utilization',
-                          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                          style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
                         ),
                         Text(
                           '${utilizationPct.toStringAsFixed(0)}%',
@@ -1030,9 +1030,9 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
-            color: AppTheme.textSecondary,
+            color: AppTheme.text2(context),
           ),
         ),
         const SizedBox(height: 2),
@@ -1041,7 +1041,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: color ?? AppTheme.textPrimary,
+            color: color ?? AppTheme.text1(context),
           ),
         ),
       ],
@@ -1118,7 +1118,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         children: [
@@ -1166,9 +1166,9 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: AppTheme.textSecondary,
+            color: AppTheme.text2(context),
           ),
         ),
       ],
@@ -1187,7 +1187,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1296,7 +1296,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Row(
         children: [
@@ -1379,7 +1379,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1416,7 +1416,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
                             padding: const EdgeInsets.only(top: 8),
                             child: Text(
                               months[value.toInt()],
-                              style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                              style: TextStyle(fontSize: 10, color: AppTheme.text2(context)),
                             ),
                           );
                         }
@@ -1430,7 +1430,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
                       reservedSize: 40,
                       getTitlesWidget: (value, meta) => Text(
                         '${value.toInt()}B',
-                        style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                        style: TextStyle(fontSize: 10, color: AppTheme.text2(context)),
                       ),
                     ),
                   ),
@@ -1480,7 +1480,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1521,7 +1521,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1565,7 +1565,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
           ),
           Text(
             ratio,
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+            style: TextStyle(color: AppTheme.text2(context), fontSize: 13),
           ),
           const SizedBox(width: 16),
           Text(
@@ -1583,7 +1583,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1623,8 +1623,8 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(risk, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-              Text(amount, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+              Text(risk, style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+              Text(amount, style: TextStyle(color: AppTheme.text2(context), fontSize: 12)),
             ],
           ),
           const SizedBox(height: 6),
@@ -1720,9 +1720,9 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
                             ),
                             Text(
                               syndicate['managing_agent'],
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
-                                color: AppTheme.textSecondary,
+                                color: AppTheme.text2(context),
                               ),
                             ),
                           ],
@@ -1810,7 +1810,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 18, color: AppTheme.textSecondary),
+              Icon(icon, size: 18, color: AppTheme.text2(context)),
               const SizedBox(width: 8),
               Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
             ],
@@ -1826,7 +1826,7 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.textSecondary)),
+          Text(label, style: TextStyle(color: AppTheme.text2(context))),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
         ],
       ),
@@ -1885,17 +1885,17 @@ class _LloydsAdminDashboardScreenState extends State<LloydsAdminDashboardScreen>
             height: 8,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                Text(message, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                Text(title, style: TextStyle(fontWeight: FontWeight.w600)),
+                Text(message, style: TextStyle(fontSize: 13, color: AppTheme.text2(context))),
               ],
             ),
           ),
-          Text(time, style: const TextStyle(fontSize: 11, color: AppTheme.textHint)),
+          Text(time, style: TextStyle(fontSize: 11, color: AppTheme.textH(context))),
         ],
       ),
     );

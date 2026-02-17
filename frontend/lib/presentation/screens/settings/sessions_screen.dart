@@ -149,15 +149,15 @@ class _SessionsScreenState extends State<SessionsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: AppTheme.surfaceOf(context),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
+          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
           onPressed: () => context.pop(),
         ),
-        title: const Row(
+        title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.devices, color: AppTheme.primaryDark, size: 22),
@@ -167,7 +167,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
+                color: AppTheme.text1(context),
               ),
             ),
           ],
@@ -206,20 +206,20 @@ class _SessionsScreenState extends State<SessionsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.devices, size: 64, color: AppTheme.textHint.withOpacity(0.5)),
+          Icon(Icons.devices, size: 64, color: AppTheme.textH(context).withOpacity(0.5)),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'No Active Sessions',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'You\'re not logged in on any devices',
-            style: TextStyle(color: AppTheme.textSecondary),
+            style: TextStyle(color: AppTheme.text2(context)),
           ),
         ],
       ),
@@ -233,10 +233,10 @@ class _SessionsScreenState extends State<SessionsScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isCurrent ? AppTheme.primaryDark.withOpacity(0.3) : AppTheme.border,
+          color: isCurrent ? AppTheme.primaryDark.withOpacity(0.3) : AppTheme.borderOf(context),
         ),
       ),
       child: Column(
@@ -249,12 +249,12 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 decoration: BoxDecoration(
                   color: isCurrent
                       ? AppTheme.primaryDark.withOpacity(0.1)
-                      : AppTheme.textHint.withOpacity(0.1),
+                      : AppTheme.textH(context).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   _getDeviceIcon(session['device'] ?? ''),
-                  color: isCurrent ? AppTheme.primaryDark : AppTheme.textHint,
+                  color: isCurrent ? AppTheme.primaryDark : AppTheme.textH(context),
                   size: 22,
                 ),
               ),
@@ -267,10 +267,10 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       children: [
                         Text(
                           session['device'] ?? 'Unknown Device',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.text1(context),
                           ),
                         ),
                         if (isCurrent) ...[
@@ -296,9 +296,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
                     const SizedBox(height: 4),
                     Text(
                       session['browser'] ?? '',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.text2(context),
                       ),
                     ),
                   ],
@@ -331,11 +331,11 @@ class _SessionsScreenState extends State<SessionsScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: AppTheme.textHint),
+        Icon(icon, size: 14, color: AppTheme.textH(context)),
         const SizedBox(width: 4),
         Text(
           text,
-          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+          style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
         ),
       ],
     );

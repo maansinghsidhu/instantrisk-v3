@@ -458,12 +458,12 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
         }
       },
       child: Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppTheme.bg(context),
         appBar: AppBar(
-          backgroundColor: AppTheme.surface,
+          backgroundColor: AppTheme.surfaceOf(context),
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.close, color: AppTheme.textPrimary),
+            icon: Icon(Icons.close, color: AppTheme.text1(context)),
             onPressed: _handleBack,
           ),
           title: Text(
@@ -491,7 +491,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
       children: [
         // Progress header
         Container(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24),
           color: AppTheme.surfaceOf(context),
           child: Column(
             children: [
@@ -539,9 +539,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                         const SizedBox(height: 2),
                         Text(
                           _formatTime(_elapsedSeconds),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.text2(context),
                             fontFamily: 'Courier',
                           ),
                         ),
@@ -599,9 +599,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                                 if (_documentName.isNotEmpty)
                                   Text(
                                     _documentName,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      color: AppTheme.textSecondary,
+                                      color: AppTheme.text2(context),
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -656,9 +656,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                                 Expanded(
                                   child: Text(
                                     _currentSubStepDesc,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11,
-                                      color: AppTheme.textSecondary,
+                                      color: AppTheme.text2(context),
                                     ),
                                     textAlign: TextAlign.right,
                                     maxLines: 1,
@@ -721,9 +721,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
               // Main description
               Text(
                 _currentDescription,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.text2(context),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -774,9 +774,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.surface,
+                  color: AppTheme.surfaceOf(context),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.border),
+                  border: Border.all(color: AppTheme.borderOf(context)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -840,22 +840,22 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
-            border: Border(top: BorderSide(color: AppTheme.border)),
+            color: AppTheme.surfaceOf(context),
+            border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
           ),
           child: SafeArea(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.timer_outlined, size: 16, color: AppTheme.textSecondary),
+                Icon(Icons.timer_outlined, size: 16, color: AppTheme.text2(context)),
                 const SizedBox(width: 6),
                 Text(
                   _estimatedRemaining > 0
                       ? 'Estimated: ${_formatTime(_estimatedRemaining)} remaining'
                       : 'Processing...',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.text2(context),
                   ),
                 ),
               ],
@@ -880,10 +880,10 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isCurrent ? modeColor.withOpacity(0.05) : AppTheme.surface,
+          color: isCurrent ? modeColor.withOpacity(0.05) : AppTheme.surfaceOf(context),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isCurrent ? modeColor : AppTheme.border,
+            color: isCurrent ? modeColor : AppTheme.borderOf(context),
             width: isCurrent ? 2 : 1,
           ),
         ),
@@ -896,16 +896,16 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isCompleted
-                    ? const Color(0xFF059669)
+                    ? Color(0xFF059669)
                     : isCurrent
                         ? modeColor
-                        : AppTheme.background,
+                        : AppTheme.bg(context),
                 border: Border.all(
                   color: isCompleted
-                      ? const Color(0xFF059669)
+                      ? Color(0xFF059669)
                       : isCurrent
                           ? modeColor
-                          : AppTheme.border,
+                          : AppTheme.borderOf(context),
                   width: 2,
                 ),
               ),
@@ -922,10 +922,10 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                         )
                       : Text(
                           '${index + 1}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.textSecondary,
+                            color: AppTheme.text2(context),
                           ),
                         ),
             ),
@@ -941,7 +941,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: isPending ? AppTheme.textSecondary : AppTheme.textPrimary,
+                      color: isPending ? AppTheme.text2(context) : AppTheme.text1(context),
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -949,7 +949,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                     agent['description'] as String,
                     style: TextStyle(
                       fontSize: 12,
-                      color: isPending ? AppTheme.textHint : AppTheme.textSecondary,
+                      color: isPending ? AppTheme.textH(context) : AppTheme.text2(context),
                     ),
                   ),
                 ],
@@ -976,11 +976,11 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                 ),
               )
             else
-              const Text(
+              Text(
                 'Pending',
                 style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.textHint,
+                  color: AppTheme.textH(context),
                 ),
               ),
           ],
@@ -997,17 +997,17 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
             ),
           ),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
             ),
           ),
         ],
@@ -1109,9 +1109,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
             // Confidence
             Text(
               'Confidence: ${confidence.toStringAsFixed(0)}%',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
-                color: AppTheme.textSecondary,
+                color: AppTheme.text2(context),
               ),
             ),
 
@@ -1120,9 +1120,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
             // Time taken
             Text(
               'Completed in ${_formatTime(_elapsedSeconds)}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.textHint,
+                color: AppTheme.textH(context),
               ),
             ),
 
@@ -1202,9 +1202,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
 
             Text(
               _errorMessage ?? 'An unexpected error occurred',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.textSecondary,
+                color: AppTheme.text2(context),
               ),
               textAlign: TextAlign.center,
             ),

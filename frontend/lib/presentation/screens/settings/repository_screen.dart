@@ -68,27 +68,27 @@ class _RepositoryScreenState extends State<RepositoryScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
+          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
           onPressed: () => context.go('/settings'),
         ),
         title: Text(
           l10n.documentRepository,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
             fontFamily: 'Inter',
           ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: AppTheme.textPrimary),
+            icon: Icon(Icons.search, color: AppTheme.text1(context)),
             onPressed: () {
               // TODO: Implement search
             },
@@ -103,9 +103,9 @@ class _RepositoryScreenState extends State<RepositoryScreen> {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.surface,
+                color: AppTheme.surfaceOf(context),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.border),
+                border: Border.all(color: AppTheme.borderOf(context)),
               ),
               child: Column(
                 children: [
@@ -115,20 +115,20 @@ class _RepositoryScreenState extends State<RepositoryScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Storage Used',
                             style: TextStyle(
                               fontSize: 14,
-                              color: AppTheme.textSecondary,
+                              color: AppTheme.text2(context),
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '${_totalStorageUsed.toStringAsFixed(1)} GB / 10 GB',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
-                              color: AppTheme.textPrimary,
+                              color: AppTheme.text1(context),
                             ),
                           ),
                         ],
@@ -142,7 +142,7 @@ class _RepositoryScreenState extends State<RepositoryScreen> {
                             child: CircularProgressIndicator(
                               value: _totalStorageUsed / 10,
                               strokeWidth: 6,
-                              backgroundColor: AppTheme.border,
+                              backgroundColor: AppTheme.borderOf(context),
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 _totalStorageUsed / 10 > 0.8 ? AppTheme.danger : AppTheme.primaryDark,
                               ),
@@ -150,10 +150,10 @@ class _RepositoryScreenState extends State<RepositoryScreen> {
                           ),
                           Text(
                             '${((_totalStorageUsed / 10) * 100).toInt()}%',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimary,
+                              color: AppTheme.text1(context),
                             ),
                           ),
                         ],
@@ -193,14 +193,14 @@ class _RepositoryScreenState extends State<RepositoryScreen> {
                     onSelected: (selected) {
                       setState(() => _selectedFilter = filter);
                     },
-                    backgroundColor: AppTheme.surface,
+                    backgroundColor: AppTheme.surfaceOf(context),
                     selectedColor: AppTheme.primaryDark,
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : AppTheme.textSecondary,
+                      color: isSelected ? Colors.white : AppTheme.text2(context),
                       fontWeight: FontWeight.w500,
                     ),
                     side: BorderSide(
-                      color: isSelected ? AppTheme.primaryDark : AppTheme.border,
+                      color: isSelected ? AppTheme.primaryDark : AppTheme.borderOf(context),
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
@@ -220,9 +220,9 @@ class _RepositoryScreenState extends State<RepositoryScreen> {
               children: [
                 Text(
                   '${_filteredDocuments.length} documents',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.text2(context),
                   ),
                 ),
                 TextButton.icon(
@@ -232,7 +232,7 @@ class _RepositoryScreenState extends State<RepositoryScreen> {
                   icon: const Icon(Icons.sort, size: 18),
                   label: const Text('Sort'),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.textSecondary,
+                    foregroundColor: AppTheme.text2(context),
                   ),
                 ),
               ],
@@ -277,9 +277,9 @@ class _RepositoryScreenState extends State<RepositoryScreen> {
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: AppTheme.textSecondary,
+            color: AppTheme.text2(context),
           ),
         ),
       ],
@@ -307,9 +307,9 @@ class _RepositoryScreenState extends State<RepositoryScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -338,10 +338,10 @@ class _RepositoryScreenState extends State<RepositoryScreen> {
                     children: [
                       Text(
                         doc.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -366,17 +366,17 @@ class _RepositoryScreenState extends State<RepositoryScreen> {
                           const SizedBox(width: 8),
                           Text(
                             '${doc.size} MB',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.textHint,
+                              color: AppTheme.textH(context),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             _formatDate(doc.date),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.textHint,
+                              color: AppTheme.textH(context),
                             ),
                           ),
                         ],
@@ -385,7 +385,7 @@ class _RepositoryScreenState extends State<RepositoryScreen> {
                   ),
                 ),
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert, color: AppTheme.textHint),
+                  icon: Icon(Icons.more_vert, color: AppTheme.textH(context)),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -463,18 +463,18 @@ class _RepositoryScreenState extends State<RepositoryScreen> {
           const SizedBox(height: 20),
           Text(
             l10n.noData,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             l10n.uploadDocument,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
             ),
           ),
         ],
@@ -495,7 +495,7 @@ class _RepositoryScreenState extends State<RepositoryScreen> {
             onPressed: () => Navigator.pop(context),
             child: Text(
               l10n.cancel,
-              style: const TextStyle(color: AppTheme.textSecondary),
+              style: TextStyle(color: AppTheme.text2(context)),
             ),
           ),
           TextButton(

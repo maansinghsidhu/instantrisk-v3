@@ -288,7 +288,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.corporateBlue))
           : NestedScrollView(
@@ -1187,7 +1187,7 @@ class _ExposureDashboardScreenState extends State<ExposureDashboardScreen> with 
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.background,
+        color: AppTheme.bg(context),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.grey[200]!),
       ),
@@ -1445,7 +1445,7 @@ class _TabBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: AppTheme.background,
+      color: AppTheme.bg(context),
       child: tabBar,
     );
   }

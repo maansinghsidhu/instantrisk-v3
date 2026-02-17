@@ -166,7 +166,7 @@ class _DocumentIntakeScreenState extends State<DocumentIntakeScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.border, width: 2),
+                    border: Border.all(color: AppTheme.borderOf(context), width: 2),
                   ),
                   child: _qrUrl != null
                       ? QrImageView(
@@ -203,10 +203,10 @@ class _DocumentIntakeScreenState extends State<DocumentIntakeScreen> {
                     ),
                   )
                 else
-                  const Text(
+                  Text(
                     'Scan with your phone camera\nto capture and upload documents',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                    style: TextStyle(color: AppTheme.text2(context), fontSize: 14),
                   ),
                 const SizedBox(height: 12),
                 if (_qrUrl != null && uploadedCount == 0)
@@ -403,17 +403,17 @@ class _DocumentIntakeScreenState extends State<DocumentIntakeScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppTheme.border,
+                color: AppTheme.borderOf(context),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'Add Documents',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
+                color: AppTheme.text1(context),
               ),
             ),
             const SizedBox(height: 24),
@@ -480,9 +480,9 @@ class _DocumentIntakeScreenState extends State<DocumentIntakeScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.surface,
+          color: AppTheme.surfaceOf(context),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.border),
+          border: Border.all(color: AppTheme.borderOf(context)),
         ),
         child: Row(
           children: [
@@ -500,31 +500,31 @@ class _DocumentIntakeScreenState extends State<DocumentIntakeScreen> {
                     )
                   : Icon(icon, color: AppTheme.primaryDark, size: 24),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.text1(context),
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: AppTheme.textSecondary,
+                      color: AppTheme.text2(context),
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: AppTheme.textHint, size: 16),
+            Icon(Icons.arrow_forward_ios, color: AppTheme.textH(context), size: 16),
           ],
         ),
       ),
@@ -635,20 +635,20 @@ class _DocumentIntakeScreenState extends State<DocumentIntakeScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
+          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
           onPressed: () => context.go('/home'),
         ),
         title: Text(
           l10n.newAssessment,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
             fontFamily: 'Inter',
           ),
         ),
@@ -698,18 +698,18 @@ class _DocumentIntakeScreenState extends State<DocumentIntakeScreen> {
                               children: [
                                 Text(
                                   l10n.aiPoweredAnalysis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: AppTheme.textPrimary,
+                                    color: AppTheme.text1(context),
                                   ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   l10n.riskTypeAutoDetected,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: AppTheme.textSecondary,
+                                    color: AppTheme.text2(context),
                                   ),
                                 ),
                               ],
@@ -723,10 +723,10 @@ class _DocumentIntakeScreenState extends State<DocumentIntakeScreen> {
                     // Upload Section
                     Text(
                       l10n.uploadDocuments,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
+                        color: AppTheme.text1(context),
                         fontFamily: 'Inter',
                       ),
                     ),
@@ -784,9 +784,9 @@ class _DocumentIntakeScreenState extends State<DocumentIntakeScreen> {
                             const SizedBox(height: 8),
                             Text(
                               l10n.takePhotoBrowseOrGallery,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 14,
-                                color: AppTheme.textSecondary,
+                                color: AppTheme.text2(context),
                                 fontFamily: 'Inter',
                               ),
                             ),
@@ -803,18 +803,18 @@ class _DocumentIntakeScreenState extends State<DocumentIntakeScreen> {
                         children: [
                           Text(
                             l10n.uploadedDocuments,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimary,
+                              color: AppTheme.text1(context),
                               fontFamily: 'Inter',
                             ),
                           ),
                           Text(
                             l10n.filesCount(_documents.length),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
-                              color: AppTheme.textSecondary,
+                              color: AppTheme.text2(context),
                             ),
                           ),
                         ],
@@ -848,18 +848,18 @@ class _DocumentIntakeScreenState extends State<DocumentIntakeScreen> {
                               children: [
                                 Text(
                                   l10n.recommendedDocuments,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: AppTheme.textPrimary,
+                                    color: AppTheme.text1(context),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   l10n.applicationFormLossHistory,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
-                                    color: AppTheme.textSecondary,
+                                    color: AppTheme.text2(context),
                                   ),
                                 ),
                               ],
@@ -877,7 +877,7 @@ class _DocumentIntakeScreenState extends State<DocumentIntakeScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.surface,
+                color: AppTheme.surfaceOf(context),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
@@ -893,7 +893,7 @@ class _DocumentIntakeScreenState extends State<DocumentIntakeScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryDark,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppTheme.border,
+                    disabledBackgroundColor: AppTheme.borderOf(context),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -949,16 +949,16 @@ class _DocumentIntakeScreenState extends State<DocumentIntakeScreen> {
         break;
       default:
         iconData = Icons.insert_drive_file;
-        iconColor = AppTheme.textSecondary;
+        iconColor = AppTheme.text2(context);
     }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Row(
         children: [
@@ -982,28 +982,28 @@ class _DocumentIntakeScreenState extends State<DocumentIntakeScreen> {
               children: [
                 Text(
                   doc.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.text1(context),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${doc.type} • ${doc.size}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.text2(context),
                   ),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.close,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
               size: 20,
             ),
             onPressed: () => _removeDocument(index),

@@ -251,20 +251,20 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
+          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
           onPressed: () => context.pop(),
         ),
         title: Text(
           _isComplete ? 'Documents Ready' : 'Generating Documents',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
           ),
         ),
         centerTitle: true,
@@ -278,7 +278,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.text2(context),
                   ),
                 ),
               ),
@@ -322,9 +322,9 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,10 +344,10 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
               Expanded(
                 child: Text(
                   currentAgent?.name ?? 'Processing...',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.text1(context),
                   ),
                 ),
               ),
@@ -366,7 +366,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: AppTheme.border,
+              backgroundColor: AppTheme.borderOf(context),
               color: AppTheme.primaryDark,
               minHeight: 6,
             ),
@@ -375,7 +375,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
             const SizedBox(height: 6),
             Text(
               currentAgent.description,
-              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
             ),
           ],
         ],
@@ -393,14 +393,14 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: AppTheme.surfaceOf(context),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isPhaseComplete
                   ? AppTheme.phaseCompose.withValues(alpha: 0.3)
                   : isPhaseActive
                       ? phase.color.withValues(alpha: 0.3)
-                      : AppTheme.border,
+                      : AppTheme.borderOf(context),
             ),
           ),
           child: Theme(
@@ -417,7 +417,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
                           ? AppTheme.phaseCompose
                           : isPhaseActive
                               ? phase.color
-                              : AppTheme.textHint)
+                              : AppTheme.textH(context))
                       .withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -428,7 +428,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
                       ? AppTheme.phaseCompose
                       : isPhaseActive
                           ? phase.color
-                          : AppTheme.textHint,
+                          : AppTheme.textH(context),
                 ),
               ),
               title: Text(
@@ -437,7 +437,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.2,
-                  color: isPhaseActive ? AppTheme.textPrimary : AppTheme.textHint,
+                  color: isPhaseActive ? AppTheme.text1(context) : AppTheme.textH(context),
                 ),
               ),
               trailing: Text(
@@ -447,7 +447,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
                   fontWeight: FontWeight.w600,
                   color: isPhaseComplete
                       ? AppTheme.phaseCompose
-                      : AppTheme.textSecondary,
+                      : AppTheme.text2(context),
                 ),
               ),
               children: phase.agents.map((agent) => _buildAgentRow(agent, phase.color)).toList(),
@@ -464,8 +464,8 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
 
     switch (agent.status) {
       case _AgentStatus.pending:
-        iconColor = AppTheme.textHint;
-        statusWidget = Icon(Icons.circle_outlined, size: 16, color: AppTheme.textHint);
+        iconColor = AppTheme.textH(context);
+        statusWidget = Icon(Icons.circle_outlined, size: 16, color: AppTheme.textH(context));
         break;
       case _AgentStatus.running:
         iconColor = phaseColor;
@@ -503,8 +503,8 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: agent.status == _AgentStatus.pending
-                        ? AppTheme.textHint
-                        : AppTheme.textPrimary,
+                        ? AppTheme.textH(context)
+                        : AppTheme.text1(context),
                   ),
                 ),
                 Text(
@@ -513,7 +513,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
                     fontSize: 10,
                     color: agent.status == _AgentStatus.running
                         ? phaseColor
-                        : AppTheme.textHint,
+                        : AppTheme.textH(context),
                   ),
                 ),
               ],
@@ -545,17 +545,17 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Generation Complete',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.text1(context),
                   ),
                 ),
                 Text(
                   '${_generatedDocs.length} document${_generatedDocs.length != 1 ? 's' : ''} generated by InstantRisk Engine',
-                  style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                  style: TextStyle(fontSize: 13, color: AppTheme.text2(context)),
                 ),
               ],
             ),
@@ -570,9 +570,9 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Row(
         children: [
@@ -591,10 +591,10 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
               children: [
                 Text(
                   doc['title'] ?? doc['name'] ?? 'Document',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.text1(context),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -618,7 +618,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
                     const SizedBox(width: 8),
                     Text(
                       '${doc['total_sections'] ?? (doc['sections'] is List ? (doc['sections'] as List).length : doc['sections'] ?? 0)} sections',
-                      style: const TextStyle(fontSize: 11, color: AppTheme.textHint),
+                      style: TextStyle(fontSize: 11, color: AppTheme.textH(context)),
                     ),
                   ],
                 ),
@@ -641,7 +641,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
                 tooltip: 'Edit',
               ),
               IconButton(
-                icon: const Icon(Icons.visibility, size: 20, color: AppTheme.textSecondary),
+                icon: Icon(Icons.visibility, size: 20, color: AppTheme.text2(context)),
                 onPressed: () {
                   final docId = doc['id']?.toString() ?? '';
                   if (docId.isNotEmpty) {
@@ -653,7 +653,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
                 tooltip: 'View',
               ),
               IconButton(
-                icon: const Icon(Icons.download, size: 20, color: AppTheme.textSecondary),
+                icon: Icon(Icons.download, size: 20, color: AppTheme.text2(context)),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('PDF download coming soon')),
@@ -675,17 +675,17 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.info_outline, size: 14, color: AppTheme.textHint),
+          Icon(Icons.info_outline, size: 14, color: AppTheme.textH(context)),
           const SizedBox(width: 6),
           Text(
             '$_userClauseCount from your uploads, $_acordClauseCount from ACORD, $_aiClauseCount engine-generated',
-            style: const TextStyle(fontSize: 11, color: AppTheme.textHint),
+            style: TextStyle(fontSize: 11, color: AppTheme.textH(context)),
           ),
         ],
       ),
@@ -709,7 +709,7 @@ class _GenerationProgressScreenState extends State<GenerationProgressScreen> {
               Expanded(
                 child: Text(
                   _errorMessage ?? 'Generation failed',
-                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                  style: TextStyle(color: AppTheme.text1(context), fontSize: 14),
                 ),
               ),
             ],

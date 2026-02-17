@@ -226,16 +226,16 @@ class _ReferenceDocumentsScreenState extends State<ReferenceDocumentsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: AppTheme.surfaceOf(context),
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Reference Documents',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
             fontFamily: 'Inter',
           ),
         ),
@@ -243,8 +243,8 @@ class _ReferenceDocumentsScreenState extends State<ReferenceDocumentsScreen>
         actions: [
           IconButton(
             onPressed: _loadDocuments,
-            icon: const Icon(Icons.refresh),
-            color: AppTheme.textSecondary,
+            icon: Icon(Icons.refresh),
+            color: AppTheme.text2(context),
           ),
         ],
         bottom: TabBar(
@@ -252,7 +252,7 @@ class _ReferenceDocumentsScreenState extends State<ReferenceDocumentsScreen>
           isScrollable: true,
           indicatorColor: AppTheme.primaryDark,
           labelColor: AppTheme.primaryDark,
-          unselectedLabelColor: AppTheme.textSecondary,
+          unselectedLabelColor: AppTheme.text2(context),
           tabs: _categoryTabs.map((t) => Tab(text: t)).toList(),
         ),
       ),
@@ -319,7 +319,7 @@ class _ReferenceDocumentsScreenState extends State<ReferenceDocumentsScreen>
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppTheme.border),
+        side: BorderSide(color: AppTheme.borderOf(context)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -351,10 +351,10 @@ class _ReferenceDocumentsScreenState extends State<ReferenceDocumentsScreen>
                     children: [
                       Text(
                         doc['title'] as String? ?? 'Untitled',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                           fontFamily: 'Inter',
                         ),
                         maxLines: 1,
@@ -380,14 +380,14 @@ class _ReferenceDocumentsScreenState extends State<ReferenceDocumentsScreen>
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: AppTheme.border,
+                              color: AppTheme.borderOf(context),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               category.replaceAll('_', ' ').toUpperCase(),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
-                                color: AppTheme.textSecondary,
+                                color: AppTheme.text2(context),
                               ),
                             ),
                           ),
@@ -400,8 +400,8 @@ class _ReferenceDocumentsScreenState extends State<ReferenceDocumentsScreen>
                 // Delete button
                 IconButton(
                   onPressed: () => _confirmDelete(doc),
-                  icon: const Icon(Icons.delete_outline),
-                  color: AppTheme.textHint,
+                  icon: Icon(Icons.delete_outline),
+                  color: AppTheme.textH(context),
                 ),
               ],
             ),
@@ -410,9 +410,9 @@ class _ReferenceDocumentsScreenState extends State<ReferenceDocumentsScreen>
               const SizedBox(height: 12),
               Text(
                 doc['description'] as String,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.text2(context),
                   height: 1.4,
                 ),
                 maxLines: 2,
@@ -426,19 +426,19 @@ class _ReferenceDocumentsScreenState extends State<ReferenceDocumentsScreen>
             Row(
               children: [
                 if (doc['chunk_count'] != null && (doc['chunk_count'] as int) > 0) ...[
-                  Icon(Icons.layers_outlined, size: 14, color: AppTheme.textHint),
+                  Icon(Icons.layers_outlined, size: 14, color: AppTheme.textH(context)),
                   const SizedBox(width: 4),
                   Text(
                     '${doc['chunk_count']} chunks',
-                    style: const TextStyle(fontSize: 12, color: AppTheme.textHint),
+                    style: TextStyle(fontSize: 12, color: AppTheme.textH(context)),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16),
                 ],
-                Icon(Icons.insert_drive_file_outlined, size: 14, color: AppTheme.textHint),
+                Icon(Icons.insert_drive_file_outlined, size: 14, color: AppTheme.textH(context)),
                 const SizedBox(width: 4),
                 Text(
                   doc['file_name'] as String? ?? '',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.textHint),
+                  style: TextStyle(fontSize: 12, color: AppTheme.textH(context)),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -517,26 +517,26 @@ class _ReferenceDocumentsScreenState extends State<ReferenceDocumentsScreen>
           Icon(
             Icons.folder_open_outlined,
             size: 80,
-            color: AppTheme.textHint.withOpacity(0.5),
+            color: AppTheme.textH(context).withOpacity(0.5),
           ),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             'No Reference Documents',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
             ),
           ),
           const SizedBox(height: 8),
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 48),
             child: Text(
               'Upload policy wordings, guidelines, and other documents to enhance InstantRisk Engine document generation.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.textHint,
+                color: AppTheme.textH(context),
                 height: 1.5,
               ),
             ),

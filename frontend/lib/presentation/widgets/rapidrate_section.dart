@@ -28,7 +28,7 @@ class RapidRateSection extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
       ),
@@ -67,7 +67,7 @@ class RapidRateSection extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -76,14 +76,14 @@ class RapidRateSection extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                           fontFamily: 'Inter',
                         ),
                       ),
                       SizedBox(height: 2),
                       Text(
                         'ML-powered premium estimation',
-                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                        style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
                       ),
                     ],
                   ),
@@ -119,10 +119,10 @@ class RapidRateSection extends StatelessWidget {
                   children: [
                     Text(
                       '\$${_formatCurrency(premium)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
+                        color: AppTheme.text1(context),
                         fontFamily: 'Inter',
                       ),
                     ),
@@ -133,7 +133,7 @@ class RapidRateSection extends StatelessWidget {
                         'estimated premium',
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.text2(context),
                         ),
                       ),
                     ),
@@ -142,9 +142,9 @@ class RapidRateSection extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Range: \$${_formatCurrency(premiumLow)} — \$${_formatCurrency(premiumHigh)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.text2(context),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -165,12 +165,12 @@ class RapidRateSection extends StatelessWidget {
 
                 // VaR Table
                 if (varData is Map && varData.isNotEmpty) ...[
-                  const Text(
+                  Text(
                     'Value at Risk (VaR) Percentiles',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.text1(context),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -181,11 +181,11 @@ class RapidRateSection extends StatelessWidget {
                 // Footer with recalculate and model version
                 Row(
                   children: [
-                    Icon(Icons.memory, size: 14, color: AppTheme.textHint),
+                    Icon(Icons.memory, size: 14, color: AppTheme.textH(context)),
                     const SizedBox(width: 4),
                     Text(
                       'Powered by RapidRate ML $modelVersion',
-                      style: const TextStyle(fontSize: 11, color: AppTheme.textHint),
+                      style: TextStyle(fontSize: 11, color: AppTheme.textH(context)),
                     ),
                     const Spacer(),
                     if (onRecalculate != null)
@@ -212,7 +212,7 @@ class RapidRateSection extends StatelessWidget {
     final modValue = mod is num ? mod.toDouble() : 1.0;
     final isGood = modValue < 1.0;
     final isBad = modValue > 1.0;
-    final color = isGood ? const Color(0xFF10B981) : isBad ? const Color(0xFFEF4444) : AppTheme.textSecondary;
+    final color = isGood ? Color(0xFF10B981) : isBad ? Color(0xFFEF4444) : AppTheme.text2(context);
     final label = isGood ? 'Better than average' : isBad ? 'Worse than average' : 'Average';
 
     return Container(
@@ -250,15 +250,15 @@ class RapidRateSection extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(fontSize: 11, color: AppTheme.textHint),
+            style: TextStyle(fontSize: 11, color: AppTheme.textH(context)),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
             ),
           ),
         ],
@@ -272,7 +272,7 @@ class RapidRateSection extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.background,
+        color: AppTheme.bg(context),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Table(
@@ -280,7 +280,7 @@ class RapidRateSection extends StatelessWidget {
         children: [
           TableRow(
             decoration: BoxDecoration(
-              color: AppTheme.surface,
+              color: AppTheme.surfaceOf(context),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(10),
                 topRight: Radius.circular(10),
@@ -291,10 +291,10 @@ class RapidRateSection extends StatelessWidget {
               child: Text(
                 l,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.text2(context),
                 ),
               ),
             )).toList(),
@@ -307,10 +307,10 @@ class RapidRateSection extends StatelessWidget {
                 child: Text(
                   val is num ? '\$${_formatCurrency(val)}' : '$val',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.text1(context),
                   ),
                 ),
               );

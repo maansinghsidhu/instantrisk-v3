@@ -144,20 +144,20 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
+          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
+        title: Text(
           'Clause Review',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
           ),
         ),
         centerTitle: true,
@@ -228,7 +228,7 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
       children: [
         Text(
           '$totalSelected of $totalAll clauses selected',
-          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+          style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
         ),
         const SizedBox(height: 6),
         Row(
@@ -236,7 +236,7 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
           children: [
             if (userCount > 0) _buildSourceChip('$userCount Your Wording', AppTheme.phaseCompose),
             if (acordCount > 0) _buildSourceChip('$acordCount ACORD', AppTheme.phaseResearch),
-            if (aiCount > 0) _buildSourceChip('$aiCount Engine Generated', AppTheme.textSecondary),
+            if (aiCount > 0) _buildSourceChip('$aiCount Engine Generated', AppTheme.text2(context)),
           ],
         ),
       ],
@@ -259,7 +259,7 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
   }
 
   Widget _buildLoadingState() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -267,12 +267,12 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
           SizedBox(height: 16),
           Text(
             'Searching for best clauses...',
-            style: TextStyle(color: AppTheme.textSecondary),
+            style: TextStyle(color: AppTheme.text2(context)),
           ),
           SizedBox(height: 4),
           Text(
             'Checking your uploads, ACORD library, and AI',
-            style: TextStyle(fontSize: 12, color: AppTheme.textHint),
+            style: TextStyle(fontSize: 12, color: AppTheme.textH(context)),
           ),
         ],
       ),
@@ -307,16 +307,16 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
                       Expanded(
                         child: Text(
                           docName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.text1(context),
                           ),
                         ),
                       ),
                       Text(
                         '${clauses.length} clauses',
-                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                        style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
                       ),
                     ],
                   ),
@@ -349,10 +349,10 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.surface : AppTheme.background,
+            color: isSelected ? AppTheme.surfaceOf(context) : AppTheme.bg(context),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isSelected ? AppTheme.border : AppTheme.border.withValues(alpha: 0.5),
+              color: isSelected ? AppTheme.borderOf(context) : AppTheme.borderOf(context).withValues(alpha: 0.5),
             ),
           ),
           child: Column(
@@ -366,7 +366,7 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
                       padding: const EdgeInsets.only(right: 10),
                       child: Icon(
                         isSelected ? Icons.check_circle : Icons.circle_outlined,
-                        color: isSelected ? AppTheme.primaryDark : AppTheme.textHint,
+                        color: isSelected ? AppTheme.primaryDark : AppTheme.textH(context),
                         size: 20,
                       ),
                     ),
@@ -376,7 +376,7 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: isSelected ? AppTheme.textPrimary : AppTheme.textSecondary,
+                        color: isSelected ? AppTheme.text1(context) : AppTheme.text2(context),
                       ),
                     ),
                   ),
@@ -407,9 +407,9 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
                   clause['content_preview'],
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.text2(context),
                     height: 1.4,
                   ),
                 ),
@@ -439,7 +439,7 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
         label = 'Template';
         break;
       default:
-        color = AppTheme.textSecondary;
+        color = AppTheme.text2(context);
         label = 'Engine Generated';
     }
 

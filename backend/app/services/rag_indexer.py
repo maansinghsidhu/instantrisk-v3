@@ -55,7 +55,7 @@ RAG_SOURCES = [
         "text_field": "text",
     },
     {
-        "path": TRAINING_DATA_DIR / "embeddings/maud_clauses.jsonl",
+        "path": TRAINING_DATA_DIR / "embeddings/maud.jsonl",
         "type": "maud",
         "text_field": "text",
     },

@@ -41,12 +41,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
+          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
           onPressed: () => context.go('/login'),
         ),
       ),
@@ -86,19 +86,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           // Header
           Text(
             l10n.resetPassword,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
               fontFamily: 'Inter',
             ),
           ),
           const SizedBox(height: 8),
           Text(
             l10n.resetPasswordInstructions,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
               fontFamily: 'Inter',
               height: 1.5,
             ),
@@ -108,10 +108,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           // Email field
           Text(
             l10n.email,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
             ),
           ),
           const SizedBox(height: 8),
@@ -120,16 +120,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
               hintText: l10n.enterYourEmail,
-              prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.textHint),
+              prefixIcon: Icon(Icons.email_outlined, color: AppTheme.textH(context)),
               filled: true,
-              fillColor: AppTheme.surface,
+              fillColor: AppTheme.surfaceOf(context),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.border),
+                borderSide: BorderSide(color: AppTheme.borderOf(context)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppTheme.border),
+                borderSide: BorderSide(color: AppTheme.borderOf(context)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -224,10 +224,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         // Success message
         Text(
           l10n.checkYourEmail,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.w700,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
             fontFamily: 'Inter',
           ),
         ),
@@ -235,9 +235,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         Text(
           '${l10n.passwordResetSentTo}\n${_emailController.text}',
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
-            color: AppTheme.textSecondary,
+            color: AppTheme.text2(context),
             fontFamily: 'Inter',
             height: 1.5,
           ),

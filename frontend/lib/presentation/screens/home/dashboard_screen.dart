@@ -718,9 +718,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Column(
                           children: [
                             Icon(Icons.folder_open_outlined, size: 48, color: AppTheme.textH(context)),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
                             Text(l10n.noData, style: TextStyle(color: AppTheme.text2(context))),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
                             Text(l10n.uploadDocument, style: TextStyle(color: AppTheme.textH(context), fontSize: 12)),
                           ],
                         ),
@@ -907,7 +907,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           Icon(Icons.calendar_today_rounded, size: 11, color: AppTheme.textH(context)),
                           const SizedBox(width: 3),
                           Text(

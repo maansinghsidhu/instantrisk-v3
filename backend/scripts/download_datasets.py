@@ -27,10 +27,9 @@ def download_cuad():
     """
     from datasets import load_dataset
 
-    logger.info("Downloading CUAD dataset (streaming mode)...")
-    # Use streaming=True to avoid downloading full PDF files (Windows path length issue)
-    # CUAD has 'train' split in streaming mode
-    ds = load_dataset("theatticusproject/cuad", split="train", streaming=True)
+    logger.info("Downloading CUAD dataset...")
+    # Download full dataset for complete coverage (~13K rows after dedup)
+    ds = load_dataset("theatticusproject/cuad", split="train")
 
     output_path = os.path.join(OUTPUT_DIR, "cuad_clauses.jsonl")
     count = 0
@@ -235,6 +234,119 @@ def generate_acord_clauses():
     return count
 
 
+def generate_acord_from_jetech():
+    """Generate ACORD-tagged records from JeTech underwriting blocks.
+
+    Reads jetech_blocks.jsonl (49K records) and remaps them to ACORD form
+    categories based on keyword matching, then appends to acord_clauses.jsonl.
+    """
+    jetech_path = os.path.join(OUTPUT_DIR, "jetech_blocks.jsonl")
+    output_path = os.path.join(OUTPUT_DIR, "acord_clauses.jsonl")
+
+    if not os.path.exists(jetech_path):
+        logger.warning(f"JeTech file not found at {jetech_path}; skipping ACORD-JeTech generation.")
+        return 0
+
+    # ACORD form category mapping based on keywords
+    ACORD_MAPPINGS = {
+        "gl_general_liability": [
+            "general liability", "bodily injury", "property damage", "premises",
+            "products liability", "completed operations", "personal injury",
+            "advertising injury", "occurrence", "third party",
+        ],
+        "property": [
+            "property", "building", "contents", "fire", "flood", "earthquake",
+            "windstorm", "business interruption", "replacement cost",
+            "actual cash value", "named peril", "all risk",
+        ],
+        "auto": [
+            "auto", "automobile", "vehicle", "fleet", "motor", "collision",
+            "comprehensive", "uninsured motorist", "hired auto", "non-owned auto",
+        ],
+        "workers_comp": [
+            "workers compensation", "workers comp", "employer liability",
+            "occupational", "workplace injury", "employee injury", "lost wages",
+            "disability", "return to work",
+        ],
+        "professional_liability": [
+            "professional liability", "errors and omissions", "e&o", "malpractice",
+            "professional indemnity", "negligent act", "wrongful act",
+            "professional services",
+        ],
+        "marine": [
+            "marine", "cargo", "hull", "freight", "vessel", "shipping", "ocean",
+            "warehouse to warehouse", "general average", "salvage", "jettison",
+            "barratry",
+        ],
+        "cyber": [
+            "cyber", "data breach", "ransomware", "network security", "privacy",
+            "digital", "phishing", "malware", "electronic", "information security",
+        ],
+        "umbrella_excess": [
+            "umbrella", "excess", "following form", "drop down", "retained limit",
+            "self-insured retention", "aggregate",
+        ],
+        "bop": ["business owner", "bop", "small business", "package policy"],
+        "directors_officers": [
+            "directors", "officers", "d&o", "fiduciary", "employment practices",
+            "epli", "wrongful termination", "discrimination",
+        ],
+        "surety_bond": [
+            "surety", "bond", "performance bond", "bid bond", "payment bond",
+            "fidelity",
+        ],
+        "inland_marine": [
+            "inland marine", "builder risk", "installation", "equipment",
+            "contractor equipment", "transit",
+        ],
+    }
+
+    count = 0
+
+    logger.info("Appending JeTech-remapped ACORD records to acord_clauses.jsonl...")
+    with open(jetech_path, "r", encoding="utf-8") as fin:
+        with open(output_path, "a", encoding="utf-8") as fout:
+            for line in fin:
+                line = line.strip()
+                if not line:
+                    continue
+                rec = json.loads(line)
+                text = rec.get("text", "")
+                if not text or len(text.strip()) < 20:
+                    continue
+
+                text_lower = text.lower()
+
+                # Find ACORD category with the most keyword matches
+                matched_category = None
+                max_matches = 0
+                for cat, keywords in ACORD_MAPPINGS.items():
+                    matches = sum(1 for kw in keywords if kw in text_lower)
+                    if matches > max_matches:
+                        max_matches = matches
+                        matched_category = cat
+
+                if matched_category and max_matches >= 1:
+                    record = {
+                        "text": text[:2000],
+                        "category": "acord",
+                        "source": "acord_jetech",
+                        "metadata": {
+                            "acord_form_category": matched_category,
+                            "original_source": "jetech",
+                            "keyword_match_strength": max_matches,
+                        },
+                    }
+                    fout.write(json.dumps(record) + "\n")
+                    count += 1
+
+                    if count % 5000 == 0:
+                        logger.info(f"  ACORD-JeTech progress: {count} records...")
+
+    logger.info(f"ACORD-JeTech: appended {count} records to {output_path}")
+    return count
+
+
 def download_ledgar():
     """Download LEDGAR dataset from LexGLUE — 80K SEC contract provisions with clause type labels."""
     from datasets import load_dataset
@@ -435,6 +547,13 @@ def main():
         logger.error(f"JETech download failed: {e}")
         logger.error("Install datasets: pip install datasets")
         results["jetech"] = 0
+
+    # ACORD expansion from JeTech (append to acord_clauses.jsonl after JeTech download)
+    try:
+        results["acord_jetech"] = generate_acord_from_jetech()
+    except Exception as e:
+        logger.error(f"ACORD-JeTech generation failed: {e}")
+        results["acord_jetech"] = 0
 
     # LEDGAR from LexGLUE (80K SEC contract provisions)
     try:

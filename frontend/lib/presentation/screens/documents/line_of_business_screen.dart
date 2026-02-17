@@ -101,21 +101,21 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: AppTheme.surfaceOf(context),
         elevation: 0,
         leading: IconButton(
           onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back_ios),
-          color: AppTheme.textPrimary,
+          icon: Icon(Icons.arrow_back_ios),
+          color: AppTheme.text1(context),
         ),
         title: Text(
           widget.documentTypeName,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
             fontFamily: 'Inter',
           ),
         ),
@@ -126,17 +126,17 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
           // Header
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            color: AppTheme.surface,
+            padding: EdgeInsets.all(20),
+            color: AppTheme.surfaceOf(context),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Select Line of Business',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.text1(context),
                     fontFamily: 'Inter',
                   ),
                 ),
@@ -145,7 +145,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
                   'Choose the insurance class for your ${widget.documentTypeName.toLowerCase()}',
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.text2(context),
                   ),
                 ),
               ],
@@ -175,7 +175,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.surface,
+              color: AppTheme.surfaceOf(context),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.05),
@@ -201,7 +201,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryDark,
-                    disabledBackgroundColor: AppTheme.border,
+                    disabledBackgroundColor: AppTheme.borderOf(context),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -214,7 +214,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: _selectedLob == null ? AppTheme.textHint : Colors.white,
+                      color: _selectedLob == null ? AppTheme.textH(context) : Colors.white,
                     ),
                   ),
                 ),
@@ -240,10 +240,10 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : AppTheme.surface,
+          color: isSelected ? color.withOpacity(0.1) : AppTheme.surfaceOf(context),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? color : AppTheme.border,
+            color: isSelected ? color : AppTheme.borderOf(context),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
@@ -283,7 +283,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: isSelected ? color : AppTheme.textPrimary,
+                  color: isSelected ? color : AppTheme.text1(context),
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
@@ -296,7 +296,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
                 subtypes.take(2).join(', '),
                 style: TextStyle(
                   fontSize: 10,
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.text2(context),
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
@@ -309,7 +309,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isSelected ? color.withOpacity(0.2) : AppTheme.background,
+                  color: isSelected ? color.withOpacity(0.2) : AppTheme.bg(context),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -317,7 +317,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w500,
-                    color: isSelected ? color : AppTheme.textHint,
+                    color: isSelected ? color : AppTheme.textH(context),
                   ),
                 ),
               ),

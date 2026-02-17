@@ -22,17 +22,17 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     // Check if user has Basic+ access for analytics
     if (!_hasAccess) {
       return Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppTheme.bg(context),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
+            icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
             onPressed: () => context.go('/analytics'),
           ),
-          title: const Text(
+          title: Text(
             'Performance',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppTheme.text1(context)),
           ),
           centerTitle: true,
         ),
@@ -51,15 +51,15 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                   child: const Icon(Icons.analytics_outlined, size: 64, color: AppTheme.primaryDark),
                 ),
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   'Performance Analytics',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppTheme.text1(context)),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'View detailed performance metrics, trends, and portfolio insights.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 15, color: AppTheme.textSecondary, height: 1.5),
+                  style: TextStyle(fontSize: 15, color: AppTheme.text2(context), height: 1.5),
                 ),
                 const SizedBox(height: 32),
                 Container(
@@ -69,13 +69,13 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppTheme.primaryDark.withValues(alpha: 0.2)),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
                       Icon(Icons.workspace_premium, color: AppTheme.primaryDark, size: 32),
                       SizedBox(height: 8),
                       Text('Basic+ Feature', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.primaryDark)),
                       SizedBox(height: 4),
-                      Text('Upgrade to Basic to access performance analytics', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+                      Text('Upgrade to Basic to access performance analytics', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: AppTheme.text2(context))),
                     ],
                   ),
                 ),
@@ -101,27 +101,27 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
+          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
           onPressed: () => context.go('/analytics'),
         ),
-        title: const Text(
+        title: Text(
           'Performance',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
             fontFamily: 'Inter',
           ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.download_outlined, color: AppTheme.textPrimary),
+            icon: Icon(Icons.download_outlined, color: AppTheme.text1(context)),
             onPressed: () {
               // Export report
             },
@@ -137,9 +137,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: AppTheme.surface,
+                color: AppTheme.surfaceOf(context),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.border),
+                border: Border.all(color: AppTheme.borderOf(context)),
               ),
               child: Row(
                 children: _periods.map((period) {
@@ -159,7 +159,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: isSelected ? Colors.white : AppTheme.textSecondary,
+                              color: isSelected ? Colors.white : AppTheme.text2(context),
                             ),
                           ),
                         ),
@@ -225,22 +225,22 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.surface,
+                color: AppTheme.surfaceOf(context),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.border),
+                border: Border.all(color: AppTheme.borderOf(context)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text(
                         'Assessment Trends',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                           fontFamily: 'Inter',
                         ),
                       ),
@@ -248,7 +248,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                         '156 total',
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.text2(context),
                         ),
                       ),
                     ],
@@ -260,7 +260,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                     height: 200,
                     child: CustomPaint(
                       size: const Size(double.infinity, 200),
-                      painter: _TrendChartPainter(),
+                      painter: _TrendChartPainter(gridColor: AppTheme.borderOf(context)),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -285,19 +285,19 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.surface,
+                color: AppTheme.surfaceOf(context),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.border),
+                border: Border.all(color: AppTheme.borderOf(context)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Risk Score Distribution',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.text1(context),
                       fontFamily: 'Inter',
                     ),
                   ),
@@ -315,19 +315,19 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.surface,
+                color: AppTheme.surfaceOf(context),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.border),
+                border: Border.all(color: AppTheme.borderOf(context)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Premium Analysis',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.text1(context),
                       fontFamily: 'Inter',
                     ),
                   ),
@@ -336,8 +336,8 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                   _buildPremiumRow('Average Premium', '\u20AC38,200'),
                   _buildPremiumRow('Highest Premium', '\u20AC156,000'),
                   _buildPremiumRow('Lowest Premium', '\u20AC8,500'),
-                  const SizedBox(height: 16),
-                  const Divider(color: AppTheme.border),
+                  SizedBox(height: 16),
+                  Divider(color: AppTheme.borderOf(context)),
                   const SizedBox(height: 16),
                   _buildPremiumRow('Total Claims Paid', '\u20AC285,000', isNegative: true),
                   _buildPremiumRow('Loss Ratio', '32%'),
@@ -351,19 +351,19 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.surface,
+                color: AppTheme.surfaceOf(context),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.border),
+                border: Border.all(color: AppTheme.borderOf(context)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Top Performing Categories',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.text1(context),
                       fontFamily: 'Inter',
                     ),
                   ),
@@ -392,9 +392,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -430,19 +430,19 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
               fontFamily: 'Inter',
             ),
           ),
           const SizedBox(height: 4),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
             ),
           ),
         ],
@@ -464,9 +464,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: AppTheme.textSecondary,
+            color: AppTheme.text2(context),
           ),
         ),
       ],
@@ -484,9 +484,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             children: [
               Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppTheme.textPrimary,
+                  color: AppTheme.text1(context),
                 ),
               ),
               Text(
@@ -499,12 +499,12 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: value,
-              backgroundColor: AppTheme.border,
+              backgroundColor: AppTheme.borderOf(context),
               valueColor: AlwaysStoppedAnimation<Color>(color),
               minHeight: 8,
             ),
@@ -515,7 +515,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   }
 
   Widget _buildPremiumRow(String label, String value, {bool isPositive = false, bool isNegative = false}) {
-    Color valueColor = AppTheme.textPrimary;
+    Color valueColor = AppTheme.text1(context);
     if (isPositive) valueColor = AppTheme.success;
     if (isNegative) valueColor = AppTheme.danger;
 
@@ -526,9 +526,9 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
             ),
           ),
           Text(
@@ -556,10 +556,10 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
               color: rank == 1
                   ? AppTheme.warning
                   : rank == 2
-                      ? AppTheme.textHint
+                      ? AppTheme.textH(context)
                       : rank == 3
-                          ? const Color(0xFFCD7F32)
-                          : AppTheme.border,
+                          ? Color(0xFFCD7F32)
+                          : AppTheme.borderOf(context),
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -568,7 +568,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: rank <= 3 ? Colors.white : AppTheme.textSecondary,
+                  color: rank <= 3 ? Colors.white : AppTheme.text2(context),
                 ),
               ),
             ),
@@ -577,10 +577,10 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           Expanded(
             child: Text(
               name,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: AppTheme.textPrimary,
+                color: AppTheme.text1(context),
               ),
             ),
           ),
@@ -589,14 +589,14 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
             children: [
               Text(
                 approval,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.text2(context),
                 ),
               ),
               Text(
                 profit,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: AppTheme.success,
@@ -612,6 +612,10 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
 
 // Custom painter for the trend chart
 class _TrendChartPainter extends CustomPainter {
+  final Color gridColor;
+
+  _TrendChartPainter({required this.gridColor});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -620,7 +624,7 @@ class _TrendChartPainter extends CustomPainter {
 
     // Draw grid
     final gridPaint = Paint()
-      ..color = AppTheme.border
+      ..color = gridColor
       ..strokeWidth = 1;
 
     for (int i = 0; i <= 4; i++) {

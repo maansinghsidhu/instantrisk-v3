@@ -302,8 +302,8 @@ class _DocumentsHubScreenState extends State<DocumentsHubScreen> {
   Widget _buildDocumentsList(List<Map<String, dynamic>> docs) {
     return ListView.builder(
       shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      physics: NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.symmetric(horizontal: 16),
       itemCount: docs.length,
       itemBuilder: (context, index) => _buildDocumentRow(docs[index]),
     );
@@ -332,7 +332,7 @@ class _DocumentsHubScreenState extends State<DocumentsHubScreen> {
 
     return Card(
       elevation: 0,
-      margin: const EdgeInsets.only(bottom: 6),
+      margin: EdgeInsets.only(bottom: 6),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(color: AppTheme.borderOf(context)),

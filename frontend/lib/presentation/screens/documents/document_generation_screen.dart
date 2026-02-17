@@ -473,21 +473,21 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
     // Check if user has access to document generation
     if (!subscriptionService.hasFeature('document_generation')) {
       return Scaffold(
-        backgroundColor: AppTheme.background,
+        backgroundColor: AppTheme.bg(context),
         appBar: AppBar(
-          backgroundColor: AppTheme.surface,
+          backgroundColor: AppTheme.surfaceOf(context),
           elevation: 0,
           leading: IconButton(
             onPressed: () => context.pop(),
-            icon: const Icon(Icons.arrow_back),
-            color: AppTheme.textPrimary,
+            icon: Icon(Icons.arrow_back),
+            color: AppTheme.text1(context),
           ),
-          title: const Text(
+          title: Text(
             'Generate Documents',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
               fontFamily: 'Inter',
             ),
           ),
@@ -506,21 +506,21 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: AppTheme.surfaceOf(context),
         elevation: 0,
         leading: IconButton(
           onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_back),
-          color: AppTheme.textPrimary,
+          icon: Icon(Icons.arrow_back),
+          color: AppTheme.text1(context),
         ),
-        title: const Text(
+        title: Text(
           'Generate Documents',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
             fontFamily: 'Inter',
           ),
         ),
@@ -559,10 +559,10 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
           const SizedBox(height: 24),
           Text(
             _loadingStatus,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
             ),
           ),
           const SizedBox(height: 8),
@@ -570,7 +570,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
             'Preparing document generation...',
             style: TextStyle(
               fontSize: 14,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
             ),
           ),
         ],
@@ -587,21 +587,21 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
             Icon(
               Icons.description_outlined,
               size: 64,
-              color: AppTheme.textHint,
+              color: AppTheme.textH(context),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No documents suggested',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textSecondary,
+                color: AppTheme.text2(context),
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Complete the assessment to get document suggestions',
-              style: TextStyle(color: AppTheme.textHint),
+              style: TextStyle(color: AppTheme.textH(context)),
             ),
           ],
         ),
@@ -618,8 +618,8 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
               children: [
                 // Document Suggestions Header
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  color: AppTheme.surface,
+                  padding: EdgeInsets.all(16),
+                  color: AppTheme.surfaceOf(context),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -627,12 +627,12 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                         children: [
                           const Icon(Icons.description, size: 20, color: AppTheme.primaryDark),
                           const SizedBox(width: 8),
-                          const Text(
+                          Text(
                             'AI Recommended Documents',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimary,
+                              color: AppTheme.text1(context),
                             ),
                           ),
                         ],
@@ -642,7 +642,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                         'Select the documents you want to generate',
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.text2(context),
                         ),
                       ),
                     ],
@@ -659,8 +659,8 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
 
                 // Language Selection Section
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  color: AppTheme.surface,
+                  padding: EdgeInsets.all(16),
+                  color: AppTheme.surfaceOf(context),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -668,12 +668,12 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                         children: [
                           const Icon(Icons.language, size: 20, color: AppTheme.primaryDark),
                           const SizedBox(width: 8),
-                          const Text(
+                          Text(
                             'Document Language',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimary,
+                              color: AppTheme.text1(context),
                             ),
                           ),
                         ],
@@ -682,7 +682,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          border: Border.all(color: AppTheme.border),
+                          border: Border.all(color: AppTheme.borderOf(context)),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: DropdownButtonHideUnderline(
@@ -721,7 +721,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: AppTheme.surfaceOf(context),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -737,7 +737,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                 onPressed: _selectedDocs.isEmpty ? null : _showGenerationConfirmation,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryDark,
-                  disabledBackgroundColor: AppTheme.border,
+                  disabledBackgroundColor: AppTheme.borderOf(context),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -750,7 +750,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: _selectedDocs.isEmpty ? AppTheme.textHint : Colors.white,
+                    color: _selectedDocs.isEmpty ? AppTheme.textH(context) : Colors.white,
                   ),
                 ),
               ),
@@ -773,7 +773,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isSelected ? AppTheme.primaryDark : AppTheme.border,
+          color: isSelected ? AppTheme.primaryDark : AppTheme.borderOf(context),
           width: isSelected ? 2 : 1,
         ),
       ),
@@ -800,7 +800,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   color: isSelected ? AppTheme.primaryDark : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: isSelected ? AppTheme.primaryDark : AppTheme.border,
+                    color: isSelected ? AppTheme.primaryDark : AppTheme.borderOf(context),
                     width: 2,
                   ),
                 ),
@@ -819,10 +819,10 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                       children: [
                         Text(
                           suggestion['template_name'] as String? ?? docType.replaceAll('_', ' '),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
+                            color: AppTheme.text1(context),
                           ),
                         ),
                         if (isMandatory) ...[
@@ -848,35 +848,35 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                     const SizedBox(height: 4),
                     Text(
                       suggestion['reason'] as String? ?? '',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.text2(context),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(Icons.psychology_outlined, size: 14, color: AppTheme.textHint),
+                        Icon(Icons.psychology_outlined, size: 14, color: AppTheme.textH(context)),
                         const SizedBox(width: 4),
                         Text(
                           'AI Confidence: ${(confidence * 100).toInt()}%',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppTheme.textHint,
+                            color: AppTheme.textH(context),
                           ),
                         ),
                         const SizedBox(width: 16),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppTheme.border,
+                            color: AppTheme.borderOf(context),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             'Priority ${suggestion['priority'] ?? 1}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: AppTheme.textSecondary,
+                              color: AppTheme.text2(context),
                             ),
                           ),
                         ),
@@ -896,9 +896,9 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
+        color: AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
+        border: Border.all(color: AppTheme.borderOf(context)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -929,19 +929,19 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Clauses Library',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                         ),
                       ),
                       Text(
                         'Insurance clauses with AI recommendations',
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.text2(context),
                         ),
                       ),
                     ],
@@ -1084,12 +1084,12 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Select Clauses for Document',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
+                        color: AppTheme.text1(context),
                       ),
                     ),
                     IconButton(
@@ -1120,7 +1120,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  border: Border(top: BorderSide(color: AppTheme.border)),
+                  border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
                 ),
                 child: SizedBox(
                   width: double.infinity,
@@ -1161,12 +1161,12 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
             const SizedBox(height: 20),
 
             // Header
-            const Text(
+            Text(
               'Generating Documents',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
+                color: AppTheme.text1(context),
               ),
             ),
             const SizedBox(height: 8),
@@ -1174,7 +1174,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
               'InstantRisk Engine is generating your documents',
               style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.textSecondary,
+                color: AppTheme.text2(context),
               ),
             ),
 
@@ -1190,7 +1190,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   CircularProgressIndicator(
                     value: _progressPercentage / 100,
                     strokeWidth: 14,
-                    backgroundColor: AppTheme.border,
+                    backgroundColor: AppTheme.borderOf(context),
                     color: AppTheme.primaryDark,
                   ),
                   Column(
@@ -1198,17 +1198,17 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                     children: [
                       Text(
                         '$_progressPercentage%',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 42,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                         ),
                       ),
-                      const Text(
+                      Text(
                         'Complete',
                         style: TextStyle(
                           fontSize: 16,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.text2(context),
                         ),
                       ),
                     ],
@@ -1237,10 +1237,10 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                         children: [
                           Text(
                             _currentAgent!,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimary,
+                              color: AppTheme.text1(context),
                             ),
                           ),
                           if (_currentDescription != null) ...[
@@ -1249,7 +1249,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                               _currentDescription!,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: AppTheme.textSecondary,
+                                color: AppTheme.text2(context),
                               ),
                             ),
                           ],
@@ -1285,14 +1285,14 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.terminal, size: 16, color: AppTheme.textSecondary),
+                      Icon(Icons.terminal, size: 16, color: AppTheme.text2(context)),
                       const SizedBox(width: 8),
-                      const Text(
+                      Text(
                         'Live Activity',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.text2(context),
                         ),
                       ),
                     ],
@@ -1304,7 +1304,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                       style: TextStyle(
                         fontSize: 12,
                         fontFamily: 'monospace',
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.text2(context),
                       ),
                     )
                   else
@@ -1324,7 +1324,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                                     ? Colors.green
                                     : step['status'] == 'running'
                                         ? AppTheme.primaryDark
-                                        : AppTheme.textHint,
+                                        : AppTheme.textH(context),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -1334,8 +1334,8 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                                     fontSize: 12,
                                     fontFamily: 'monospace',
                                     color: step['status'] == 'running'
-                                        ? AppTheme.textPrimary
-                                        : AppTheme.textSecondary,
+                                        ? AppTheme.text1(context)
+                                        : AppTheme.text2(context),
                                   ),
                                 ),
                               ),
@@ -1368,15 +1368,15 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   CircularProgressIndicator(
                     value: _progressPercentage / 100,
                     strokeWidth: 8,
-                    backgroundColor: AppTheme.border,
+                    backgroundColor: AppTheme.borderOf(context),
                     color: AppTheme.primaryDark,
                   ),
                   Text(
                     '$_progressPercentage%',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.text1(context),
                     ),
                   ),
                 ],
@@ -1393,10 +1393,10 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   const SizedBox(width: 12),
                   Text(
                     _currentAgent!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+                      color: AppTheme.text1(context),
                     ),
                   ),
                 ],
@@ -1408,9 +1408,9 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
               Text(
                 _currentDescription!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: AppTheme.textSecondary,
+                  color: AppTheme.text2(context),
                 ),
               ),
 
@@ -1560,12 +1560,12 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   decoration: BoxDecoration(
                     color: isActive
                         ? phaseColor.withOpacity(isCurrent ? 1 : 0.2)
-                        : AppTheme.border,
+                        : AppTheme.borderOf(context),
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Icon(
                     phase['icon'] as IconData,
-                    color: isActive ? (isCurrent ? Colors.white : phaseColor) : AppTheme.textHint,
+                    color: isActive ? (isCurrent ? Colors.white : phaseColor) : AppTheme.textH(context),
                     size: 18,
                   ),
                 ),
@@ -1575,7 +1575,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w400,
-                    color: isActive ? AppTheme.textPrimary : AppTheme.textHint,
+                    color: isActive ? AppTheme.text1(context) : AppTheme.textH(context),
                   ),
                 ),
               ],
@@ -1584,7 +1584,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
               Container(
                 width: 16,
                 height: 2,
-                color: isActive && !isCurrent ? phaseColor : AppTheme.border,
+                color: isActive && !isCurrent ? phaseColor : AppTheme.borderOf(context),
                 margin: const EdgeInsets.only(bottom: 16),
               ),
           ],
@@ -1618,9 +1618,9 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                     ),
                     Text(
                       '${_generatedDocs.length} document${_generatedDocs.length > 1 ? 's' : ''} ready for review',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppTheme.textSecondary,
+                        color: AppTheme.text2(context),
                       ),
                     ),
                   ],
@@ -1643,7 +1643,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: AppTheme.surfaceOf(context),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -1716,7 +1716,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
         statusColor = Colors.orange;
         break;
       default:
-        statusColor = AppTheme.textSecondary;
+        statusColor = AppTheme.text2(context);
     }
 
     return Card(
@@ -1724,7 +1724,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppTheme.border),
+        side: BorderSide(color: AppTheme.borderOf(context)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1753,10 +1753,10 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                     children: [
                       Text(
                         doc['title'] as String? ?? 'Untitled',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
+                          color: AppTheme.text1(context),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1780,9 +1780,9 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                           const SizedBox(width: 8),
                           Text(
                             '${(confidence * 100).toInt()}% confidence',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.textHint,
+                              color: AppTheme.textH(context),
                             ),
                           ),
                         ],

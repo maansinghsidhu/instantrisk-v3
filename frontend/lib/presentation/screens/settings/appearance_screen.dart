@@ -15,14 +15,14 @@ class AppearanceScreen extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBg : AppTheme.background,
+      backgroundColor: isDark ? AppTheme.darkBg : AppTheme.bg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back_ios,
-            color: isDark ? Colors.white : AppTheme.textPrimary,
+            color: isDark ? Colors.white : AppTheme.text1(context),
           ),
           onPressed: () => context.go('/settings'),
         ),
@@ -31,7 +31,7 @@ class AppearanceScreen extends ConsumerWidget {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white : AppTheme.textPrimary,
+            color: isDark ? Colors.white : AppTheme.text1(context),
             fontFamily: 'Inter',
           ),
         ),
@@ -45,7 +45,7 @@ class AppearanceScreen extends ConsumerWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white70 : AppTheme.textSecondary,
+              color: isDark ? Colors.white70 : AppTheme.text2(context),
               fontFamily: 'Inter',
             ),
           ),
@@ -99,12 +99,12 @@ class AppearanceScreen extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkSurface : AppTheme.surface,
+        color: isDark ? AppTheme.darkSurface : AppTheme.surfaceOf(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isSelected
               ? AppTheme.primaryDark
-              : (isDark ? Colors.white12 : AppTheme.border),
+              : (isDark ? Colors.white12 : AppTheme.borderOf(context)),
           width: isSelected ? 2 : 1,
         ),
       ),
@@ -113,14 +113,14 @@ class AppearanceScreen extends ConsumerWidget {
           icon,
           color: isSelected
               ? AppTheme.primaryDark
-              : (isDark ? Colors.white54 : AppTheme.textSecondary),
+              : (isDark ? Colors.white54 : AppTheme.text2(context)),
         ),
         title: Text(
           title,
           style: TextStyle(
             fontSize: 16,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-            color: isDark ? Colors.white : AppTheme.textPrimary,
+            color: isDark ? Colors.white : AppTheme.text1(context),
             fontFamily: 'Inter',
           ),
         ),
@@ -128,7 +128,7 @@ class AppearanceScreen extends ConsumerWidget {
           subtitle,
           style: TextStyle(
             fontSize: 13,
-            color: isDark ? Colors.white54 : AppTheme.textSecondary,
+            color: isDark ? Colors.white54 : AppTheme.text2(context),
             fontFamily: 'Inter',
           ),
         ),

@@ -60,20 +60,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: AppTheme.bg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
+          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
           onPressed: () => context.go('/settings'),
         ),
         title: Text(
           l10n.profile,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+            color: AppTheme.text1(context),
             fontFamily: 'Inter',
           ),
         ),
@@ -144,19 +144,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppTheme.surface,
+                  color: AppTheme.surfaceOf(context),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.border),
+                  border: Border.all(color: AppTheme.borderOf(context)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Personal Information',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
+                        color: AppTheme.text1(context),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -191,19 +191,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppTheme.surface,
+                  color: AppTheme.surfaceOf(context),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.border),
+                  border: Border.all(color: AppTheme.borderOf(context)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Professional Information',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
+                        color: AppTheme.text1(context),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -229,19 +229,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppTheme.surface,
+                  color: AppTheme.surfaceOf(context),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.border),
+                  border: Border.all(color: AppTheme.borderOf(context)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Account Statistics',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
+                        color: AppTheme.text1(context),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -275,11 +275,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      const Text(
+                      Text(
                         'Once you delete your account, there is no going back. Please be certain.',
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppTheme.textSecondary,
+                          color: AppTheme.text2(context),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -333,10 +333,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: AppTheme.textSecondary,
+            color: AppTheme.text2(context),
           ),
         ),
         const SizedBox(height: 8),
@@ -345,16 +345,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           enabled: enabled,
           keyboardType: keyboardType,
           decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: AppTheme.textHint, size: 20),
+            prefixIcon: Icon(icon, color: AppTheme.textH(context), size: 20),
             filled: true,
-            fillColor: enabled ? AppTheme.background : AppTheme.surface,
+            fillColor: enabled ? AppTheme.bg(context) : AppTheme.surfaceOf(context),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: enabled ? AppTheme.border : Colors.transparent),
+              borderSide: BorderSide(color: enabled ? AppTheme.borderOf(context) : Colors.transparent),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppTheme.border),
+              borderSide: BorderSide(color: AppTheme.borderOf(context)),
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
@@ -363,7 +363,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
           style: TextStyle(
-            color: enabled ? AppTheme.textPrimary : AppTheme.textSecondary,
+            color: enabled ? AppTheme.text1(context) : AppTheme.text2(context),
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
@@ -384,17 +384,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: AppTheme.textSecondary,
+              color: AppTheme.text2(context),
             ),
           ),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              color: AppTheme.text1(context),
             ),
           ),
         ],
@@ -417,7 +417,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () => Navigator.pop(context),
             child: Text(
               l10n.cancel,
-              style: const TextStyle(color: AppTheme.textSecondary),
+              style: TextStyle(color: AppTheme.text2(context)),
             ),
           ),
           TextButton(
