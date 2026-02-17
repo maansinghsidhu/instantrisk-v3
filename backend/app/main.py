@@ -21,10 +21,11 @@ import logging
 from app.config import settings
 from app.core.database import engine, Base
 from app.routers import auth, documents, assessments, upload_session, contracts, templates
-from app.routers import reference_documents, document_generation, integrations
-from app.routers import placements, exposure, compliance, pricing, umr, teams
-from app.routers import extraction, syndicates, analysis, sanctions, language
-from app.routers import templates_v3, pricing_v3, chat, clauses
+from app.routers import reference_documents, document_generation
+from app.routers import pricing_quotes, pricing_benchmarks, teams
+from app.routers import extraction, analysis, sanctions, language
+from app.routers import precedents
+from app.routers import templates_v3, chat, clauses
 from app.routers import subscription, approval, sharing, two_factor, security
 from app.routers import claims as claims_router
 from app.routers import claimsense, loss_runs
@@ -88,7 +89,6 @@ async def lifespan(app: FastAPI):
                 )""",
                 "CREATE INDEX IF NOT EXISTS ix_share_links_token ON share_links(token)",
                 # Users table - columns added in EC2 version
-                "ALTER TABLE users ADD COLUMN IF NOT EXISTS syndicate_id INTEGER",
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_status VARCHAR(20) DEFAULT 'approved'",
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_by UUID",
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP WITH TIME ZONE",
@@ -148,7 +148,6 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS created_by UUID",
                 # Copy user_id to created_by
                 "UPDATE assessments SET created_by = user_id WHERE created_by IS NULL AND user_id IS NOT NULL",
-                "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS syndicate_id INTEGER",
                 "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS broker_reference VARCHAR(100)",
                 "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS premium FLOAT",
                 "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS sum_insured FLOAT",
@@ -206,7 +205,6 @@ async def lifespan(app: FastAPI):
                     status VARCHAR(50) DEFAULT 'draft',
                     decision VARCHAR(20) DEFAULT 'pending',
                     user_id UUID NOT NULL REFERENCES users(id),
-                    syndicate_id INTEGER REFERENCES syndicates(id),
                     insured_name VARCHAR(255),
                     broker_reference VARCHAR(100),
                     premium FLOAT,
@@ -499,15 +497,10 @@ app.include_router(contracts.router, prefix=f"{settings.api_prefix}/contracts", 
 app.include_router(templates.router, prefix=f"{settings.api_prefix}/templates", tags=["Templates"])
 app.include_router(reference_documents.router, prefix=f"{settings.api_prefix}/reference-documents", tags=["Reference Documents"])
 app.include_router(document_generation.router, prefix=f"{settings.api_prefix}", tags=["Document Generation"])
-app.include_router(integrations.router, prefix=f"{settings.api_prefix}/integrations", tags=["Integrations"])
-app.include_router(placements.router, prefix=f"{settings.api_prefix}/placements", tags=["Placements"])
-app.include_router(exposure.router, prefix=f"{settings.api_prefix}/exposure", tags=["Exposure"])
-app.include_router(compliance.router, prefix=f"{settings.api_prefix}/compliance", tags=["Compliance"])
-app.include_router(pricing.router, prefix=f"{settings.api_prefix}/pricing", tags=["Pricing"])
-app.include_router(umr.router, prefix=f"{settings.api_prefix}/umr", tags=["UMR"])
+app.include_router(pricing_quotes.router, prefix=f"{settings.api_prefix}/quotes", tags=["Quotes & Pricing"])
+app.include_router(pricing_benchmarks.router, prefix=f"{settings.api_prefix}/pricing/benchmarks", tags=["Pricing Benchmarks"])
 app.include_router(teams.router, prefix=f"{settings.api_prefix}/teams", tags=["Teams & RBAC"])
 app.include_router(extraction.router, prefix=f"{settings.api_prefix}", tags=["Document Extraction"])
-app.include_router(syndicates.router, prefix=f"{settings.api_prefix}/syndicates", tags=["Syndicates"])
 app.include_router(analysis.router, prefix=f"{settings.api_prefix}", tags=["Analysis"])
 app.include_router(sanctions.router, prefix=f"{settings.api_prefix}", tags=["Sanctions"])
 app.include_router(language.router, prefix=f"{settings.api_prefix}/language", tags=["Language & Translation"])
@@ -515,6 +508,7 @@ app.include_router(templates_v3.router, prefix=f"{settings.api_prefix}/templates
 app.include_router(pricing_v3.router, prefix=f"{settings.api_prefix}/pricing-v3", tags=["Pricing V3"])
 app.include_router(chat.router, prefix=f"{settings.api_prefix}/chat", tags=["AI Chat"])
 app.include_router(clauses.router, prefix=f"{settings.api_prefix}", tags=["Clauses Library"])
+app.include_router(precedents.router, prefix=f"{settings.api_prefix}/precedents", tags=["Precedent Search"])
 app.include_router(subscription.router, prefix=f"{settings.api_prefix}", tags=["Subscription"])
 app.include_router(approval.router, prefix=f"{settings.api_prefix}", tags=["Admin Approvals"])
 app.include_router(approval.approval_status_router, prefix=f"{settings.api_prefix}", tags=["Approval Status"])

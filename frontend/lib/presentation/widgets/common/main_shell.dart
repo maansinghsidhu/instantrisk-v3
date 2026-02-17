@@ -106,7 +106,7 @@ class _Sidebar extends StatelessWidget {
     if (location.startsWith('/chat')) return 2;
     if (location.startsWith('/training')) return 3;
     if (location.startsWith('/documents')) return 4;
-    if (location.startsWith('/settings') || location.startsWith('/lloyds')) return 5;
+    if (location.startsWith('/settings')) return 5;
     return 0;
   }
 
@@ -414,7 +414,7 @@ class _BottomNavBar extends StatelessWidget {
     if (location.startsWith('/reports')) return 1;
     if (location.startsWith('/training') || location.startsWith('/documents')) return 2;
     if (location.startsWith('/chat')) return 3;
-    if (location.startsWith('/settings') || location.startsWith('/lloyds')) return 4;
+    if (location.startsWith('/settings')) return 4;
     return 0;
   }
 

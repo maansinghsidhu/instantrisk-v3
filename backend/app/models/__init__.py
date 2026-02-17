@@ -15,25 +15,11 @@ from app.models.template import Template, TemplateFavorite
 from app.models.reference_document import ReferenceDocument
 from app.models.generated_document import GeneratedDocument, DocumentGenerationJob
 
-# V3 Lloyd's Market Models
-from app.models.lloyds import (
-    UniqueMarketReference,
-    SubscriptionPlacement,
-    SyndicateLine,
-    PlacementActivityLog,
-    ExposureSnapshot,
-    ExposureAggregate,
-    EventAccumulation,
-    DataQualityReport,
+# Pricing Models (extracted from removed Lloyd's system)
+from app.models.pricing_models import (
     PricingModel,
     PricingResult,
     Quote,
-    ComplianceSubmission,
-    ComplianceRule,
-    AuditLog,
-    AIDecisionLog,
-    IntegrationConnector,
-    IntegrationSyncLog,
 )
 
 # V3 RBAC Models
@@ -99,24 +85,10 @@ __all__ = [
     "ReferenceDocument",
     "GeneratedDocument",
     "DocumentGenerationJob",
-    # V3 Lloyd's models
-    "UniqueMarketReference",
-    "SubscriptionPlacement",
-    "SyndicateLine",
-    "PlacementActivityLog",
-    "ExposureSnapshot",
-    "ExposureAggregate",
-    "EventAccumulation",
-    "DataQualityReport",
+    # Pricing models
     "PricingModel",
     "PricingResult",
     "Quote",
-    "ComplianceSubmission",
-    "ComplianceRule",
-    "AuditLog",
-    "AIDecisionLog",
-    "IntegrationConnector",
-    "IntegrationSyncLog",
     # V3 RBAC models
     "Permission",
     "Role",

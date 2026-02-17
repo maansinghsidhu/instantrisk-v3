@@ -53,39 +53,8 @@ from app.schemas.generated_document import (
     FinalizeRequest,
     FinalizeResponse,
 )
-# V3 Lloyd's Market Schemas
-from app.schemas.lloyds import (
-    # UMR
-    UMRCreate,
-    UMRResponse,
-    # Subscription/Placing
-    PlacementCreate,
-    PlacementResponse,
-    SyndicateLineRequest,
-    SyndicateLineResponse,
-    SigningSchedule,
-    # Exposure
-    ExposureByZone,
-    ExposureByPeril,
-    ExposureDashboard,
-    EventAccumulationRequest,
-    EventAccumulationResponse,
-    # Compliance
-    PMDRRequest,
-    PMDRResponse,
-    RDSScenario,
-    RDSResponse,
-    ComplianceSubmissionStatus,
-    # Data Quality
-    DataQualityScore,
-    DataQualityIssue,
-    DataQualityReport,
-    # Integration
-    ConnectorConfig,
-    ConnectorStatus,
-    IngestRequest,
-    IngestResponse,
-    # Pricing/Quote
+# Pricing and Quote Schemas
+from app.schemas.pricing_schemas import (
     PricingRequest,
     PricingResponse,
     QuoteCreate,
@@ -169,38 +138,7 @@ __all__ = [
     "ComplianceReport",
     "FinalizeRequest",
     "FinalizeResponse",
-    # V3 Lloyd's Market Schemas
-    # UMR
-    "UMRCreate",
-    "UMRResponse",
-    # Subscription/Placing
-    "PlacementCreate",
-    "PlacementResponse",
-    "SyndicateLineRequest",
-    "SyndicateLineResponse",
-    "SigningSchedule",
-    # Exposure
-    "ExposureByZone",
-    "ExposureByPeril",
-    "ExposureDashboard",
-    "EventAccumulationRequest",
-    "EventAccumulationResponse",
-    # Compliance
-    "PMDRRequest",
-    "PMDRResponse",
-    "RDSScenario",
-    "RDSResponse",
-    "ComplianceSubmissionStatus",
-    # Data Quality
-    "DataQualityScore",
-    "DataQualityIssue",
-    "DataQualityReport",
-    # Integration
-    "ConnectorConfig",
-    "ConnectorStatus",
-    "IngestRequest",
-    "IngestResponse",
-    # Pricing/Quote
+    # Pricing and Quote Schemas
     "PricingRequest",
     "PricingResponse",
     "QuoteCreate",

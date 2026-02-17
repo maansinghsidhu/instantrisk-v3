@@ -55,17 +55,6 @@ import '../screens/documents/ai_document_advisor_screen.dart';
 import '../screens/documents/clause_review_screen.dart';
 import '../screens/documents/generation_progress_screen.dart';
 
-// Lloyd's V3 Screens
-import '../screens/lloyds/syndicate_dashboard_screen.dart';
-import '../screens/lloyds/placement_board_screen.dart';
-import '../screens/lloyds/exposure_dashboard_screen.dart';
-import '../screens/lloyds/compliance_center_screen.dart';
-import '../screens/lloyds/pricing_screen.dart';
-import '../screens/lloyds/data_quality_screen.dart';
-import '../screens/lloyds/umr_management_screen.dart';
-import '../screens/lloyds/ai_explainer_screen.dart';
-import '../screens/lloyds/lloyds_admin_dashboard_screen.dart';
-
 // Analysis Screens
 import '../screens/analysis/analysis_mode_screen.dart';
 import '../screens/analysis/analysis_progress_screen.dart';
@@ -583,77 +572,6 @@ class AppRouter {
                     builder: (context, state) => const SessionsScreen(),
                   ),
                 ],
-              ),
-            ],
-          ),
-
-          // ==================== LLOYD'S ADMIN DASHBOARD ====================
-          GoRoute(
-            path: '/lloyds-admin',
-            name: 'lloydsAdmin',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: LloydsAdminDashboardScreen(),
-            ),
-          ),
-
-          // ==================== LLOYD'S V3 MARKET SCREENS ====================
-          GoRoute(
-            path: '/lloyds',
-            name: 'lloyds',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: SyndicateDashboardScreen(),
-            ),
-            routes: [
-              // Placement Board
-              GoRoute(
-                path: 'placements',
-                name: 'lloydsPlacementBoard',
-                builder: (context, state) => const PlacementBoardScreen(),
-              ),
-
-              // Exposure Dashboard
-              GoRoute(
-                path: 'exposure',
-                name: 'lloydsExposure',
-                builder: (context, state) => const ExposureDashboardScreen(),
-              ),
-
-              // Compliance Center
-              GoRoute(
-                path: 'compliance',
-                name: 'lloydsCompliance',
-                builder: (context, state) => const ComplianceCenterScreen(),
-              ),
-
-              // Pricing Engine
-              GoRoute(
-                path: 'pricing',
-                name: 'lloydsPricing',
-                builder: (context, state) => const PricingScreen(),
-              ),
-
-              // Data Quality
-              GoRoute(
-                path: 'quality',
-                name: 'lloydsQuality',
-                builder: (context, state) => const DataQualityScreen(),
-              ),
-
-              // UMR Management
-              GoRoute(
-                path: 'umr',
-                name: 'lloydsUMR',
-                builder: (context, state) => const UMRManagementScreen(),
-              ),
-
-              // AI Decision Explainer
-              GoRoute(
-                path: 'explainer',
-                name: 'lloydsExplainer',
-                builder: (context, state) => AIExplainerScreen(
-                  assessmentId: state.uri.queryParameters['assessmentId'],
-                  decisionType: state.uri.queryParameters['decisionType'],
-                ),
               ),
             ],
           ),
