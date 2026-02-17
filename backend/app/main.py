@@ -24,7 +24,7 @@ from app.routers import auth, documents, assessments, upload_session, contracts,
 from app.routers import reference_documents, document_generation
 from app.routers import pricing_quotes, pricing_benchmarks, teams
 from app.routers import extraction, analysis, sanctions, language
-from app.routers import precedents
+from app.routers import precedents, monitoring, explainability
 from app.routers import templates_v3, chat, clauses
 from app.routers import subscription, approval, sharing, two_factor, security
 from app.routers import claims as claims_router
@@ -509,6 +509,8 @@ app.include_router(pricing_v3.router, prefix=f"{settings.api_prefix}/pricing-v3"
 app.include_router(chat.router, prefix=f"{settings.api_prefix}/chat", tags=["AI Chat"])
 app.include_router(clauses.router, prefix=f"{settings.api_prefix}", tags=["Clauses Library"])
 app.include_router(precedents.router, prefix=f"{settings.api_prefix}/precedents", tags=["Precedent Search"])
+app.include_router(monitoring.router, prefix=f"{settings.api_prefix}/monitoring", tags=["Risk Monitoring"])
+app.include_router(explainability.router, prefix=f"{settings.api_prefix}/explainability", tags=["AI Explainability"])
 app.include_router(subscription.router, prefix=f"{settings.api_prefix}", tags=["Subscription"])
 app.include_router(approval.router, prefix=f"{settings.api_prefix}", tags=["Admin Approvals"])
 app.include_router(approval.approval_status_router, prefix=f"{settings.api_prefix}", tags=["Approval Status"])

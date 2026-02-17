@@ -22,6 +22,10 @@ from app.models.pricing_models import (
     Quote,
 )
 
+# God Mode Features
+from app.models.assessment_vector import AssessmentVector
+from app.models.risk_alert import RiskMonitoringAlert
+
 # V3 RBAC Models
 from app.models.rbac import (
     Permission,
@@ -89,6 +93,9 @@ __all__ = [
     "PricingModel",
     "PricingResult",
     "Quote",
+    # God mode features
+    "AssessmentVector",
+    "RiskMonitoringAlert",
     # V3 RBAC models
     "Permission",
     "Role",
