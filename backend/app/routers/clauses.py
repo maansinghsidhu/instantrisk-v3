@@ -87,12 +87,23 @@ class RecommendedClause(BaseModel):
     is_mandatory: bool = False
 
 
+class MLAnalysisSummary(BaseModel):
+    """ML model analysis summary included in clause recommendations."""
+    model_available: bool
+    personalized: bool = False
+    appetite: Optional[dict] = None   # {decision, confidence, scores}
+    pricing: Optional[dict] = None    # {band, confidence, scores}
+    intent: Optional[dict] = None     # {intent, confidence, top_intents}
+    top_clause_categories: List[str] = []  # top ML-predicted clause category names
+
+
 class ClauseRecommendationsResponse(BaseModel):
     """Response for clause recommendations."""
     assessment_id: str
     recommended_clauses: List[RecommendedClause]
     mandatory_count: int
     optional_count: int
+    ml_analysis: Optional[MLAnalysisSummary] = None
 
 
 # =============================================================================
@@ -329,11 +340,30 @@ async def recommend_clauses_for_assessment(
         core_count = len([r for r in recommendations if r.relevance_score >= 0.75])
         standard_count = len(recommendations) - core_count
 
+        # Build ML analysis summary for response
+        ml_analysis_summary = None
+        if insurance_model_service.is_available and ml_predictions:
+            top_categories = [c["category"] for c in ml_predictions.get("clauses", [])[:10]]
+            ml_analysis_summary = MLAnalysisSummary(
+                model_available=True,
+                personalized=ml_predictions.get("personalized", False),
+                appetite=ml_predictions.get("appetite"),
+                pricing=ml_predictions.get("pricing"),
+                intent=ml_predictions.get("intent"),
+                top_clause_categories=top_categories,
+            )
+        else:
+            ml_analysis_summary = MLAnalysisSummary(
+                model_available=False,
+                personalized=False,
+            )
+
         return ClauseRecommendationsResponse(
             assessment_id=assessment_id,
             recommended_clauses=recommendations,
             mandatory_count=core_count,
             optional_count=standard_count,
+            ml_analysis=ml_analysis_summary,
         )
 
     except HTTPException:

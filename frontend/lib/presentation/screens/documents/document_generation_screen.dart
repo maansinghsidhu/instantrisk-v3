@@ -10,6 +10,8 @@ import '../../../core/services/subscription_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/clause_selector_widget.dart';
 import '../../widgets/feature_gate_widget.dart';
+// God Mode: Vision OCR confidence
+import '../../widgets/vision/property_risk_card.dart';
 
 /// Document Generation Screen - AI-Powered Document Generation from Assessments
 class DocumentGenerationScreen extends ConsumerStatefulWidget {
@@ -616,6 +618,15 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // God Mode: Vision OCR confidence card
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: PropertyRiskCard(
+                    assessmentId: widget.assessmentId,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
                 // Document Suggestions Header
                 Container(
                   padding: EdgeInsets.all(16),

@@ -142,3 +142,6 @@ from app.models.vector_store import RAGVector, UserDocVector, RefDocVector
 # Per-user ML adapter tracking
 from app.models.user_model import UserModelAdapter
 
+# Global Event Intelligence (GDELT, USGS, NOAA, NASA FIRMS, CISA)
+from app.models.global_event import GlobalEvent
+

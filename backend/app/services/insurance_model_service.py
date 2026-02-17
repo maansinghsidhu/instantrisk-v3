@@ -128,54 +128,83 @@ class InsuranceModelService:
             self._available = False
             return False
 
-    def load_from_s3(self, s3_uri: str) -> bool:
-        """Download model from S3 and load it."""
+    def load_from_s3(self, s3_uri: str, target: str = "best") -> bool:
+        """
+        Download model.tar.gz from S3, extract, and hot-reload into service.
+
+        Args:
+            s3_uri:  Full S3 URI, e.g. s3://bucket/path/to/model.tar.gz
+            target:  Which local slot to overwrite — "best" or "final"
+        """
         import boto3
         import tarfile
+        import shutil
+        import tempfile
 
         # Parse S3 URI
         parts = s3_uri.replace("s3://", "").split("/", 1)
         bucket = parts[0]
         key = parts[1]
 
-        # Download to local models dir
         models_dir = os.path.join(os.path.dirname(__file__), "..", "data", "models")
         os.makedirs(models_dir, exist_ok=True)
 
-        local_tar = os.path.join(models_dir, "model.tar.gz")
-        extract_dir = os.path.join(models_dir, "instantrisk-engine-v1-best")
+        slot_name = "instantrisk-engine-v1-best" if target == "best" else "instantrisk-engine-v1-final"
+        target_dir = os.path.join(models_dir, slot_name)
 
-        print(f"Downloading model from {s3_uri}...")
+        # Download to a temp file
+        local_tar = os.path.join(models_dir, "model_download.tar.gz")
+        print(f"Downloading model from {s3_uri} ...")
         s3 = boto3.client('s3', region_name='us-east-1')
         s3.download_file(bucket, key, local_tar)
+        print(f"Download complete ({os.path.getsize(local_tar) // (1024*1024)} MB)")
 
-        # Extract
-        print(f"Extracting to {extract_dir}...")
-        os.makedirs(extract_dir, exist_ok=True)
-        with tarfile.open(local_tar, 'r:gz') as tar:
-            tar.extractall(extract_dir)
+        # Extract to a temp directory first so we can locate model.pt
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            print(f"Extracting ...")
+            with tarfile.open(local_tar, 'r:gz') as tar:
+                tar.extractall(tmp_dir)
 
-        # The SageMaker output may have a nested directory structure
-        # Check if model.pt is in a subdirectory
-        model_file = None
-        for root, dirs, files in os.walk(extract_dir):
-            for f in files:
-                if f in ('model.pt', 'pytorch_model.bin'):
-                    model_file = root
+            # Walk to find the directory containing model.pt
+            model_root = None
+            for root, dirs, files in os.walk(tmp_dir):
+                if "model.pt" in files:
+                    model_root = root
                     break
-            if model_file:
-                break
 
-        if model_file is None:
-            print(f"No model file found in {extract_dir}")
-            return False
+            if model_root is None:
+                print(f"ERROR: model.pt not found in archive. Contents: {os.listdir(tmp_dir)}")
+                os.remove(local_tar)
+                return False
 
-        # Reset loaded state so load() will run
+            print(f"Found model files in: {model_root}")
+
+            # Copy to target dir (replace existing)
+            os.makedirs(target_dir, exist_ok=True)
+            for fname in os.listdir(model_root):
+                src = os.path.join(model_root, fname)
+                dst = os.path.join(target_dir, fname)
+                shutil.copy2(src, dst)
+                print(f"  Installed: {fname}")
+
+        # Clean up download
+        os.remove(local_tar)
+
+        # Reset loaded state and reload from the new files
         self._loaded = False
-        return self.load(model_file)
+        self._available = False
+        self._model = None
+        self._tokenizer = None
+        return self.load(target_dir)
 
-    def load_from_sagemaker_job(self, job_name: str) -> bool:
-        """Load model from a completed SageMaker training job."""
+    def load_from_sagemaker_job(self, job_name: str, target: str = "best") -> bool:
+        """
+        Download and hot-reload model from a completed SageMaker training job.
+
+        Args:
+            job_name:  SageMaker training job name
+            target:    Which local model slot to update — "best" (default) or "final"
+        """
         import boto3
 
         sagemaker = boto3.client('sagemaker', region_name='us-east-1')
@@ -187,8 +216,8 @@ class InsuranceModelService:
             return False
 
         s3_uri = response['ModelArtifacts']['S3ModelArtifacts']
-        print(f"Training job output: {s3_uri}")
-        return self.load_from_s3(s3_uri)
+        print(f"Training job completed. Model artifacts: {s3_uri}")
+        return self.load_from_s3(s3_uri, target=target)
 
     @property
     def is_available(self) -> bool:
@@ -197,7 +226,7 @@ class InsuranceModelService:
             self.load()
         return self._available
 
-    def _encode(self, text: str) -> Dict[str, torch.Tensor]:
+    def _encode(self, text: str) -> Dict[str, "torch.Tensor"]:
         """Tokenize text for model input."""
         encoding = self._tokenizer(
             text,

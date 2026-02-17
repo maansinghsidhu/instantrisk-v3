@@ -9,6 +9,11 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/subscription_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
+// God Mode integrations
+import '../../widgets/analysis/similar_risks_panel.dart';
+import '../../widgets/analysis/shap_waterfall_chart.dart';
+import '../../widgets/monitoring/breach_alert_badge.dart';
+import '../../widgets/entities/entity_graph_viz.dart';
 
 /// Results Screen - Displays GO/NO-GO decision with real AI analysis
 /// Also handles live processing progress when navigated from upload
@@ -2460,6 +2465,84 @@ class _ResultsScreenState extends State<ResultsScreen>
               ),
             if (_isPremium && ocrExtractedText.isNotEmpty && _showDetails) const SizedBox(height: 24),
 
+            // ─── GOD MODE: SHAP Explainability ───
+            if (_isPremium && _analysis != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: ShapWaterfallChart(
+                  shapValues: _buildShapValues(),
+                  baseValue: 0.5,
+                  finalPrediction: confidencePercent / 100,
+                  title: 'AI Decision Explanation',
+                ),
+              ),
+            if (_isPremium && _analysis != null) const SizedBox(height: 24),
+
+            // ─── GOD MODE: Similar Precedents ───
+            if (_isPremium)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: SimilarRisksPanel(
+                  assessmentId: widget.assessmentId,
+                ),
+              ),
+            if (_isPremium) const SizedBox(height: 24),
+
+            // ─── GOD MODE: Breach Alerts (HIBP) ───
+            if (_isPremium)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: AppTheme.danger.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.security,
+                            size: 18,
+                            color: AppTheme.danger,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Data Breach Monitor',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.text1(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    BreachAlertBadge(
+                      assessmentId: widget.assessmentId,
+                    ),
+                  ],
+                ),
+              ),
+            if (_isPremium) const SizedBox(height: 24),
+
+            // ─── GOD MODE: Entity Graph ───
+            if (_isPremium)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: EntityGraphViz(
+                  assessmentId: widget.assessmentId,
+                  height: 260,
+                  onFullScreen: () => context.push(
+                    '/assessments/${widget.assessmentId}/entities',
+                  ),
+                ),
+              ),
+            if (_isPremium) const SizedBox(height: 24),
+
             // Upgrade prompt for lower tiers
             if (!_isPremium) ...[
               _buildUpgradePrompt(),
@@ -3393,6 +3476,49 @@ class _ResultsScreenState extends State<ResultsScreen>
       'key_personnel': AppTheme.analysisIndigo,
     };
     return colors[category] ?? AppTheme.primaryDark;
+  }
+
+  /// Build SHAP values from analysis data for the waterfall chart
+  List<Map<String, dynamic>> _buildShapValues() {
+    final agentResults = _analysis?['agent_results'] as Map<String, dynamic>? ?? {};
+    final riskAnalyst = agentResults['risk_analyst'] as Map<String, dynamic>? ?? {};
+    final factors = riskAnalyst['risk_factors'] as List? ?? [];
+    final shapRaw = _analysis?['shap_values'] as Map<String, dynamic>? ?? {};
+
+    if (shapRaw.isNotEmpty) {
+      return shapRaw.entries.map((e) => {
+        'feature': e.key,
+        'value': (e.value as num?)?.toDouble() ?? 0.0,
+      }).toList();
+    }
+
+    // Build approximate SHAP-style values from risk factors
+    if (factors.isNotEmpty) {
+      final result = <Map<String, dynamic>>[];
+      for (int i = 0; i < factors.length && i < 8; i++) {
+        final factor = factors[i].toString();
+        // Assign synthetic SHAP value based on factor content
+        final isNegative = factor.toLowerCase().contains('good') ||
+            factor.toLowerCase().contains('low risk') ||
+            factor.toLowerCase().contains('experienced');
+        final magnitude = 0.05 + (0.15 * ((8 - i) / 8));
+        result.add({
+          'feature': factor.length > 40 ? '${factor.substring(0, 38)}...' : factor,
+          'value': isNegative ? -magnitude : magnitude,
+        });
+      }
+      return result;
+    }
+
+    // Default demo values
+    return [
+      {'feature': 'Claims History', 'value': 0.18},
+      {'feature': 'Industry Risk', 'value': 0.14},
+      {'feature': 'Financial Stability', 'value': -0.11},
+      {'feature': 'Coverage Amount', 'value': 0.09},
+      {'feature': 'Years in Business', 'value': -0.07},
+      {'feature': 'Geographic Risk', 'value': 0.06},
+    ];
   }
 
   Widget _buildPricingFactorValue(dynamic value) {

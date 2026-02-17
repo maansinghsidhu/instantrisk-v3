@@ -69,6 +69,16 @@ from app.schemas.vision import (
     PropertyReportResponse,
 )
 
+# Voice Interface Schemas
+from app.schemas.voice import (
+    TranscriptionResponse,
+    VoiceCommandResponse,
+    SupportedCommand,
+    SupportedCommandsResponse,
+    AudioFormat,
+    VoiceError,
+)
+
 # V3 RBAC Schemas
 from app.schemas.rbac import (
     # Permission schemas
@@ -151,6 +161,18 @@ __all__ = [
     "PricingResponse",
     "QuoteCreate",
     "QuoteResponse",
+    # Vision Analysis Schemas
+    "RiskFactor",
+    "VisionAnalysisResult",
+    "VisionAnalysisRequest",
+    "PropertyReportResponse",
+    # Voice Interface Schemas
+    "TranscriptionResponse",
+    "VoiceCommandResponse",
+    "SupportedCommand",
+    "SupportedCommandsResponse",
+    "AudioFormat",
+    "VoiceError",
     # V3 RBAC Schemas
     # Permission schemas
     "PermissionCreate",

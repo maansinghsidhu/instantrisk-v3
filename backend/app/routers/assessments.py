@@ -1053,3 +1053,100 @@ async def get_analysis_history(
         "next_mode": "go_no_go" if current_mode == "quick" else ("deep" if current_mode == "go_no_go" else None),
         "history": history
     }
+
+
+@router.post("/{assessment_id}/ml-analyze")
+async def ml_analyze_assessment(
+    assessment_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Run InstantRisk Engine ML analysis on an assessment.
+
+    Uses the fine-tuned multi-task model to produce:
+    - Clause category recommendations (134 categories, multi-label)
+    - Risk appetite assessment (accept / refer / decline)
+    - Pricing band classification (low / medium / high)
+    - Insurance intent classification (39 intent types)
+
+    If the user has a trained personal adapter, predictions are personalized
+    to their portfolio history.
+
+    Returns structured predictions alongside model availability status.
+    Falls back gracefully when the model is not loaded.
+    """
+    from app.services.insurance_model_service import insurance_model_service
+
+    # Fetch assessment
+    result = await db.execute(select(Assessment).where(Assessment.id == assessment_id))
+    assessment = result.scalar_one_or_none()
+
+    if not assessment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Assessment not found: {assessment_id}",
+        )
+
+    # Access control
+    if assessment.created_by != current_user.id and current_user.role not in ("admin", "syndicate"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied",
+        )
+
+    user_id = str(current_user.id)
+
+    # Build risk text from assessment fields
+    assessment_dict = {
+        "risk_category": assessment.risk_category.value if assessment.risk_category else "",
+        "territory": assessment.territory or "",
+        "summary": assessment.description or "",
+        "insured_entity_name": assessment.insured_entity_name or "",
+        "insured_name": getattr(assessment, "insured_name", "") or "",
+        "extracted_data": assessment.ai_analysis or {},
+    }
+
+    if not insurance_model_service.is_available:
+        # Model not loaded — return fallback with explanation
+        return {
+            "assessment_id": assessment_id,
+            "model_available": False,
+            "model_name": "InstantRisk Engine v1",
+            "message": "ML model not loaded — running in fallback mode. "
+                       "Ensure model files exist in app/data/models/instantrisk-engine-v1-final/",
+            "predictions": {
+                "clauses": [],
+                "appetite": {"decision": "refer", "confidence": 0.0,
+                             "scores": {"accept": 0.33, "refer": 0.34, "decline": 0.33}},
+                "pricing": {"band": "medium", "confidence": 0.0,
+                            "scores": {"low": 0.33, "medium": 0.34, "high": 0.33}},
+                "intent": {"intent": "unknown", "confidence": 0.0, "top_intents": []},
+                "personalized": False,
+            },
+            "risk_text_used": "",
+        }
+
+    try:
+        risk_text = insurance_model_service.build_risk_description(assessment_dict)
+        predictions = insurance_model_service.predict_all(risk_text, user_id=user_id)
+
+        return {
+            "assessment_id": assessment_id,
+            "model_available": True,
+            "model_name": "InstantRisk Engine v1",
+            "base_model": insurance_model_service._config.get("base_model", ""),
+            "personalized": predictions.get("personalized", False),
+            "predictions": predictions,
+            "risk_text_used": risk_text,
+            "label_counts": {
+                "clause_labels": insurance_model_service._config.get("num_clause_labels", 0),
+                "intent_labels": insurance_model_service._config.get("num_intent_labels", 0),
+            },
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"ML analysis failed: {str(e)}",
+        )

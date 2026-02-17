@@ -2146,6 +2146,7 @@ async def _run_opendraft_job(job_id: str, assessment_data: dict, user_id: str, d
                             "quality_gate": doc_data.get("quality_gate", {}),
                             "gap_analysis": doc_data.get("gap_analysis", {}),
                             "source_attribution": doc_data.get("source_attribution", {}),
+                            "ml_predictions": doc_data.get("ml_predictions"),
                         },
                         ai_confidence=0.85,
                         generation_method="ai_prefill",

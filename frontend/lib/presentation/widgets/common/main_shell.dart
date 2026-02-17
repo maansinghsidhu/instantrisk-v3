@@ -231,6 +231,30 @@ class _Sidebar extends StatelessWidget {
                       onTap: () => _onItemTapped(context, 2),
                     ),
 
+                    // God Mode: Risk Monitor
+                    _SidebarItem(
+                      icon: Icons.monitor_heart_outlined,
+                      label: 'Risk Monitor',
+                      isSelected: GoRouterState.of(context).uri.toString().startsWith('/monitoring'),
+                      onTap: () {
+                        onNavigate?.call();
+                        context.go('/monitoring');
+                      },
+                      isPremium: !subscriptionService.isPremium,
+                    ),
+
+                    // God Mode: Portfolio Dashboard
+                    _SidebarItem(
+                      icon: Icons.bar_chart_outlined,
+                      label: 'Portfolio Analytics',
+                      isSelected: GoRouterState.of(context).uri.toString().startsWith('/analytics/portfolio-dashboard'),
+                      onTap: () {
+                        onNavigate?.call();
+                        context.go('/analytics/portfolio-dashboard');
+                      },
+                      isPremium: !subscriptionService.isPremium,
+                    ),
+
                     const _SectionLabel(label: 'DOCUMENTS'),
 
                     _SidebarItem(

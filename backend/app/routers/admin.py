@@ -212,3 +212,102 @@ async def admin_health(
 ):
     """Check if admin endpoints are available (admin only)."""
     return {"status": "ok"}
+
+
+@router.get("/ml-status")
+async def ml_model_status(
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Check InstantRisk Engine ML model status.
+
+    Returns model availability, loaded config, and model file sizes.
+    Admin only.
+    """
+    import os
+    from app.services.insurance_model_service import insurance_model_service
+
+    # Check local model directories
+    base_dir = os.path.join(os.path.dirname(__file__), "..", "data", "models")
+    model_dirs = {
+        "final": os.path.join(base_dir, "instantrisk-engine-v1-final"),
+        "best": os.path.join(base_dir, "instantrisk-engine-v1-best"),
+    }
+
+    dir_status = {}
+    for slot, path in model_dirs.items():
+        if os.path.isdir(path):
+            files = {}
+            for f in os.listdir(path):
+                fpath = os.path.join(path, f)
+                files[f] = os.path.getsize(fpath)
+            dir_status[slot] = {"exists": True, "files": files}
+        else:
+            dir_status[slot] = {"exists": False}
+
+    config = {}
+    if insurance_model_service._loaded and insurance_model_service._config:
+        config = {
+            "base_model": insurance_model_service._config.get("base_model"),
+            "num_clause_labels": insurance_model_service._config.get("num_clause_labels"),
+            "num_intent_labels": insurance_model_service._config.get("num_intent_labels"),
+            "training_mode": insurance_model_service._config.get("training_mode"),
+        }
+
+    return {
+        "model_available": insurance_model_service.is_available,
+        "model_loaded": insurance_model_service._loaded,
+        "config": config,
+        "local_models": dir_status,
+    }
+
+
+@router.post("/ml-load-sagemaker")
+async def ml_load_from_sagemaker(
+    job_name: str = "instantrisk-engine-20260217-195607",
+    target: str = "best",
+    current_user: User = Depends(get_current_admin_user),
+):
+    """
+    Download and hot-reload the ML model from a completed SageMaker training job.
+
+    Requires valid AWS credentials in the container environment.
+    Admin only.
+
+    Args:
+        job_name:  SageMaker training job name
+        target:    Model slot to update — "best" or "final"
+    """
+    from app.services.insurance_model_service import insurance_model_service
+    import asyncio
+
+    try:
+        # Run in thread pool to avoid blocking the event loop
+        loop = asyncio.get_event_loop()
+        success = await loop.run_in_executor(
+            None,
+            lambda: insurance_model_service.load_from_sagemaker_job(job_name, target=target)
+        )
+
+        if success:
+            config = insurance_model_service._config
+            return {
+                "success": True,
+                "message": f"Model loaded from SageMaker job '{job_name}' into '{target}' slot",
+                "model_available": insurance_model_service.is_available,
+                "config": {
+                    "base_model": config.get("base_model"),
+                    "num_clause_labels": config.get("num_clause_labels"),
+                    "num_intent_labels": config.get("num_intent_labels"),
+                },
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Failed to load model from job '{job_name}'. "
+                           "Check that the job is completed and AWS credentials are valid.",
+                "model_available": insurance_model_service.is_available,
+            }
+    except Exception as e:
+        _admin_logger.error(f"ML SageMaker load failed: {e}")
+        raise HTTPException(status_code=500, detail=f"ML load error: {str(e)}")

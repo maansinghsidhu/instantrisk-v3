@@ -1487,12 +1487,24 @@ Return ONLY valid JSON:
             else:
                 # Priority 3: Single AI call for this gap section
                 try:
+                    # Build ML insight block for AI gap-fill
+                    ml_gap_block = ""
+                    if ml_context:
+                        appetite = ml_context.get("appetite", {})
+                        pricing = ml_context.get("pricing", {})
+                        ml_cats = [c["category"] for c in ml_context.get("clauses", [])[:8]]
+                        ml_gap_block = (
+                            f"\nInstantRisk Engine: appetite={appetite.get('decision','unknown')} "
+                            f"({appetite.get('confidence',0):.0%}), "
+                            f"pricing={pricing.get('band','unknown')}, "
+                            f"clause categories={', '.join(ml_cats)}"
+                        )
                     response = await asyncio.wait_for(
                         self._run_agent(
                             "SectionDrafter",
                             "You are a Lloyd's insurance document drafter. Write professional insurance wording.",
                             f"""Draft the '{section['title']}' section for a {structure.get('document_type', 'policy')} document.
-Risk: {risk_category}, Insured: {insured_name}, Territory: {assessment_data.get('territory', '')}, Sum Insured: {self._fmt_currency(assessment_data.get('sum_insured'), assessment_data.get('currency', 'GBP'))}
+Risk: {risk_category}, Insured: {insured_name}, Territory: {assessment_data.get('territory', '')}, Sum Insured: {self._fmt_currency(assessment_data.get('sum_insured'), assessment_data.get('currency', 'GBP'))}{ml_gap_block}
 Write concise, professional Lloyd's market standard wording.""",
                             temperature=0.2,
                         ),

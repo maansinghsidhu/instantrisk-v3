@@ -63,6 +63,11 @@ import '../screens/analysis/analysis_progress_screen.dart';
 import '../screens/sanctions/sanctions_detail_screen.dart';
 import '../screens/sanctions/sanctions_screening_progress_screen.dart';
 
+// God Mode Screens
+import '../screens/monitoring/risk_monitor_dashboard.dart';
+import '../screens/analytics/portfolio_dashboard.dart';
+import '../screens/entities/entity_graph_screen.dart';
+
 // Shell for bottom navigation
 import '../widgets/common/main_shell.dart';
 
@@ -344,7 +349,32 @@ class AppRouter {
             },
           ),
 
-          // SANCTIONS SCREENING (inside shell for nav bar)
+          // ─── GOD MODE ROUTES ───
+
+          // Risk Monitor Dashboard - 24/7 alerts
+          GoRoute(
+            path: '/monitoring',
+            name: 'riskMonitor',
+            builder: (context, state) => const RiskMonitorDashboard(),
+          ),
+
+          // Portfolio Analytics Dashboard - DuckDB analytics
+          GoRoute(
+            path: '/analytics/portfolio-dashboard',
+            name: 'portfolioDashboard',
+            builder: (context, state) => const PortfolioDashboard(),
+          ),
+
+          // Entity Graph - per assessment
+          GoRoute(
+            path: '/assessments/:assessmentId/entities',
+            name: 'entityGraph',
+            builder: (context, state) => EntityGraphScreen(
+              assessmentId: state.pathParameters['assessmentId']!,
+            ),
+          ),
+
+          // ─── SANCTIONS SCREENING (inside shell for nav bar) ───
           GoRoute(
             path: '/assessments/:assessmentId/sanctions',
             name: 'sanctionsDetail',

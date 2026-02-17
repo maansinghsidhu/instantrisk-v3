@@ -181,6 +181,13 @@ class Assessment(Base):
     loss_run_reporting_rules = Column(Text, nullable=True, comment="Loss run reporting rules and requirements")
     regulatory_framework = Column(String(255), nullable=True, comment="Applicable regulatory framework (e.g., Solvency II, European regulation)")
 
+    # Computer vision property inspection (v102)
+    property_analysis = Column(JSON, nullable=True, comment="Computer vision property inspection results")
+
+    # Autonomous investigation (v103)
+    investigation_report = Column(JSON, nullable=True, default=dict, comment="Autonomous investigation report (LangGraph multi-agent)")
+    investigation_status = Column(String(20), nullable=True, default="not_started", comment="Investigation status: not_started/in_progress/completed/failed")
+
     # Audit flags
     is_flagged = Column(Boolean, default=False, comment="Flagged for review")
     flag_reason = Column(String(255), nullable=True)

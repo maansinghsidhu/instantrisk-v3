@@ -46,10 +46,17 @@ services:
       - POSTGRES_DB=instantrisk
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=instantrisk123
+      - OPENCORPORATES_API_KEY=${OPENCORPORATES_API_KEY:-}
+      - COMPANIES_HOUSE_API_KEY=${COMPANIES_HOUSE_API_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      neo4j:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health/live || exit 1"]
@@ -58,5 +65,28 @@ services:
       start_period: 60s
       retries: 3
 
+  neo4j:
+    image: neo4j:5-community
+    container_name: instantrisk-neo4j
+    ports:
+      - "7474:7474"   # HTTP Browser UI
+      - "7687:7687"   # Bolt protocol (used by Python driver)
+    environment:
+      NEO4J_AUTH: neo4j/instantrisk123
+      NEO4J_PLUGINS: "[]"
+      NEO4J_dbms_memory_pagecache_size: 512M
+      NEO4J_dbms_memory_heap_max__size: 512M
+    volumes:
+      - neo4jdata:/data
+      - neo4jlogs:/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
 volumes:
   pgdata:
+  neo4jdata:
+  neo4jlogs:

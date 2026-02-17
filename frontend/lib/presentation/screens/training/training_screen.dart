@@ -5,6 +5,8 @@ import 'package:file_picker/file_picker.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../widgets/common/screen_header.dart';
+// God Mode: Risk alerts panel for fraud detection warnings
+import '../../widgets/monitoring/risk_alerts_panel.dart';
 
 /// Training Screen - Upload documents to improve AI analysis
 class TrainingScreen extends ConsumerStatefulWidget {
@@ -632,6 +634,16 @@ class _TrainingScreenState extends ConsumerState<TrainingScreen> {
                 ),
 
                 Divider(height: 1, color: AppTheme.borderOf(context)),
+
+                // God Mode: Fraud detection warnings from monitoring service
+                if (_uploadedDocuments.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    child: RiskAlertsPanel(
+                      showHeader: true,
+                      maxAlerts: 3,
+                    ),
+                  ),
 
                 // Document list
                 Expanded(

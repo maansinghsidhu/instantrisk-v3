@@ -33,6 +33,14 @@ from app.routers import admin
 from app.routers import admin_reset
 from app.routers import training
 from app.routers import rapidrate
+from app.routers import investigation
+from app.routers import analytics
+from app.routers import entities
+from app.routers import events as events_router
+from app.routers import blockchain        # Feature: Smart Contract Automation (Polygon NFT policies)
+from app.routers import copilot           # Feature: Underwriter Copilot (LangChain AI guidance)
+from app.routers import broker_comms      # Feature: Broker Communication AI (IMAP email bot)
+from app.routers import compliance        # Feature: Regulatory Compliance Scanner (FCA/PRA/EIOPA)
 
 # Security middleware
 from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler
@@ -183,6 +191,8 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS renewal_date TIMESTAMP WITH TIME ZONE",
                 "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS loss_run_reporting_rules TEXT",
                 "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS regulatory_framework VARCHAR(255)",
+                # v102: Computer vision property inspection
+                "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS property_analysis JSON",
                 # Syndicates table (required for assessments FK)
                 """CREATE TABLE IF NOT EXISTS syndicates (
                     id SERIAL PRIMARY KEY,
@@ -263,6 +273,109 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE generated_documents ALTER COLUMN id TYPE BIGINT",
                 # Fix: Cast risk_score to INTEGER if it's VARCHAR (EC2 migration issue)
                 "ALTER TABLE assessments ALTER COLUMN risk_score TYPE INTEGER USING NULLIF(risk_score, '')::INTEGER",
+                # Autonomous investigation (v103)
+                "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS investigation_report JSONB DEFAULT '{}'",
+                "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS investigation_status VARCHAR(20) DEFAULT 'not_started'",
+                "CREATE INDEX IF NOT EXISTS idx_assessments_investigation_status ON assessments(investigation_status)",
+                "CREATE INDEX IF NOT EXISTS idx_assessments_investigation_report ON assessments USING gin (investigation_report)",
+                # Global Event Intelligence (v104)
+                """CREATE TABLE IF NOT EXISTS global_events (
+                    id SERIAL PRIMARY KEY,
+                    event_type VARCHAR(50) NOT NULL,
+                    source VARCHAR(50) NOT NULL,
+                    title VARCHAR(500) NOT NULL,
+                    description TEXT,
+                    severity VARCHAR(20) NOT NULL DEFAULT 'low',
+                    location VARCHAR(255),
+                    lat DOUBLE PRECISION,
+                    lon DOUBLE PRECISION,
+                    affected_region VARCHAR(255),
+                    raw_data JSONB DEFAULT '{}',
+                    event_time TIMESTAMP WITH TIME ZONE NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+                    is_processed BOOLEAN DEFAULT FALSE NOT NULL,
+                    affected_assessment_count INTEGER DEFAULT 0
+                )""",
+                "CREATE INDEX IF NOT EXISTS idx_global_events_event_type ON global_events(event_type)",
+                "CREATE INDEX IF NOT EXISTS idx_global_events_severity ON global_events(severity)",
+                "CREATE INDEX IF NOT EXISTS idx_global_events_event_time ON global_events(event_time DESC)",
+                "CREATE INDEX IF NOT EXISTS idx_global_events_source ON global_events(source)",
+                # Smart Contract Automation (blockchain / policy NFT records)
+                """CREATE TABLE IF NOT EXISTS blockchain_policies (
+                    id SERIAL PRIMARY KEY,
+                    assessment_id UUID REFERENCES assessments(id),
+                    policy_id VARCHAR(100) NOT NULL UNIQUE,
+                    token_id INTEGER,
+                    tx_hash VARCHAR(100),
+                    block_number INTEGER,
+                    gas_used INTEGER,
+                    holder_wallet VARCHAR(100),
+                    premium_matic DOUBLE PRECISION,
+                    sum_insured_matic DOUBLE PRECISION,
+                    inception_ts INTEGER,
+                    expiry_ts INTEGER,
+                    active BOOLEAN DEFAULT TRUE,
+                    simulated BOOLEAN DEFAULT FALSE,
+                    chain_id INTEGER DEFAULT 80001,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    created_by UUID REFERENCES users(id)
+                )""",
+                "CREATE INDEX IF NOT EXISTS idx_blockchain_policies_assessment ON blockchain_policies(assessment_id)",
+                "CREATE INDEX IF NOT EXISTS idx_blockchain_policies_policy_id ON blockchain_policies(policy_id)",
+                # Parametric claims table
+                """CREATE TABLE IF NOT EXISTS parametric_claims (
+                    id SERIAL PRIMARY KEY,
+                    claim_id INTEGER NOT NULL,
+                    policy_id VARCHAR(100) NOT NULL,
+                    token_id INTEGER,
+                    trigger_type VARCHAR(50) NOT NULL,
+                    trigger_value DOUBLE PRECISION,
+                    claim_amount_matic DOUBLE PRECISION,
+                    status VARCHAR(20) DEFAULT 'pending',
+                    tx_hash VARCHAR(100),
+                    simulated BOOLEAN DEFAULT FALSE,
+                    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    resolved_at TIMESTAMP WITH TIME ZONE
+                )""",
+                "CREATE INDEX IF NOT EXISTS idx_parametric_claims_policy ON parametric_claims(policy_id)",
+                "CREATE INDEX IF NOT EXISTS idx_parametric_claims_status ON parametric_claims(status)",
+                # Broker email communications log
+                """CREATE TABLE IF NOT EXISTS broker_email_log (
+                    id SERIAL PRIMARY KEY,
+                    log_id VARCHAR(50) NOT NULL,
+                    received_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    sender VARCHAR(255),
+                    subject VARCHAR(500),
+                    email_type VARCHAR(50),
+                    insured_name VARCHAR(255),
+                    risk_category VARCHAR(50),
+                    sum_insured DOUBLE PRECISION,
+                    parsed BOOLEAN DEFAULT FALSE,
+                    reply_sent BOOLEAN DEFAULT FALSE,
+                    confidence DOUBLE PRECISION,
+                    assessment_id UUID,
+                    error_text TEXT,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )""",
+                "CREATE INDEX IF NOT EXISTS idx_broker_email_log_received ON broker_email_log(received_at DESC)",
+                "CREATE INDEX IF NOT EXISTS idx_broker_email_log_type ON broker_email_log(email_type)",
+                # Compliance check results
+                """CREATE TABLE IF NOT EXISTS compliance_checks (
+                    id SERIAL PRIMARY KEY,
+                    assessment_id UUID REFERENCES assessments(id),
+                    checked_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    overall_status VARCHAR(30) NOT NULL,
+                    score INTEGER,
+                    passed INTEGER DEFAULT 0,
+                    failed INTEGER DEFAULT 0,
+                    warnings INTEGER DEFAULT 0,
+                    checks_json JSONB DEFAULT '[]',
+                    required_actions_json JSONB DEFAULT '[]',
+                    regulatory_summary TEXT,
+                    created_by UUID REFERENCES users(id)
+                )""",
+                "CREATE INDEX IF NOT EXISTS idx_compliance_checks_assessment ON compliance_checks(assessment_id)",
+                "CREATE INDEX IF NOT EXISTS idx_compliance_checks_status ON compliance_checks(overall_status)",
         ]
         # Run each migration in its own transaction
         for sql in migrations:
@@ -401,7 +514,39 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"pgvector RAG: unavailable ({e})")
 
+    # Pre-load InstantRisk Engine ML model (avoids cold-start latency on first request)
+    try:
+        from app.services.insurance_model_service import insurance_model_service
+        available = insurance_model_service.load()
+        if available:
+            config = insurance_model_service._config
+            print(
+                f"InstantRisk Engine loaded: {config.get('num_clause_labels', 0)} clause labels, "
+                f"{config.get('num_intent_labels', 0)} intent labels, "
+                f"base={config.get('base_model', 'unknown')}"
+            )
+        else:
+            print("InstantRisk Engine: model not available — running in keyword-search fallback mode")
+    except Exception as e:
+        print(f"InstantRisk Engine load skipped: {e}")
+
+    # Start background scheduler (APScheduler for event monitoring)
+    try:
+        from app.tasks.scheduled_jobs import start_scheduler
+        start_scheduler()
+        print("APScheduler started - Global Event Intelligence monitoring active (hourly)")
+    except Exception as e:
+        print(f"APScheduler start skipped: {e}")
+
     yield
+
+    # Shutdown: Stop scheduler before disposing DB connections
+    try:
+        from app.tasks.scheduled_jobs import stop_scheduler
+        stop_scheduler()
+        print("APScheduler stopped")
+    except Exception as e:
+        print(f"APScheduler stop error: {e}")
 
     # Shutdown: Dispose of database connections
     print("Shutting down...")
@@ -527,6 +672,15 @@ if os.environ.get("ENABLE_ADMIN_RESET", "").lower() == "true" or settings.enviro
     logging.getLogger("instantrisk.security").warning("Admin reset routes ENABLED - disable in production")
 app.include_router(training.router, prefix=f"{settings.api_prefix}/training", tags=["AI Training"])
 app.include_router(rapidrate.router, tags=["RapidRate"])
+app.include_router(investigation.router, prefix=f"{settings.api_prefix}/investigation", tags=["Autonomous Investigation"])
+app.include_router(analytics.router, prefix=f"{settings.api_prefix}/analytics", tags=["Portfolio Analytics"])
+app.include_router(entities.router, prefix=f"{settings.api_prefix}/entities", tags=["Entity Graph & Fraud Detection"])
+app.include_router(events_router.router, prefix=f"{settings.api_prefix}/events", tags=["Global Event Intelligence"])
+# God Mode Features (v2)
+app.include_router(blockchain.router, prefix=f"{settings.api_prefix}/blockchain", tags=["Smart Contracts"])
+app.include_router(copilot.router, prefix=f"{settings.api_prefix}/copilot", tags=["Underwriter Copilot"])
+app.include_router(broker_comms.router, prefix=f"{settings.api_prefix}/broker-comms", tags=["Broker Communication AI"])
+app.include_router(compliance.router, prefix=f"{settings.api_prefix}/compliance", tags=["Regulatory Compliance"])
 
 
 if __name__ == "__main__":

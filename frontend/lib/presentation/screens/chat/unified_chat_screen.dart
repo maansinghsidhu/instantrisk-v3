@@ -6,6 +6,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/chat_service.dart';
 import '../../../core/services/subscription_service.dart';
+// God Mode: Voice input
+import '../../widgets/voice/voice_command_button.dart';
 
 /// Unified AI Chat Screen - Claude/ChatGPT-style interface
 ///
@@ -671,6 +673,14 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
           IconButton(
             icon: Icon(Icons.attach_file, color: AppTheme.textH(context), size: 22),
             onPressed: _showContextPicker,
+          ),
+          // Voice input button (God Mode)
+          VoiceCommandButton(
+            compact: true,
+            onTranscript: (transcript) {
+              _messageController.text = transcript;
+              _sendMessage(transcript);
+            },
           ),
           // Text input
           Expanded(

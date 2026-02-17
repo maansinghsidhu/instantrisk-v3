@@ -6,6 +6,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
+// God Mode: Similar risks panel shown after analysis
+import '../../widgets/analysis/similar_risks_panel.dart';
 
 /// Analysis Progress Screen
 /// Shows real-time progress of AI analysis with agent steps
@@ -1126,7 +1128,15 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
               ),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
+
+            // God Mode: Similar precedents (shown after analysis)
+            if (_assessmentId != null || widget.assessmentId.isNotEmpty)
+              SimilarRisksPanel(
+                assessmentId: _assessmentId ?? widget.assessmentId,
+              ),
+
+            const SizedBox(height: 24),
 
             // View results button
             SizedBox(
