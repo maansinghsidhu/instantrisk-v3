@@ -10,7 +10,7 @@ Endpoints:
 - GET /api/v1/voice/supported-commands - List supported commands
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
@@ -48,6 +48,7 @@ MAX_DURATION = 30  # seconds
 @router.post("/transcribe", response_model=TranscriptionResponse)
 @limiter.limit("20/minute")
 async def transcribe_audio_endpoint(
+    request: Request,
     file: UploadFile = File(..., description="Audio file (WAV, MP3, M4A, OGG)"),
     current_user: User = Depends(get_current_user)
 ) -> TranscriptionResponse:
@@ -140,6 +141,7 @@ async def transcribe_audio_endpoint(
 @router.post("/command", response_model=VoiceCommandResponse)
 @limiter.limit("10/minute")
 async def execute_voice_command_endpoint(
+    request: Request,
     file: UploadFile = File(..., description="Audio file with voice command"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
