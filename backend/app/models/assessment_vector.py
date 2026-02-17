@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID as PgUUID, JSONB
 from pgvector.sqlalchemy import Vector
 from datetime import datetime, timezone
 
-from app.models.base import Base
+from app.core.database import Base
 
 
 class AssessmentVector(Base):
@@ -32,7 +32,7 @@ class AssessmentVector(Base):
     embedding = Column(Vector(768), nullable=False)
 
     # Metadata for filtering (risk_category, territory, decision, etc.)
-    metadata = Column(JSONB, default=dict)
+    vector_metadata = Column(JSONB, default=dict)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

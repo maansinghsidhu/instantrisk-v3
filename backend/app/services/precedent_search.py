@@ -77,12 +77,12 @@ class PrecedentSearchService:
         vector = await db.get(AssessmentVector, assessment.id)
         if vector:
             vector.embedding = embedding.tolist()
-            vector.metadata = metadata
+            vector.vector_metadata = metadata
         else:
             vector = AssessmentVector(
                 assessment_id=assessment.id,
                 embedding=embedding.tolist(),
-                metadata=metadata
+                vector_metadata=metadata
             )
             db.add(vector)
 

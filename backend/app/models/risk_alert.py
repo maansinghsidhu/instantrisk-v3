@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID as PgUUID, JSONB
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
-from app.models.base import Base
+from app.core.database import Base
 
 
 class RiskMonitoringAlert(Base):
