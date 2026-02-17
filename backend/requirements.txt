@@ -144,3 +144,10 @@ yarl==1.22.0
 zipp==3.23.0
 zopfli==0.4.0
 shap>=0.45.0
+faster-whisper==1.1.0
+pydub==0.25.1
+ffmpeg-python==0.2.0
+langgraph==0.2.60
+langchain-anthropic==0.3.14
+beautifulsoup4==4.12.3
+playwright==1.50.0

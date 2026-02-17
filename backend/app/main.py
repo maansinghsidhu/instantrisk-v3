@@ -505,7 +505,6 @@ app.include_router(analysis.router, prefix=f"{settings.api_prefix}", tags=["Anal
 app.include_router(sanctions.router, prefix=f"{settings.api_prefix}", tags=["Sanctions"])
 app.include_router(language.router, prefix=f"{settings.api_prefix}/language", tags=["Language & Translation"])
 app.include_router(templates_v3.router, prefix=f"{settings.api_prefix}/templates-v3", tags=["Templates V3"])
-app.include_router(pricing_v3.router, prefix=f"{settings.api_prefix}/pricing-v3", tags=["Pricing V3"])
 app.include_router(chat.router, prefix=f"{settings.api_prefix}/chat", tags=["AI Chat"])
 app.include_router(clauses.router, prefix=f"{settings.api_prefix}", tags=["Clauses Library"])
 app.include_router(precedents.router, prefix=f"{settings.api_prefix}/precedents", tags=["Precedent Search"])

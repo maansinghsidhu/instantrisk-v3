@@ -7,7 +7,7 @@ No API key required for basic breach checking.
 
 import logging
 import asyncio
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from datetime import datetime, timezone
 
 import aiohttp

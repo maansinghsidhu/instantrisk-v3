@@ -6,7 +6,7 @@ API endpoints for continuous risk monitoring and alerts.
 
 from typing import List, Optional
 from uuid import UUID
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel

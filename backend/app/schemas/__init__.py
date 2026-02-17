@@ -61,6 +61,14 @@ from app.schemas.pricing_schemas import (
     QuoteResponse,
 )
 
+# Vision Analysis Schemas
+from app.schemas.vision import (
+    RiskFactor,
+    VisionAnalysisResult,
+    VisionAnalysisRequest,
+    PropertyReportResponse,
+)
+
 # V3 RBAC Schemas
 from app.schemas.rbac import (
     # Permission schemas
