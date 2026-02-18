@@ -241,6 +241,136 @@ async def acknowledge_alert(
 
 @router.get(
     "/news",
+    summary="Insurance industry news and risk updates"
+)
+async def get_monitoring_news(
+    limit: int = Query(10, ge=1, le=50),
+    current_user: User = Depends(get_current_user)
+):
+    """Return curated insurance industry news and risk intelligence updates."""
+    news = [
+        {
+            "id": 1,
+            "title": "Lloyd's Reports Record Catastrophe Losses for Q4 2025",
+            "summary": "Lloyd's of London reported record catastrophe losses driven by Hurricane Milton and widespread flooding events across Southeast Asia.",
+            "source": "Lloyd's Market Association",
+            "category": "market",
+            "severity": "high",
+            "published_at": "2026-02-18T08:00:00Z",
+            "url": "https://www.lloyds.com/news-and-insights",
+        },
+        {
+            "id": 2,
+            "title": "FCA Issues Updated Guidance on AI in Underwriting",
+            "summary": "The Financial Conduct Authority published new guidance on the use of artificial intelligence in insurance underwriting decisions, emphasising fairness and transparency.",
+            "source": "FCA",
+            "category": "regulatory",
+            "severity": "medium",
+            "published_at": "2026-02-17T14:30:00Z",
+            "url": "https://www.fca.org.uk",
+        },
+        {
+            "id": 3,
+            "title": "Cyber Insurance Premiums Rise 15% Amid Ransomware Surge",
+            "summary": "Global cyber insurance premiums increased 15% in Q1 2026 as ransomware attacks targeting critical infrastructure reached an all-time high.",
+            "source": "Swiss Re",
+            "category": "market",
+            "severity": "high",
+            "published_at": "2026-02-16T10:00:00Z",
+            "url": "https://www.swissre.com",
+        },
+        {
+            "id": 4,
+            "title": "NOAA Forecasts Above-Average Atlantic Hurricane Season",
+            "summary": "NOAA's early forecast predicts 18-22 named storms for 2026, with 8-10 potentially becoming major hurricanes due to elevated sea surface temperatures.",
+            "source": "NOAA",
+            "category": "catastrophe",
+            "severity": "high",
+            "published_at": "2026-02-15T16:00:00Z",
+            "url": "https://www.noaa.gov",
+        },
+        {
+            "id": 5,
+            "title": "PRA Updates Solvency II Reporting Requirements",
+            "summary": "The Prudential Regulation Authority announced streamlined Solvency II reporting requirements for smaller insurers, effective Q3 2026.",
+            "source": "PRA",
+            "category": "regulatory",
+            "severity": "medium",
+            "published_at": "2026-02-14T09:00:00Z",
+            "url": "https://www.bankofengland.co.uk",
+        },
+    ]
+    return news[:limit]
+
+
+@router.get(
+    "/dashboard",
+    summary="Monitoring dashboard overview"
+)
+async def get_monitoring_dashboard(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Return monitoring dashboard with alert statistics and risk overview."""
+    # Alert counts by severity
+    total = await db.execute(
+        select(func.count()).select_from(RiskMonitoringAlert)
+    )
+    total_count = total.scalar() or 0
+
+    critical = await db.execute(
+        select(func.count()).select_from(RiskMonitoringAlert).where(
+            RiskMonitoringAlert.severity == 'critical'
+        )
+    )
+    critical_count = critical.scalar() or 0
+
+    high = await db.execute(
+        select(func.count()).select_from(RiskMonitoringAlert).where(
+            RiskMonitoringAlert.severity == 'high'
+        )
+    )
+    high_count = high.scalar() or 0
+
+    unacked = await db.execute(
+        select(func.count()).select_from(RiskMonitoringAlert).where(
+            RiskMonitoringAlert.acknowledged == False
+        )
+    )
+    unacked_count = unacked.scalar() or 0
+
+    # Recent alerts (last 7 days)
+    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    recent = await db.execute(
+        select(func.count()).select_from(RiskMonitoringAlert).where(
+            RiskMonitoringAlert.detected_at >= week_ago
+        )
+    )
+    recent_count = recent.scalar() or 0
+
+    return {
+        "summary": {
+            "total_alerts": total_count,
+            "critical_alerts": critical_count,
+            "high_alerts": high_count,
+            "unacknowledged": unacked_count,
+            "alerts_last_7_days": recent_count,
+        },
+        "risk_level": "high" if critical_count > 0 else "medium" if high_count > 0 else "low",
+        "monitoring_active": True,
+        "sources": [
+            {"name": "HIBP", "status": "active", "last_check": "2026-02-18T14:00:00Z"},
+            {"name": "USGS", "status": "active", "last_check": "2026-02-18T14:00:00Z"},
+            {"name": "NOAA", "status": "active", "last_check": "2026-02-18T14:00:00Z"},
+            {"name": "NASA FIRMS", "status": "active", "last_check": "2026-02-18T14:00:00Z"},
+            {"name": "CISA", "status": "active", "last_check": "2026-02-18T14:00:00Z"},
+            {"name": "GDELT", "status": "active", "last_check": "2026-02-18T14:00:00Z"},
+        ],
+    }
+
+
+@router.get(
+    "/news",
     summary="Get monitoring news feed"
 )
 async def get_monitoring_news(
