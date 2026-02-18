@@ -184,15 +184,18 @@ class _PortfolioDashboardState extends State<PortfolioDashboard>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // KPI Grid
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.6,
-              children: [
+            // KPI Grid - responsive columns for web
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final cols = constraints.maxWidth > 900 ? 4 : constraints.maxWidth > 600 ? 3 : 2;
+                return GridView.count(
+                  crossAxisCount: cols,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: cols >= 3 ? 1.8 : 1.6,
+                  children: [
                 _KpiCard(
                   title: 'Total Assessments',
                   value: '$total',
@@ -221,7 +224,9 @@ class _PortfolioDashboardState extends State<PortfolioDashboard>
                   color: AppTheme.warning,
                   icon: Icons.trending_up,
                 ),
-              ],
+                  ],
+                );
+              },
             ),
 
             const SizedBox(height: 16),

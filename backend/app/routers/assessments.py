@@ -1150,3 +1150,129 @@ async def ml_analyze_assessment(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"ML analysis failed: {str(e)}",
         )
+
+
+@router.get("/{assessment_id}/precedents", summary="Find similar precedent assessments")
+async def get_assessment_precedents(
+    assessment_id: str,
+    limit: int = 5,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Proxy to precedent search for this assessment."""
+    from app.services.precedent_search import precedent_search_service
+
+    try:
+        aid = uuid.UUID(assessment_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid assessment ID")
+
+    assessment = await db.get(Assessment, aid)
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    try:
+        similar = await precedent_search_service.find_similar(
+            db=db, assessment_id=aid, top_k=limit, min_similarity=0.5, filters={}
+        )
+        return {
+            "query_assessment_id": assessment_id,
+            "similar_assessments": similar,
+            "count": len(similar),
+        }
+    except Exception:
+        return {"query_assessment_id": assessment_id, "similar_assessments": [], "count": 0}
+
+
+@router.get("/{assessment_id}/breach-alerts", summary="Get breach alerts for assessment")
+async def get_assessment_breach_alerts(
+    assessment_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get data breach alerts for the assessment's insured entity."""
+    from app.models.risk_alert import RiskMonitoringAlert
+
+    try:
+        aid = uuid.UUID(assessment_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid assessment ID")
+
+    assessment = await db.get(Assessment, aid)
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    result = await db.execute(
+        select(RiskMonitoringAlert).where(
+            RiskMonitoringAlert.assessment_id == aid
+        ).order_by(RiskMonitoringAlert.detected_at.desc()).limit(20)
+    )
+    alerts = result.scalars().all()
+
+    return {
+        "assessment_id": assessment_id,
+        "alerts": [
+            {
+                "id": a.id,
+                "alert_type": a.alert_type,
+                "severity": a.severity,
+                "message": a.message,
+                "source": a.source,
+                "detected_at": a.detected_at.isoformat() if a.detected_at else None,
+                "acknowledged": a.acknowledged,
+            }
+            for a in alerts
+        ],
+        "count": len(alerts),
+    }
+
+
+@router.get("/{assessment_id}/entities", summary="Get entity relationships for assessment")
+async def get_assessment_entities(
+    assessment_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get entity graph data for this assessment."""
+    try:
+        aid = uuid.UUID(assessment_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid assessment ID")
+
+    assessment = await db.get(Assessment, aid)
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    company_name = assessment.insured_entity_name or getattr(assessment, 'insured_name', None) or ''
+
+    if not company_name:
+        return {
+            "assessment_id": assessment_id,
+            "company_name": "",
+            "entities": [],
+            "relationships": [],
+            "fraud_signals": [],
+        }
+
+    try:
+        from app.services.entity_graph_service import get_entity_graph, entity_graph_to_dict
+        graph_data = await get_entity_graph(company_name)
+        if graph_data:
+            nodes, edges = graph_data
+            return {
+                "assessment_id": assessment_id,
+                "company_name": company_name,
+                "entities": nodes,
+                "relationships": edges,
+                "fraud_signals": [],
+            }
+    except Exception:
+        pass
+
+    return {
+        "assessment_id": assessment_id,
+        "company_name": company_name,
+        "entities": [],
+        "relationships": [],
+        "fraud_signals": [],
+    }

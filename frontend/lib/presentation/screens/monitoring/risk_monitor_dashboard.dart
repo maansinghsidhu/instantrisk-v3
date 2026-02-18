@@ -165,82 +165,191 @@ class _RiskMonitorDashboardState extends State<RiskMonitorDashboard>
   }
 
   Widget _buildBreachesTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceOf(context),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.borderOf(context)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.security, color: AppTheme.danger, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'HIBP Breach Monitoring',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.text1(context),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Have I Been Pwned (HIBP) monitoring checks your portfolio entities '
-                  'against known data breaches. Results are shown per assessment.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppTheme.text2(context),
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.info.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.info.withOpacity(0.2)),
-                  ),
-                  child: Row(
+    final alerts = (_summary['recent_breaches'] as List<dynamic>?) ?? [];
+    final totalBreaches = _summary['total_breaches'] ?? 0;
+
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Status header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceOf(context),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.borderOf(context)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      const Icon(Icons.info_outline, color: AppTheme.info, size: 16),
-                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.danger.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.security, color: AppTheme.danger, size: 20),
+                      ),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
-                          'View breach alerts per assessment in the Reports section.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.info,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'HIBP Breach Monitoring',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.text1(context),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Continuous monitoring via Have I Been Pwned',
+                              style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.success.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6, height: 6,
+                              decoration: const BoxDecoration(
+                                color: AppTheme.success,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text('Active', style: TextStyle(fontSize: 11, color: AppTheme.success, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.danger.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            children: [
+                              Text('$totalBreaches', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.danger)),
+                              Text('Total Breaches', style: TextStyle(fontSize: 11, color: AppTheme.text2(context))),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.warning.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            children: [
+                              Text('${alerts.length}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.warning)),
+                              Text('Recent Alerts', style: TextStyle(fontSize: 11, color: AppTheme.text2(context))),
+                            ],
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.go('/reports'),
-                    icon: const Icon(Icons.assessment_outlined, size: 16),
-                    label: const Text('Go to Reports'),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+
+            // Breach alerts list
+            if (alerts.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(24),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceOf(context),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.borderOf(context)),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.verified_user, size: 40, color: AppTheme.success.withOpacity(0.5)),
+                    const SizedBox(height: 12),
+                    Text('No breach alerts detected', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppTheme.text1(context))),
+                    const SizedBox(height: 4),
+                    Text('Portfolio entities are clean', style: TextStyle(fontSize: 12, color: AppTheme.text2(context))),
+                  ],
+                ),
+              )
+            else
+              ...alerts.map((alert) {
+                final a = alert as Map<String, dynamic>;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceOf(context),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppTheme.danger.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: AppTheme.danger, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              a['message'] ?? 'Breach detected',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.text1(context)),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Source: ${a['source'] ?? 'HIBP'} | Severity: ${a['severity'] ?? 'unknown'}',
+                              style: TextStyle(fontSize: 11, color: AppTheme.text2(context)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => context.go('/reports'),
+                icon: const Icon(Icons.assessment_outlined, size: 16),
+                label: const Text('View All in Reports'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

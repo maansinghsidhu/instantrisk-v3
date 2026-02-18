@@ -2465,83 +2465,208 @@ class _ResultsScreenState extends State<ResultsScreen>
               ),
             if (_isPremium && ocrExtractedText.isNotEmpty && _showDetails) const SizedBox(height: 24),
 
-            // ─── GOD MODE: SHAP Explainability ───
+            // ─── GOD MODE: AI Decision Explanation ───
             if (_isPremium && _analysis != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: ShapWaterfallChart(
-                  shapValues: _buildShapValues(),
-                  baseValue: 0.5,
-                  finalPrediction: confidencePercent / 100,
-                  title: 'AI Decision Explanation',
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceOf(context),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.primaryDark.withValues(alpha: 0.2)),
+                  ),
+                  child: Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      initiallyExpanded: false,
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryDark.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.psychology, color: AppTheme.primaryDark, size: 20),
+                      ),
+                      title: Text(
+                        'AI Decision Explanation',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.text1(context),
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                      subtitle: Text(
+                        'SHAP analysis of risk factors',
+                        style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
+                      ),
+                      children: [
+                        ShapWaterfallChart(
+                          shapValues: _buildShapValues(),
+                          baseValue: 0.5,
+                          finalPrediction: confidencePercent / 100,
+                          title: 'AI Decision Explanation',
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            if (_isPremium && _analysis != null) const SizedBox(height: 24),
+            if (_isPremium && _analysis != null) const SizedBox(height: 16),
 
             // ─── GOD MODE: Similar Precedents ───
             if (_isPremium)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: SimilarRisksPanel(
-                  assessmentId: widget.assessmentId,
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceOf(context),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.primaryDark.withValues(alpha: 0.2)),
+                  ),
+                  child: Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      initiallyExpanded: false,
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.indigo.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.compare_arrows, color: Colors.indigo, size: 20),
+                      ),
+                      title: Text(
+                        'Similar Precedents',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.text1(context),
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Historical cases with similar risk profiles',
+                        style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
+                      ),
+                      children: [
+                        SimilarRisksPanel(
+                          assessmentId: widget.assessmentId,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            if (_isPremium) const SizedBox(height: 24),
+            if (_isPremium) const SizedBox(height: 16),
 
             // ─── GOD MODE: Breach Alerts (HIBP) ───
             if (_isPremium)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(7),
-                          decoration: BoxDecoration(
-                            color: AppTheme.danger.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.security,
-                            size: 18,
-                            color: AppTheme.danger,
-                          ),
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceOf(context),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.danger.withValues(alpha: 0.2)),
+                  ),
+                  child: Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      initiallyExpanded: false,
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.danger.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Data Breach Monitor',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.text1(context),
-                          ),
+                        child: const Icon(Icons.security, color: AppTheme.danger, size: 20),
+                      ),
+                      title: Text(
+                        'Data Breach Monitor',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.text1(context),
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                      subtitle: Text(
+                        'HIBP breach detection alerts',
+                        style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
+                      ),
+                      children: [
+                        BreachAlertBadge(
+                          assessmentId: widget.assessmentId,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    BreachAlertBadge(
-                      assessmentId: widget.assessmentId,
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            if (_isPremium) const SizedBox(height: 24),
+            if (_isPremium) const SizedBox(height: 16),
 
             // ─── GOD MODE: Entity Graph ───
             if (_isPremium)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: EntityGraphViz(
-                  assessmentId: widget.assessmentId,
-                  height: 260,
-                  onFullScreen: () => context.push(
-                    '/assessments/${widget.assessmentId}/entities',
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceOf(context),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.teal.withValues(alpha: 0.2)),
+                  ),
+                  child: Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      initiallyExpanded: false,
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.hub, color: Colors.teal, size: 20),
+                      ),
+                      title: Text(
+                        'Entity Mapping',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.text1(context),
+                          fontFamily: 'Inter',
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Relationship graph & fraud detection',
+                        style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
+                      ),
+                      children: [
+                        EntityGraphViz(
+                          assessmentId: widget.assessmentId,
+                          height: 260,
+                          onFullScreen: () => context.push(
+                            '/assessments/${widget.assessmentId}/entities',
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            if (_isPremium) const SizedBox(height: 24),
+            if (_isPremium) const SizedBox(height: 16),
 
             // Upgrade prompt for lower tiers
             if (!_isPremium) ...[
@@ -2575,7 +2700,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                             Icon(Icons.auto_awesome, size: 20),
                             SizedBox(width: 8),
                             Text(
-                              'AI Generate Documents',
+                              'InstantRisk Document Generator',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
