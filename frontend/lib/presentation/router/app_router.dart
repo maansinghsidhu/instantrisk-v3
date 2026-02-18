@@ -40,6 +40,7 @@ import '../screens/settings/two_factor_screen.dart';
 import '../screens/settings/security_screen.dart';
 import '../screens/settings/change_password_screen.dart';
 import '../screens/settings/sessions_screen.dart';
+import '../screens/settings/help_screen.dart';
 import '../screens/upload/qr_upload_screen.dart';
 import '../screens/training/training_screen.dart';
 import '../screens/documents/reference_documents_screen.dart';
@@ -602,6 +603,11 @@ class AppRouter {
                     builder: (context, state) => const SessionsScreen(),
                   ),
                 ],
+              ),
+              GoRoute(
+                path: 'help',
+                name: 'help',
+                builder: (context, state) => const HelpScreen(),
               ),
             ],
           ),

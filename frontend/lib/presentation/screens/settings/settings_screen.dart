@@ -223,9 +223,7 @@ class SettingsScreen extends ConsumerWidget {
                   icon: Icons.help_outline,
                   title: l10n.helpCenter,
                   subtitle: l10n.helpCenterSubtitle,
-                  onTap: () {
-                    // TODO: Navigate to help center
-                  },
+                  onTap: () => context.go('/settings/help'),
                 ),
                 _buildSettingsItem(
                   context,
@@ -257,7 +255,12 @@ class SettingsScreen extends ConsumerWidget {
                   title: l10n.aboutInstantRisk,
                   subtitle: 'Version 5.0.0 - Enterprise Security',
                   onTap: () {
-                    // TODO: Show about dialog
+                    showAboutDialog(
+                      context: context,
+                      applicationName: 'InstantRisk',
+                      applicationVersion: 'v5.0.0',
+                      applicationLegalese: '\u00a9 2026 InstantRisk. All rights reserved.\nAI-Powered Insurance Underwriting Platform.',
+                    );
                   },
                 ),
                 _buildSettingsItem(
