@@ -43,81 +43,84 @@ def generate_reference_number() -> str:
     return f"IR-{date_part}-{unique_part}"
 
 
-async def run_ai_analysis(assessment_id: str, db: AsyncSession, user_id: str = None):
+async def run_ai_analysis(assessment_id: str, user_id: str = None):
     """
     Background task to run AI analysis on an assessment.
-
-    Args:
-        assessment_id: ID of the assessment to analyze.
-        db: Database session.
-        user_id: User ID for fetching training document context.
+    Creates its own database session to avoid closed-session issues.
     """
-    result = await db.execute(select(Assessment).where(Assessment.id == assessment_id))
-    assessment = result.scalar_one_or_none()
+    import logging
+    logger = logging.getLogger("instantrisk.analysis")
 
-    if not assessment:
-        return
+    # Create a fresh database session for the background task
+    async with AsyncSessionLocal() as db:
+        try:
+            result = await db.execute(select(Assessment).where(Assessment.id == assessment_id))
+            assessment = result.scalar_one_or_none()
 
-    try:
-        assessment.status = AssessmentStatus.IN_PROGRESS
-        await db.commit()
+            if not assessment:
+                logger.error(f"Assessment {assessment_id} not found for analysis")
+                return
 
-        # Run AI analysis (with user training doc context)
-        ai_service = AIService()
-        analysis_result = await ai_service.analyze_risk(assessment, user_id=str(user_id) if user_id else None)
+            assessment.status = AssessmentStatus.IN_PROGRESS
+            await db.commit()
+            logger.info(f"Starting AI analysis for assessment {assessment_id}")
 
-        assessment.risk_score = analysis_result.get("risk_score")
-        assessment.confidence_score = analysis_result.get("confidence_score")
-        assessment.ai_analysis = analysis_result.get("analysis", {})
-        assessment.ai_recommendations = analysis_result.get("recommendations", [])
+            # Run AI analysis (with user training doc context)
+            ai_service = AIService()
+            analysis_result = await ai_service.analyze_risk(assessment, user_id=str(user_id) if user_id else None)
 
-        # Parse AI decision into assessment decision
-        # Check multiple locations: suggested_decision (AI service), analysis.decision, top-level decision
-        analysis = analysis_result.get("analysis", {})
-        decision_str = (
-            analysis_result.get("suggested_decision")
-            or analysis.get("decision")
-            or analysis_result.get("decision")
-            or ""
-        ).lower().strip()
+            assessment.risk_score = analysis_result.get("risk_score")
+            assessment.confidence_score = analysis_result.get("confidence_score")
+            assessment.ai_analysis = analysis_result.get("analysis", {})
+            assessment.ai_recommendations = analysis_result.get("recommendations", [])
 
-        # Also derive from risk score if no explicit decision
-        risk_score = analysis_result.get("risk_score", 50)
+            # Parse AI decision into assessment decision
+            analysis = analysis_result.get("analysis", {})
+            decision_str = (
+                analysis_result.get("suggested_decision")
+                or analysis.get("decision")
+                or analysis_result.get("decision")
+                or ""
+            ).lower().strip()
 
-        if decision_str:
-            if "no" in decision_str and "go" in decision_str:
-                assessment.decision = AssessmentDecision.NO_GO
-            elif "go" in decision_str or "accept" in decision_str or "approve" in decision_str:
-                assessment.decision = AssessmentDecision.GO
-            elif "decline" in decision_str or "reject" in decision_str:
-                assessment.decision = AssessmentDecision.NO_GO
-            elif "refer" in decision_str:
-                assessment.decision = AssessmentDecision.REFER
+            risk_score = analysis_result.get("risk_score", 50)
+
+            if decision_str:
+                if "no" in decision_str and "go" in decision_str:
+                    assessment.decision = AssessmentDecision.NO_GO
+                elif "go" in decision_str or "accept" in decision_str or "approve" in decision_str:
+                    assessment.decision = AssessmentDecision.GO
+                elif "decline" in decision_str or "reject" in decision_str:
+                    assessment.decision = AssessmentDecision.NO_GO
+                elif "refer" in decision_str:
+                    assessment.decision = AssessmentDecision.REFER
+                else:
+                    if risk_score <= 50:
+                        assessment.decision = AssessmentDecision.GO
+                    elif risk_score <= 75:
+                        assessment.decision = AssessmentDecision.REFER
+                    else:
+                        assessment.decision = AssessmentDecision.NO_GO
             else:
-                # Fall back to risk-score-based decision
                 if risk_score <= 50:
                     assessment.decision = AssessmentDecision.GO
                 elif risk_score <= 75:
                     assessment.decision = AssessmentDecision.REFER
                 else:
                     assessment.decision = AssessmentDecision.NO_GO
-        else:
-            # No decision string at all - derive from risk score
-            if risk_score <= 50:
-                assessment.decision = AssessmentDecision.GO
-            elif risk_score <= 75:
-                assessment.decision = AssessmentDecision.REFER
-            else:
-                assessment.decision = AssessmentDecision.NO_GO
 
-        assessment.status = AssessmentStatus.PENDING_REVIEW
+            assessment.status = AssessmentStatus.PENDING_REVIEW
+            await db.commit()
+            logger.info(f"AI analysis completed for {assessment_id}: score={assessment.risk_score}, decision={assessment.decision}")
 
-        await db.commit()
-
-    except Exception as e:
-        assessment.status = AssessmentStatus.DRAFT
-        assessment.ai_analysis = {"error": str(e)}
-        await db.commit()
+        except Exception as e:
+            logger.error(f"AI analysis failed for {assessment_id}: {e}")
+            try:
+                assessment.status = AssessmentStatus.DRAFT
+                assessment.ai_analysis = {"error": str(e)}
+                await db.commit()
+            except Exception:
+                await db.rollback()
 
 
 @router.post("/", response_model=AssessmentResponse, status_code=status.HTTP_201_CREATED)
@@ -512,8 +515,8 @@ async def trigger_ai_analysis(
             detail="Access denied"
         )
 
-    # Queue AI analysis (pass user_id so training docs inform the analysis)
-    background_tasks.add_task(run_ai_analysis, assessment.id, db, user_id=current_user.id)
+    # Queue AI analysis (creates its own DB session)
+    background_tasks.add_task(run_ai_analysis, assessment.id, user_id=current_user.id)
 
     return {
         "message": "AI analysis queued",

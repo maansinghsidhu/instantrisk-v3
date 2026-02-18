@@ -2466,7 +2466,7 @@ class _ResultsScreenState extends State<ResultsScreen>
             if (_isPremium && ocrExtractedText.isNotEmpty && _showDetails) const SizedBox(height: 24),
 
             // ─── GOD MODE: AI Decision Explanation ───
-            if (_isPremium && _analysis != null)
+            if (_isPremium && _analysis != null && _showDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2515,10 +2515,10 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isPremium && _analysis != null) const SizedBox(height: 16),
+            if (_isPremium && _analysis != null && _showDetails) const SizedBox(height: 16),
 
             // ─── GOD MODE: Similar Precedents ───
-            if (_isPremium)
+            if (_isPremium && _showDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2564,10 +2564,10 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isPremium) const SizedBox(height: 16),
+            if (_isPremium && _showDetails) const SizedBox(height: 16),
 
             // ─── GOD MODE: Breach Alerts (HIBP) ───
-            if (_isPremium)
+            if (_isPremium && _showDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2613,10 +2613,10 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isPremium) const SizedBox(height: 16),
+            if (_isPremium && _showDetails) const SizedBox(height: 16),
 
             // ─── GOD MODE: Entity Graph ───
-            if (_isPremium)
+            if (_isPremium && _showDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2666,7 +2666,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isPremium) const SizedBox(height: 16),
+            if (_isPremium && _showDetails) const SizedBox(height: 16),
 
             // Upgrade prompt for lower tiers
             if (!_isPremium) ...[
