@@ -26,8 +26,10 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 WORKDIR /app
 
 # Install runtime dependencies (including WeasyPrint system libs for PDF export)
+# and ffmpeg for pydub audio conversion (voice feature)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    ffmpeg \
     libgobject-2.0-0 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \

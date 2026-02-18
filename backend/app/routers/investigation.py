@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
-from app.core.database import get_db
+from app.core.database import get_db, AsyncSessionLocal
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.assessment import Assessment
@@ -67,69 +67,71 @@ async def run_investigation_task(
     assessment_id: str,
     company_name: str,
     companies_house_number: Optional[str],
-    db: AsyncSession
 ):
     """
     Background task to run investigation and store results in database.
+
+    Uses its own DB session (not the request-scoped one) because FastAPI closes
+    the request session before BackgroundTasks execute.
 
     Args:
         assessment_id: Assessment UUID
         company_name: Company to investigate
         companies_house_number: Optional UK registration number
-        db: Database session
     """
-    try:
-        logger.info(f"Background investigation started for assessment {assessment_id}")
-
-        # Update assessment status
-        result = await db.execute(
-            select(Assessment).where(Assessment.id == uuid.UUID(assessment_id))
-        )
-        assessment = result.scalar_one_or_none()
-
-        if not assessment:
-            logger.error(f"Assessment {assessment_id} not found")
-            return
-
-        # Set investigation status
-        assessment.investigation_status = "in_progress"
-        await db.commit()
-
-        # Run autonomous investigation
-        investigation_result = await run_autonomous_investigation(
-            company_name=company_name,
-            assessment_id=assessment_id,
-            companies_house_number=companies_house_number
-        )
-
-        # Store results in assessment
-        assessment.investigation_report = investigation_result.get("final_report", {})
-        assessment.investigation_status = investigation_result.get("status", "failed")
-
-        # Update risk score if not already set
-        if assessment.risk_score is None:
-            overall_score = investigation_result.get("final_report", {}).get("overall_risk_score", 50)
-            assessment.risk_score = overall_score
-
-        await db.commit()
-
-        logger.info(f"Investigation completed for assessment {assessment_id}: {investigation_result.get('status')}")
-
-    except Exception as e:
-        logger.error(f"Investigation task failed for {assessment_id}: {e}")
-
-        # Update status to failed
+    async with AsyncSessionLocal() as db:
         try:
+            logger.info(f"Background investigation started for assessment {assessment_id}")
+
+            # Update assessment status
             result = await db.execute(
                 select(Assessment).where(Assessment.id == uuid.UUID(assessment_id))
             )
             assessment = result.scalar_one_or_none()
-            if assessment:
-                assessment.investigation_status = "failed"
-                assessment.investigation_report = {"error": str(e)}
-                await db.commit()
-        except Exception as db_error:
-            logger.error(f"Failed to update investigation status: {db_error}")
+
+            if not assessment:
+                logger.error(f"Assessment {assessment_id} not found")
+                return
+
+            # Set investigation status
+            assessment.investigation_status = "in_progress"
+            await db.commit()
+
+            # Run autonomous investigation
+            investigation_result = await run_autonomous_investigation(
+                company_name=company_name,
+                assessment_id=assessment_id,
+                companies_house_number=companies_house_number
+            )
+
+            # Store results in assessment
+            assessment.investigation_report = investigation_result.get("final_report", {})
+            assessment.investigation_status = investigation_result.get("status", "failed")
+
+            # Update risk score if not already set
+            if assessment.risk_score is None:
+                overall_score = investigation_result.get("final_report", {}).get("overall_risk_score", 50)
+                assessment.risk_score = overall_score
+
+            await db.commit()
+
+            logger.info(f"Investigation completed for assessment {assessment_id}: {investigation_result.get('status')}")
+
+        except Exception as e:
+            logger.error(f"Investigation task failed for {assessment_id}: {e}")
+
+            # Update status to failed
+            try:
+                result = await db.execute(
+                    select(Assessment).where(Assessment.id == uuid.UUID(assessment_id))
+                )
+                assessment = result.scalar_one_or_none()
+                if assessment:
+                    assessment.investigation_status = "failed"
+                    assessment.investigation_report = {"error": str(e)}
+                    await db.commit()
+            except Exception as db_error:
+                logger.error(f"Failed to update investigation status: {db_error}")
 
 
 # =============================================================================
@@ -207,7 +209,6 @@ async def trigger_investigation(
             assessment_id=str(assessment.id),
             company_name=company_name,
             companies_house_number=assessment.companies_house_number,
-            db=db
         )
 
         return InvestigationTriggerResponse(

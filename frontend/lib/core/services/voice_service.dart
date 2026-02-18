@@ -33,7 +33,7 @@ class VoiceService {
     try {
       final response = await authService.post(
         '/voice/command',
-        body: jsonEncode({'transcript': transcript}),
+        body: {'transcript': transcript},
       );
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;

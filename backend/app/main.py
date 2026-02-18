@@ -41,6 +41,8 @@ from app.routers import blockchain        # Feature: Smart Contract Automation (
 from app.routers import copilot           # Feature: Underwriter Copilot (LangChain AI guidance)
 from app.routers import broker_comms      # Feature: Broker Communication AI (IMAP email bot)
 from app.routers import compliance        # Feature: Regulatory Compliance Scanner (FCA/PRA/EIOPA)
+from app.routers import vision            # Feature: Computer Vision Property Inspection (AWS Bedrock)
+from app.routers import voice             # Feature: Voice Commands & Transcription
 
 # Security middleware
 from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler
@@ -518,6 +520,28 @@ async def lifespan(app: FastAPI):
     try:
         from app.services.insurance_model_service import insurance_model_service
         available = insurance_model_service.load()
+        if not available:
+            # Local model not found (Docker container excludes large model files).
+            # Try downloading from S3 where the trained model was uploaded.
+            print("InstantRisk Engine: local model not found, attempting S3 download...")
+            try:
+                s3_uris = [
+                    "s3://instantrisk-documents-995306061991/ml-models/instantrisk-engine-v1-final/model.tar.gz",
+                    "s3://instantrisk-documents-995306061991/ml-models/instantrisk-engine-v1-final/output/model.tar.gz",
+                    "s3://instantrisk-documents-995306061991/ml-models/instantrisk-engine-v1-final.tar.gz",
+                ]
+                for s3_uri in s3_uris:
+                    try:
+                        available = insurance_model_service.load_from_s3(s3_uri=s3_uri, target="final")
+                        if available:
+                            print(f"InstantRisk Engine: loaded from S3 ({s3_uri})")
+                            break
+                    except Exception:
+                        continue
+                if not available:
+                    print("InstantRisk Engine: S3 load failed — running in keyword-search fallback mode")
+            except Exception as s3_err:
+                print(f"InstantRisk Engine: S3 load error ({s3_err}) — running in fallback mode")
         if available:
             config = insurance_model_service._config
             print(
@@ -681,6 +705,8 @@ app.include_router(blockchain.router, prefix=f"{settings.api_prefix}/blockchain"
 app.include_router(copilot.router, prefix=f"{settings.api_prefix}/copilot", tags=["Underwriter Copilot"])
 app.include_router(broker_comms.router, prefix=f"{settings.api_prefix}/broker-comms", tags=["Broker Communication AI"])
 app.include_router(compliance.router, prefix=f"{settings.api_prefix}/compliance", tags=["Regulatory Compliance"])
+app.include_router(vision.router, prefix=f"{settings.api_prefix}/vision", tags=["Computer Vision"])
+app.include_router(voice.router, prefix=f"{settings.api_prefix}/voice", tags=["Voice Commands"])
 
 
 if __name__ == "__main__":
