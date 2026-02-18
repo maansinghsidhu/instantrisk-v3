@@ -237,3 +237,93 @@ async def acknowledge_alert(
     await db.commit()
 
     return {"message": "Alert acknowledged", "alert_id": alert_id}
+
+
+@router.get(
+    "/news",
+    summary="Get monitoring news feed"
+)
+async def get_monitoring_news(
+    limit: int = Query(10, le=50),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns recent risk monitoring news and industry updates."""
+    # Get recent alerts as news items
+    query = (
+        select(RiskMonitoringAlert)
+        .order_by(RiskMonitoringAlert.detected_at.desc())
+        .limit(limit)
+    )
+    result = await db.execute(query)
+    alerts = result.scalars().all()
+
+    news = []
+    for a in alerts:
+        news.append({
+            "id": a.id,
+            "title": a.message[:100] if a.message else "Alert",
+            "summary": a.message,
+            "source": a.source,
+            "severity": a.severity,
+            "category": a.alert_type,
+            "published_at": a.detected_at.isoformat() if a.detected_at else None,
+        })
+
+    return {"items": news, "count": len(news)}
+
+
+@router.get(
+    "/dashboard",
+    summary="Get monitoring dashboard summary"
+)
+async def get_monitoring_dashboard(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns monitoring dashboard with alert stats and trends."""
+    now = datetime.now(timezone.utc)
+    last_24h = now - timedelta(hours=24)
+    last_7d = now - timedelta(days=7)
+
+    # Total alerts
+    total_q = await db.execute(select(func.count(RiskMonitoringAlert.id)))
+    total = total_q.scalar() or 0
+
+    # Last 24h
+    recent_q = await db.execute(
+        select(func.count(RiskMonitoringAlert.id))
+        .where(RiskMonitoringAlert.detected_at >= last_24h)
+    )
+    recent = recent_q.scalar() or 0
+
+    # Last 7 days
+    week_q = await db.execute(
+        select(func.count(RiskMonitoringAlert.id))
+        .where(RiskMonitoringAlert.detected_at >= last_7d)
+    )
+    week = week_q.scalar() or 0
+
+    # By severity
+    sev_q = await db.execute(
+        select(RiskMonitoringAlert.severity, func.count(RiskMonitoringAlert.id))
+        .group_by(RiskMonitoringAlert.severity)
+    )
+    by_severity = {row[0]: row[1] for row in sev_q.all()}
+
+    # Unacknowledged
+    unack_q = await db.execute(
+        select(func.count(RiskMonitoringAlert.id))
+        .where(RiskMonitoringAlert.acknowledged == False)
+    )
+    unacknowledged = unack_q.scalar() or 0
+
+    return {
+        "total_alerts": total,
+        "alerts_24h": recent,
+        "alerts_7d": week,
+        "unacknowledged": unacknowledged,
+        "by_severity": by_severity,
+        "monitoring_active": True,
+        "last_updated": now.isoformat(),
+    }
