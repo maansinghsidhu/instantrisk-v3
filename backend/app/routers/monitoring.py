@@ -48,7 +48,6 @@ class MonitoringStatusResponse(BaseModel):
 
 @router.get(
     "/alerts",
-    response_model=List[AlertResponse],
     summary="List all risk alerts"
 )
 async def list_alerts(
@@ -82,19 +81,22 @@ async def list_alerts(
     result = await db.execute(query)
     alerts = result.scalars().all()
 
-    return [
-        AlertResponse(
-            id=alert.id,
-            assessment_id=str(alert.assessment_id),
-            alert_type=alert.alert_type,
-            severity=alert.severity,
-            message=alert.message,
-            source=alert.source,
-            detected_at=alert.detected_at,
-            acknowledged=alert.acknowledged
-        )
-        for alert in alerts
-    ]
+    return {
+        "alerts": [
+            {
+                "id": alert.id,
+                "assessment_id": str(alert.assessment_id),
+                "alert_type": alert.alert_type,
+                "severity": alert.severity,
+                "message": alert.message,
+                "source": alert.source,
+                "detected_at": alert.detected_at.isoformat() if alert.detected_at else None,
+                "acknowledged": alert.acknowledged,
+            }
+            for alert in alerts
+        ],
+        "count": len(alerts),
+    }
 
 
 @router.get(
@@ -300,7 +302,7 @@ async def get_monitoring_news(
             "url": "https://www.bankofengland.co.uk",
         },
     ]
-    return news[:limit]
+    return {"articles": news[:limit]}
 
 
 @router.get(
@@ -332,6 +334,20 @@ async def get_monitoring_dashboard(
     )
     high_count = high.scalar() or 0
 
+    medium = await db.execute(
+        select(func.count()).select_from(RiskMonitoringAlert).where(
+            RiskMonitoringAlert.severity == 'medium'
+        )
+    )
+    medium_count = medium.scalar() or 0
+
+    low = await db.execute(
+        select(func.count()).select_from(RiskMonitoringAlert).where(
+            RiskMonitoringAlert.severity == 'low'
+        )
+    )
+    low_count = low.scalar() or 0
+
     unacked = await db.execute(
         select(func.count()).select_from(RiskMonitoringAlert).where(
             RiskMonitoringAlert.acknowledged == False
@@ -339,33 +355,34 @@ async def get_monitoring_dashboard(
     )
     unacked_count = unacked.scalar() or 0
 
-    # Recent alerts (last 7 days)
-    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
-    recent = await db.execute(
-        select(func.count()).select_from(RiskMonitoringAlert).where(
-            RiskMonitoringAlert.detected_at >= week_ago
-        )
+    # Recent breach alerts
+    recent_breaches_result = await db.execute(
+        select(RiskMonitoringAlert).where(
+            RiskMonitoringAlert.alert_type == 'breach_detected'
+        ).order_by(RiskMonitoringAlert.detected_at.desc()).limit(10)
     )
-    recent_count = recent.scalar() or 0
+    recent_breaches = recent_breaches_result.scalars().all()
 
     return {
-        "summary": {
-            "total_alerts": total_count,
-            "critical_alerts": critical_count,
-            "high_alerts": high_count,
-            "unacknowledged": unacked_count,
-            "alerts_last_7_days": recent_count,
-        },
-        "risk_level": "high" if critical_count > 0 else "medium" if high_count > 0 else "low",
-        "monitoring_active": True,
-        "sources": [
-            {"name": "HIBP", "status": "active", "last_check": "2026-02-18T14:00:00Z"},
-            {"name": "USGS", "status": "active", "last_check": "2026-02-18T14:00:00Z"},
-            {"name": "NOAA", "status": "active", "last_check": "2026-02-18T14:00:00Z"},
-            {"name": "NASA FIRMS", "status": "active", "last_check": "2026-02-18T14:00:00Z"},
-            {"name": "CISA", "status": "active", "last_check": "2026-02-18T14:00:00Z"},
-            {"name": "GDELT", "status": "active", "last_check": "2026-02-18T14:00:00Z"},
+        "critical": critical_count,
+        "high": high_count,
+        "medium": medium_count,
+        "low": low_count,
+        "total": total_count,
+        "unacknowledged": unacked_count,
+        "total_breaches": len(recent_breaches),
+        "recent_breaches": [
+            {
+                "id": b.id,
+                "message": b.message,
+                "source": b.source,
+                "severity": b.severity,
+                "detected_at": b.detected_at.isoformat() if b.detected_at else None,
+            }
+            for b in recent_breaches
         ],
+        "monitoring_active": True,
+        "last_updated": datetime.now(timezone.utc).isoformat(),
     }
 
 
