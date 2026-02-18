@@ -142,12 +142,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
           onPressed: () => context.go('/welcome'),
         ),
       ),
@@ -185,19 +185,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Header
                 Text(
                   l10n.welcomeBack,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.text1(context),
+                    color: AppTheme.textPrimary,
                     fontFamily: 'Inter',
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Sign in to continue',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 15,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                     fontFamily: 'Inter',
                   ),
                 ),
@@ -231,10 +231,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Email field
                 Text(
                   l10n.email,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.text1(context),
+                    color: AppTheme.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -244,16 +244,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     hintText: l10n.email,
-                    prefixIcon: Icon(Icons.email_outlined, color: AppTheme.textH(context)),
+                    prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.textHint),
                     filled: true,
-                    fillColor: AppTheme.surfaceOf(context),
+                    fillColor: AppTheme.surface,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppTheme.borderOf(context)),
+                      borderSide: const BorderSide(color: AppTheme.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppTheme.borderOf(context)),
+                      borderSide: const BorderSide(color: AppTheme.border),
                     ),
                   ),
                   validator: (value) {
@@ -271,10 +271,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Password field
                 Text(
                   l10n.password,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.text1(context),
+                    color: AppTheme.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -286,25 +286,25 @@ class _LoginScreenState extends State<LoginScreen> {
                   onFieldSubmitted: (_) => _handleLogin(),
                   decoration: InputDecoration(
                     hintText: l10n.password,
-                    prefixIcon: Icon(Icons.lock_outlined, color: AppTheme.textH(context)),
+                    prefixIcon: const Icon(Icons.lock_outlined, color: AppTheme.textHint),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: AppTheme.textH(context),
+                        color: AppTheme.textHint,
                       ),
                       onPressed: () {
                         setState(() => _obscurePassword = !_obscurePassword);
                       },
                     ),
                     filled: true,
-                    fillColor: AppTheme.surfaceOf(context),
+                    fillColor: AppTheme.surface,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppTheme.borderOf(context)),
+                      borderSide: const BorderSide(color: AppTheme.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppTheme.borderOf(context)),
+                      borderSide: const BorderSide(color: AppTheme.border),
                     ),
                   ),
                   validator: (value) {
@@ -376,9 +376,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       Text(
                         '${l10n.login} - ',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                       GestureDetector(
@@ -393,11 +393,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      Text(
+                      const Text(
                         ' & ',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                       GestureDetector(
@@ -423,7 +423,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Text(
                       '${l10n.createAccount}? ',
-                      style: TextStyle(color: AppTheme.text2(context)),
+                      style: const TextStyle(color: AppTheme.textSecondary),
                     ),
                     TextButton(
                       onPressed: () => context.go('/register'),
