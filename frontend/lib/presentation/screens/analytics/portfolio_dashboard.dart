@@ -181,7 +181,10 @@ class _PortfolioDashboardState extends State<PortfolioDashboard>
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
-        child: Column(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // KPI Grid - responsive columns for web
@@ -315,6 +318,8 @@ class _PortfolioDashboardState extends State<PortfolioDashboard>
               ),
             ),
           ],
+        ),
+          ),
         ),
       ),
     );
