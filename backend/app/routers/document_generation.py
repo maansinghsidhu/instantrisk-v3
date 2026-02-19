@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db, AsyncSessionLocal
@@ -729,12 +729,12 @@ async def list_all_generated_documents(
     result = await db.execute(query)
     documents = result.scalars().all()
 
-    # Get total count
-    count_query = select(GeneratedDocument).where(
+    # Get total count (efficient SQL COUNT instead of loading all records)
+    count_query = select(func.count(GeneratedDocument.id)).where(
         GeneratedDocument.assessment_id.in_(assessment_ids)
     )
     count_result = await db.execute(count_query)
-    total = len(count_result.scalars().all())
+    total = count_result.scalar() or 0
 
     return GeneratedDocumentListResponse(
         items=[GeneratedDocumentResponse.model_validate(doc) for doc in documents],

@@ -598,10 +598,16 @@ class InsuranceMultiTaskModel(nn.Module):
         D: Intent classifier (39 classes, softmax)
     """
 
-    def __init__(self, base_model_name: str, num_clause_labels: int, num_intent_labels: int):
+    def __init__(self, base_model_name: str, num_clause_labels: int, num_intent_labels: int, model_dir: str = None):
         super().__init__()
 
-        self.encoder = AutoModel.from_pretrained(base_model_name, local_files_only=True)  # noqa: B615
+        # Try local base_model/ subdir first (EFS/bundled), then fall back to HuggingFace name
+        base_model_path = base_model_name
+        if model_dir:
+            local_base = os.path.join(model_dir, "base_model")
+            if os.path.isdir(local_base):
+                base_model_path = local_base
+        self.encoder = AutoModel.from_pretrained(base_model_path, local_files_only=(base_model_path != base_model_name))  # noqa: B615
         hidden_size = self.encoder.config.hidden_size
 
         # Shared projection (dimensionality reduction for task heads)

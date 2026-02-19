@@ -73,7 +73,12 @@ async def seed_test_users(session: AsyncSession) -> int:
                     text("""
                         INSERT INTO subscriptions (user_id, tier, status, started_at, expires_at, created_at, updated_at)
                         VALUES (:user_id, :tier, 'active', NOW(), NOW() + INTERVAL '1 year', NOW(), NOW())
-                        ON CONFLICT (user_id) DO UPDATE SET tier = :tier, status = 'active'
+                        ON CONFLICT (user_id) DO UPDATE SET tier = :tier, status = 'active',
+                            expires_at = NOW() + INTERVAL '1 year',
+                            monthly_assessments_used = 0,
+                            monthly_documents_generated = 0,
+                            monthly_chat_messages_used = 0,
+                            updated_at = NOW()
                     """),
                     {"user_id": existing, "tier": user_data["tier"]}
                 )

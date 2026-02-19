@@ -58,7 +58,7 @@ class _ShapWaterfallChartState extends State<ShapWaterfallChart>
   double get _maxAbs {
     if (_sortedValues.isEmpty) return 1.0;
     return _sortedValues
-        .map((e) => (e['value'] as num).abs())
+        .map((e) => (e['value'] as num).abs().toDouble())
         .reduce((a, b) => a > b ? a : b);
   }
 

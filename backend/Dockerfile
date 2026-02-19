@@ -44,6 +44,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /app/wheels /wheels
 RUN pip install --no-cache /wheels/*
 
+# Create home directory for appuser (matplotlib/fontconfig need writable dirs)
+RUN mkdir -p /home/appuser/.config/matplotlib
+RUN chown -R appuser:appuser /home/appuser
+
 # Copy application code
 COPY --chown=appuser:appuser app/ ./app/
 COPY --chown=appuser:appuser alembic/ ./alembic/
@@ -52,7 +56,8 @@ COPY --chown=appuser:appuser alembic.ini ./
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PORT=8000
+    PORT=8000 \
+    MPLCONFIGDIR=/home/appuser/.config/matplotlib
 
 # Switch to non-root user
 USER appuser
@@ -61,8 +66,8 @@ USER appuser
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=300s --retries=3 \
     CMD curl -f http://localhost:8000/api/v1/health/live || exit 1
 
 # Run with uvicorn
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

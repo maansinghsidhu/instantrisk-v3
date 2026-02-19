@@ -11,6 +11,7 @@ from uuid import UUID
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+import os
 from sentence_transformers import SentenceTransformer
 
 from app.models.assessment import Assessment
@@ -29,7 +30,9 @@ class PrecedentSearchService:
 
     def __init__(self):
         # Use same embedding model as RAG system
-        self.model = SentenceTransformer('llmware/industry-bert-insurance-v0.1')
+        efs_path = "/mnt/efs/models/sentence-transformer-insurance"
+        model_id = efs_path if os.path.isdir(efs_path) else 'llmware/industry-bert-insurance-v0.1'
+        self.model = SentenceTransformer(model_id)
         logger.info("PrecedentSearchService initialized with insurance-BERT")
 
     async def embed_assessment(

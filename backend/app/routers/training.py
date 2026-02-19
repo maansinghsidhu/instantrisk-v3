@@ -173,6 +173,23 @@ async def get_training_documents(
         return {"documents": [], "total": 0}
 
 
+@router.get("/documents/{doc_id}/chunks")
+async def get_document_chunks(
+    doc_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get text chunks for a specific training document."""
+    try:
+        chunks = await qdrant_service.get_document_chunks(
+            doc_id=doc_id,
+            user_id=str(current_user.id)
+        )
+        return {"chunks": chunks, "total": len(chunks)}
+    except Exception as e:
+        logger.error(f"Failed to get document chunks: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/upload")
 async def upload_training_document(
     file: UploadFile = File(...),

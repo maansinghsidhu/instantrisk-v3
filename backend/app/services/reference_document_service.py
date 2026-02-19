@@ -36,10 +36,13 @@ class ReferenceDocumentService:
         if self._model_loaded:
             return True
         try:
+            import os
             from sentence_transformers import SentenceTransformer
-            self.embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+            efs_path = "/mnt/efs/models/sentence-transformer-insurance"
+            model_id = efs_path if os.path.isdir(efs_path) else EMBEDDING_MODEL
+            self.embedding_model = SentenceTransformer(model_id)
             self._model_loaded = True
-            logger.info(f"Loaded embedding model: {EMBEDDING_MODEL}")
+            logger.info(f"Loaded embedding model from: {model_id}")
             return True
         except Exception as e:
             logger.error(f"Failed to load embedding model: {e}")

@@ -34,10 +34,13 @@ class QdrantService:
         if self._model_loaded:
             return True
         try:
+            import os as _os
             from sentence_transformers import SentenceTransformer
-            self.embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+            efs_path = "/mnt/efs/models/sentence-transformer-insurance"
+            model_id = efs_path if _os.path.isdir(efs_path) else EMBEDDING_MODEL
+            self.embedding_model = SentenceTransformer(model_id)
             self._model_loaded = True
-            logger.info(f"Loaded embedding model: {EMBEDDING_MODEL}")
+            logger.info(f"Loaded embedding model from: {model_id}")
             return True
         except Exception as e:
             logger.error(f"Failed to load embedding model: {e}")
@@ -277,6 +280,35 @@ class QdrantService:
         except Exception as e:
             logger.error(f"Failed to add training document: {e}")
             raise
+
+    async def get_document_chunks(self, doc_id: str, user_id: str) -> List[Dict]:
+        """Get all text chunks for a specific training document."""
+        try:
+            engine = self._get_sync_engine()
+            from sqlalchemy import text as sql_text
+
+            with engine.begin() as conn:
+                result = conn.execute(sql_text("""
+                    SELECT chunk_index, text, char_length(text) as char_count
+                    FROM user_doc_vectors
+                    WHERE doc_id = :doc_id AND user_id = :user_id
+                    ORDER BY chunk_index
+                """), {"doc_id": doc_id, "user_id": user_id})
+                rows = result.fetchall()
+
+            return [
+                {
+                    "index": row[0],
+                    "text": row[1][:500],
+                    "full_length": row[2],
+                    "truncated": row[2] > 500,
+                }
+                for row in rows
+            ]
+
+        except Exception as e:
+            logger.error(f"Failed to get document chunks: {e}")
+            return []
 
     async def delete_training_document(self, doc_id: str, user_id: str) -> bool:
         """Delete all chunks of a training document."""

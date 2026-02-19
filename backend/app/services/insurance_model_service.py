@@ -35,9 +35,14 @@ except ImportError:
 # Configuration
 # =============================================================================
 
-# Look for best model first, then final
-MODEL_DIR_BEST = os.path.join(os.path.dirname(__file__), "..", "data", "models", "instantrisk-engine-v1-best")
-MODEL_DIR_FINAL = os.path.join(os.path.dirname(__file__), "..", "data", "models", "instantrisk-engine-v1-final")
+# EFS mount paths (primary — persistent, shared across deployments)
+EFS_MODEL_DIR_BEST = "/mnt/efs/models/instantrisk-engine-v1-best"
+EFS_MODEL_DIR_FINAL = "/mnt/efs/models/instantrisk-engine-v1-final"
+EFS_SENTENCE_TRANSFORMER = "/mnt/efs/models/sentence-transformer-insurance"
+
+# Fallback: bundled in Docker image (app/data/models/)
+LOCAL_MODEL_DIR_BEST = os.path.join(os.path.dirname(__file__), "..", "data", "models", "instantrisk-engine-v1-best")
+LOCAL_MODEL_DIR_FINAL = os.path.join(os.path.dirname(__file__), "..", "data", "models", "instantrisk-engine-v1-final")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu") if _TORCH_AVAILABLE else None
 MAX_SEQ_LEN = 256
 EMBEDDING_DIM = 512  # shared_proj output dim
@@ -73,14 +78,14 @@ class InsuranceModelService:
             self._available = False
             return False
 
-        # Find model directory
+        # Find model directory: EFS first, then local
         if model_dir is None:
-            if os.path.exists(os.path.join(MODEL_DIR_BEST, "model.pt")):
-                model_dir = MODEL_DIR_BEST
-            elif os.path.exists(os.path.join(MODEL_DIR_FINAL, "model.pt")):
-                model_dir = MODEL_DIR_FINAL
-            else:
-                print(f"InstantRisk Engine model not found — running in fallback mode")
+            for candidate in [EFS_MODEL_DIR_BEST, EFS_MODEL_DIR_FINAL, LOCAL_MODEL_DIR_BEST, LOCAL_MODEL_DIR_FINAL]:
+                if os.path.exists(os.path.join(candidate, "model.pt")):
+                    model_dir = candidate
+                    break
+            if model_dir is None:
+                print("InstantRisk Engine model not found — running in fallback mode")
                 self._loaded = True
                 self._available = False
                 return False
@@ -106,6 +111,7 @@ class InsuranceModelService:
                 base_model_name=self._config["base_model"],
                 num_clause_labels=self._config["num_clause_labels"],
                 num_intent_labels=self._config["num_intent_labels"],
+                model_dir=model_dir,
             ).to(DEVICE)
 
             # Load trained weights (state_dict only)
@@ -146,7 +152,12 @@ class InsuranceModelService:
         bucket = parts[0]
         key = parts[1]
 
-        models_dir = os.path.join(os.path.dirname(__file__), "..", "data", "models")
+        # Save to EFS if available, otherwise local
+        efs_models_dir = "/mnt/efs/models"
+        if os.path.isdir("/mnt/efs"):
+            models_dir = efs_models_dir
+        else:
+            models_dir = os.path.join(os.path.dirname(__file__), "..", "data", "models")
         os.makedirs(models_dir, exist_ok=True)
 
         slot_name = "instantrisk-engine-v1-best" if target == "best" else "instantrisk-engine-v1-final"

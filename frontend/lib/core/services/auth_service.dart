@@ -421,11 +421,11 @@ class AuthService {
   }
 
   /// Make authenticated GET request
-  Future<http.Response> get(String endpoint, {bool isRetry = false}) async {
+  Future<http.Response> get(String endpoint, {bool isRetry = false, Duration timeout = const Duration(seconds: 60)}) async {
     final response = await http.get(
       Uri.parse("$_baseUrl$endpoint"),
       headers: authHeaders,
-    ).timeout(const Duration(seconds: 30));
+    ).timeout(timeout);
     return _handleResponse(response, endpoint: endpoint, isRetry: isRetry);
   }
 

@@ -69,6 +69,15 @@ import '../screens/monitoring/risk_monitor_dashboard.dart';
 import '../screens/analytics/portfolio_dashboard.dart';
 import '../screens/entities/entity_graph_screen.dart';
 
+// Broker Portal Screens
+import '../screens/broker/broker_login_screen.dart';
+import '../screens/broker/broker_register_screen.dart';
+import '../screens/broker/broker_dashboard_screen.dart';
+import '../screens/broker/broker_submissions_list_screen.dart';
+import '../screens/broker/broker_create_submission_screen.dart';
+import '../screens/broker/broker_submission_detail_screen.dart';
+import '../screens/broker/broker_quote_detail_screen.dart';
+
 // Shell for bottom navigation
 import '../widgets/common/main_shell.dart';
 
@@ -612,6 +621,50 @@ class AppRouter {
             ],
           ),
         ],
+      ),
+
+      // ═══════════════════════════════════════════════════════════════
+      // BROKER PORTAL ROUTES (br.instantrisk.io)
+      // ═══════════════════════════════════════════════════════════════
+
+      GoRoute(
+        path: '/broker/login',
+        name: 'brokerLogin',
+        builder: (context, state) => const BrokerLoginScreen(),
+      ),
+      GoRoute(
+        path: '/broker/register',
+        name: 'brokerRegister',
+        builder: (context, state) => const BrokerRegisterScreen(),
+      ),
+      GoRoute(
+        path: '/broker/dashboard',
+        name: 'brokerDashboard',
+        builder: (context, state) => const BrokerDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/broker/submissions',
+        name: 'brokerSubmissions',
+        builder: (context, state) => const BrokerSubmissionsListScreen(),
+      ),
+      GoRoute(
+        path: '/broker/submissions/create',
+        name: 'brokerCreateSubmission',
+        builder: (context, state) => const BrokerCreateSubmissionScreen(),
+      ),
+      GoRoute(
+        path: '/broker/submissions/:submissionId',
+        name: 'brokerSubmissionDetail',
+        builder: (context, state) => BrokerSubmissionDetailScreen(
+          submissionId: state.pathParameters['submissionId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/broker/quotes/:quoteId',
+        name: 'brokerQuoteDetail',
+        builder: (context, state) => BrokerQuoteDetailScreen(
+          quoteId: state.pathParameters['quoteId']!,
+        ),
       ),
     ],
 

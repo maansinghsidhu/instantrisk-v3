@@ -2,6 +2,7 @@
 Risk Monitoring Router
 
 API endpoints for continuous risk monitoring and alerts.
+All alerts are scoped to the current user's portfolio (their assessments).
 """
 
 from typing import List, Optional
@@ -10,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -46,32 +47,57 @@ class MonitoringStatusResponse(BaseModel):
     monitoring_active: bool
 
 
+def _user_assessment_ids(current_user):
+    """Subquery: all assessment IDs belonging to this user."""
+    return select(Assessment.id).where(Assessment.created_by == current_user.id)
+
+
 @router.get(
     "/alerts",
-    summary="List all risk alerts"
+    summary="List portfolio risk alerts"
 )
 async def list_alerts(
     severity: Optional[str] = Query(None, description="Filter by severity"),
+    alert_type: Optional[str] = Query(None, description="Filter by alert type"),
+    search: Optional[str] = Query(None, description="Search alerts by message text"),
+    assessment_id: Optional[str] = Query(None, description="Filter by specific assessment"),
     acknowledged: Optional[bool] = Query(None, description="Filter by acknowledged status"),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    List risk monitoring alerts.
+    List risk monitoring alerts for the current user's portfolio.
 
-    Filters:
-    - severity: low, medium, high, critical
-    - acknowledged: true/false
-    - limit: max results
+    Alerts are linked to assessments - only shows alerts for companies
+    in your portfolio. Supports search and filtering.
     """
+    # Get user's assessment IDs
+    user_aids = _user_assessment_ids(current_user)
 
-    query = select(RiskMonitoringAlert).order_by(
-        RiskMonitoringAlert.detected_at.desc()
+    query = (
+        select(RiskMonitoringAlert, Assessment.insured_entity_name)
+        .outerjoin(Assessment, RiskMonitoringAlert.assessment_id == Assessment.id)
+        .where(RiskMonitoringAlert.assessment_id.in_(user_aids))
+        .order_by(RiskMonitoringAlert.detected_at.desc())
     )
 
     if severity:
         query = query.where(RiskMonitoringAlert.severity == severity)
+
+    if alert_type:
+        query = query.where(RiskMonitoringAlert.alert_type == alert_type)
+
+    if search:
+        query = query.where(
+            or_(
+                RiskMonitoringAlert.message.ilike(f"%{search}%"),
+                Assessment.insured_entity_name.ilike(f"%{search}%"),
+            )
+        )
+
+    if assessment_id:
+        query = query.where(RiskMonitoringAlert.assessment_id == assessment_id)
 
     if acknowledged is not None:
         query = query.where(RiskMonitoringAlert.acknowledged == acknowledged)
@@ -79,13 +105,14 @@ async def list_alerts(
     query = query.limit(limit)
 
     result = await db.execute(query)
-    alerts = result.scalars().all()
+    rows = result.all()
 
     return {
         "alerts": [
             {
                 "id": alert.id,
-                "assessment_id": str(alert.assessment_id),
+                "assessment_id": str(alert.assessment_id) if alert.assessment_id else None,
+                "company_name": company_name or "Unknown",
                 "alert_type": alert.alert_type,
                 "severity": alert.severity,
                 "message": alert.message,
@@ -93,9 +120,9 @@ async def list_alerts(
                 "detected_at": alert.detected_at.isoformat() if alert.detected_at else None,
                 "acknowledged": alert.acknowledged,
             }
-            for alert in alerts
+            for alert, company_name in rows
         ],
-        "count": len(alerts),
+        "count": len(rows),
     }
 
 
@@ -109,17 +136,8 @@ async def get_monitoring_status(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """
-    Get risk monitoring status for an assessment.
+    """Get risk monitoring status for a specific assessment."""
 
-    Shows:
-    - Total alerts
-    - Critical alerts
-    - Unacknowledged alerts
-    - Latest alert
-    """
-
-    # Get alert statistics
     total = await db.execute(
         select(func.count()).select_from(RiskMonitoringAlert).where(
             RiskMonitoringAlert.assessment_id == assessment_id
@@ -143,7 +161,6 @@ async def get_monitoring_status(
     )
     unacked_count = unacked.scalar()
 
-    # Get latest alert
     latest_result = await db.execute(
         select(RiskMonitoringAlert).where(
             RiskMonitoringAlert.assessment_id == assessment_id
@@ -179,11 +196,7 @@ async def check_assessment_breaches(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """
-    Check if assessment's insured company has data breaches.
-
-    Uses Have I Been Pwned API (free, no key required).
-    """
+    """Check if assessment's insured company has data breaches via HIBP."""
 
     assessment = await db.get(Assessment, assessment_id)
     if not assessment:
@@ -192,10 +205,8 @@ async def check_assessment_breaches(
             detail=f"Assessment {assessment_id} not found"
         )
 
-    # Run HIBP check
     result = await hibp_monitor.monitor_assessment(db, assessment)
 
-    # If breaches found, create alert
     if result['status'] == 'breaches_found':
         alert = RiskMonitoringAlert(
             assessment_id=assessment.id,
@@ -221,9 +232,7 @@ async def acknowledge_alert(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """
-    Mark alert as acknowledged by underwriter.
-    """
+    """Mark alert as acknowledged by underwriter."""
 
     alert = await db.get(RiskMonitoringAlert, alert_id)
     if not alert:
@@ -247,10 +256,29 @@ async def acknowledge_alert(
 )
 async def get_monitoring_news(
     limit: int = Query(10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Return curated insurance industry news and risk intelligence updates."""
-    news = [
+    """
+    Return insurance industry news relevant to the user's portfolio.
+    Includes curated industry news tagged with portfolio relevance.
+    """
+    # Get user's portfolio categories for relevance scoring
+    cats_result = await db.execute(
+        select(Assessment.risk_category, Assessment.territory)
+        .where(Assessment.created_by == current_user.id)
+        .distinct()
+    )
+    portfolio_cats = set()
+    portfolio_territories = set()
+    for row in cats_result.all():
+        if row[0]:
+            portfolio_cats.add(row[0].lower())
+        if row[1]:
+            portfolio_territories.add(row[1].lower())
+
+    # Curated industry news - tagged with relevance to portfolio
+    all_news = [
         {
             "id": 1,
             "title": "Lloyd's Reports Record Catastrophe Losses for Q4 2025",
@@ -260,6 +288,8 @@ async def get_monitoring_news(
             "severity": "high",
             "published_at": "2026-02-18T08:00:00Z",
             "url": "https://www.lloyds.com/news-and-insights",
+            "relevant_categories": ["property", "energy", "marine"],
+            "relevant_territories": ["us", "united states", "asia", "southeast asia"],
         },
         {
             "id": 2,
@@ -270,6 +300,8 @@ async def get_monitoring_news(
             "severity": "medium",
             "published_at": "2026-02-17T14:30:00Z",
             "url": "https://www.fca.org.uk",
+            "relevant_categories": ["cyber", "professional_indemnity", "liability"],
+            "relevant_territories": ["uk", "united kingdom", "london"],
         },
         {
             "id": 3,
@@ -280,6 +312,8 @@ async def get_monitoring_news(
             "severity": "high",
             "published_at": "2026-02-16T10:00:00Z",
             "url": "https://www.swissre.com",
+            "relevant_categories": ["cyber", "technology", "professional_indemnity"],
+            "relevant_territories": [],
         },
         {
             "id": 4,
@@ -290,6 +324,8 @@ async def get_monitoring_news(
             "severity": "high",
             "published_at": "2026-02-15T16:00:00Z",
             "url": "https://www.noaa.gov",
+            "relevant_categories": ["property", "marine", "energy", "aviation"],
+            "relevant_territories": ["us", "united states", "caribbean", "atlantic"],
         },
         {
             "id": 5,
@@ -300,9 +336,25 @@ async def get_monitoring_news(
             "severity": "medium",
             "published_at": "2026-02-14T09:00:00Z",
             "url": "https://www.bankofengland.co.uk",
+            "relevant_categories": [],
+            "relevant_territories": ["uk", "united kingdom", "london"],
         },
     ]
-    return {"articles": news[:limit]}
+
+    # Score relevance to user's portfolio
+    for article in all_news:
+        rel_cats = set(article.get("relevant_categories", []))
+        rel_terrs = set(article.get("relevant_territories", []))
+        cat_overlap = len(portfolio_cats & rel_cats)
+        terr_overlap = len(portfolio_territories & rel_terrs)
+        article["portfolio_relevance"] = "high" if (cat_overlap + terr_overlap) >= 2 else (
+            "medium" if (cat_overlap + terr_overlap) >= 1 else "general"
+        )
+        # Clean up internal fields
+        del article["relevant_categories"]
+        del article["relevant_territories"]
+
+    return {"articles": all_news[:limit]}
 
 
 @router.get(
@@ -313,55 +365,96 @@ async def get_monitoring_dashboard(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Return monitoring dashboard with alert statistics and risk overview."""
-    # Alert counts by severity
+    """
+    Return monitoring dashboard scoped to user's portfolio.
+    Only counts alerts linked to the user's assessments.
+    """
+    # Get user's assessment IDs
+    user_aids = _user_assessment_ids(current_user)
+
+    # Alert counts by severity - SCOPED to user's portfolio
     total = await db.execute(
         select(func.count()).select_from(RiskMonitoringAlert)
+        .where(RiskMonitoringAlert.assessment_id.in_(user_aids))
     )
     total_count = total.scalar() or 0
 
     critical = await db.execute(
-        select(func.count()).select_from(RiskMonitoringAlert).where(
-            RiskMonitoringAlert.severity == 'critical'
-        )
+        select(func.count()).select_from(RiskMonitoringAlert)
+        .where(RiskMonitoringAlert.assessment_id.in_(user_aids))
+        .where(RiskMonitoringAlert.severity == 'critical')
     )
     critical_count = critical.scalar() or 0
 
     high = await db.execute(
-        select(func.count()).select_from(RiskMonitoringAlert).where(
-            RiskMonitoringAlert.severity == 'high'
-        )
+        select(func.count()).select_from(RiskMonitoringAlert)
+        .where(RiskMonitoringAlert.assessment_id.in_(user_aids))
+        .where(RiskMonitoringAlert.severity == 'high')
     )
     high_count = high.scalar() or 0
 
     medium = await db.execute(
-        select(func.count()).select_from(RiskMonitoringAlert).where(
-            RiskMonitoringAlert.severity == 'medium'
-        )
+        select(func.count()).select_from(RiskMonitoringAlert)
+        .where(RiskMonitoringAlert.assessment_id.in_(user_aids))
+        .where(RiskMonitoringAlert.severity == 'medium')
     )
     medium_count = medium.scalar() or 0
 
     low = await db.execute(
-        select(func.count()).select_from(RiskMonitoringAlert).where(
-            RiskMonitoringAlert.severity == 'low'
-        )
+        select(func.count()).select_from(RiskMonitoringAlert)
+        .where(RiskMonitoringAlert.assessment_id.in_(user_aids))
+        .where(RiskMonitoringAlert.severity == 'low')
     )
     low_count = low.scalar() or 0
 
     unacked = await db.execute(
-        select(func.count()).select_from(RiskMonitoringAlert).where(
-            RiskMonitoringAlert.acknowledged == False
-        )
+        select(func.count()).select_from(RiskMonitoringAlert)
+        .where(RiskMonitoringAlert.assessment_id.in_(user_aids))
+        .where(RiskMonitoringAlert.acknowledged == False)
     )
     unacked_count = unacked.scalar() or 0
 
-    # Recent breach alerts
+    # Recent breach alerts for user's portfolio
     recent_breaches_result = await db.execute(
-        select(RiskMonitoringAlert).where(
-            RiskMonitoringAlert.alert_type == 'breach_detected'
-        ).order_by(RiskMonitoringAlert.detected_at.desc()).limit(10)
+        select(RiskMonitoringAlert, Assessment.insured_entity_name)
+        .outerjoin(Assessment, RiskMonitoringAlert.assessment_id == Assessment.id)
+        .where(RiskMonitoringAlert.assessment_id.in_(user_aids))
+        .where(RiskMonitoringAlert.alert_type == 'breach_detected')
+        .order_by(RiskMonitoringAlert.detected_at.desc()).limit(10)
     )
-    recent_breaches = recent_breaches_result.scalars().all()
+    recent_breaches = recent_breaches_result.all()
+
+    # Top affected companies in portfolio
+    top_companies_result = await db.execute(
+        select(
+            Assessment.insured_entity_name,
+            func.count(RiskMonitoringAlert.id).label("alert_count")
+        )
+        .join(Assessment, RiskMonitoringAlert.assessment_id == Assessment.id)
+        .where(RiskMonitoringAlert.assessment_id.in_(user_aids))
+        .group_by(Assessment.insured_entity_name)
+        .order_by(func.count(RiskMonitoringAlert.id).desc())
+        .limit(10)
+    )
+    top_companies = [
+        {"company": name or "Unknown", "alert_count": count}
+        for name, count in top_companies_result.all()
+    ]
+
+    # Alert type breakdown
+    type_breakdown_result = await db.execute(
+        select(
+            RiskMonitoringAlert.alert_type,
+            func.count(RiskMonitoringAlert.id)
+        )
+        .where(RiskMonitoringAlert.assessment_id.in_(user_aids))
+        .group_by(RiskMonitoringAlert.alert_type)
+        .order_by(func.count(RiskMonitoringAlert.id).desc())
+    )
+    alert_types = [
+        {"type": atype, "count": count}
+        for atype, count in type_breakdown_result.all()
+    ]
 
     return {
         "critical": critical_count,
@@ -374,15 +467,16 @@ async def get_monitoring_dashboard(
         "recent_breaches": [
             {
                 "id": b.id,
+                "company_name": company_name or "Unknown",
                 "message": b.message,
                 "source": b.source,
                 "severity": b.severity,
                 "detected_at": b.detected_at.isoformat() if b.detected_at else None,
             }
-            for b in recent_breaches
+            for b, company_name in recent_breaches
         ],
+        "top_affected_companies": top_companies,
+        "alert_type_breakdown": alert_types,
         "monitoring_active": True,
         "last_updated": datetime.now(timezone.utc).isoformat(),
     }
-
-

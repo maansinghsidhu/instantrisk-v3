@@ -1864,8 +1864,8 @@ class _ResultsScreenState extends State<ResultsScreen>
               const SizedBox(height: 24),
             ],
 
-            // Key Metrics Cards - Confidence and Documents (Premium only for detailed view)
-            if (_isPremium)
+            // Key Metrics Cards - Confidence and Documents
+            if (_isBasicOrHigher)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Row(
@@ -1892,11 +1892,11 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ],
                 ),
               ),
-            if (_isPremium) const SizedBox(height: 24),
+            if (_isBasicOrHigher) const SizedBox(height: 24),
 
-            // Upgrade Analysis Card (Premium only - they can upgrade to deeper modes)
-            if (_isPremium) _buildUpgradeCard(),
-            if (_isPremium && canUpgradeAnalysis) const SizedBox(height: 24),
+            // Upgrade Analysis Card
+            if (_isBasicOrHigher) _buildUpgradeCard(),
+            if (_isBasicOrHigher && canUpgradeAnalysis) const SizedBox(height: 24),
 
             // Coverage Details (Basic+ only)
             if (_isBasicOrHigher && coverageDetails.isNotEmpty)
@@ -2113,8 +2113,8 @@ class _ResultsScreenState extends State<ResultsScreen>
               const SizedBox(height: 24),
             ],
 
-            // Pricing Factors Section - Key data for underwriting decisions (Premium only)
-            if (_isPremium && pricingFactors.isNotEmpty && _showDetails)
+            // Pricing Factors Section - Key data for underwriting decisions
+            if (_isBasicOrHigher && pricingFactors.isNotEmpty && _showDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2269,7 +2269,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isPremium && pricingFactors.isNotEmpty && _showDetails) const SizedBox(height: 24),
+            if (_isBasicOrHigher && pricingFactors.isNotEmpty && _showDetails) const SizedBox(height: 24),
 
             // Decision Rationale (Extensive GO/NO-GO Summary) - Basic+ only
             // Trial users see only the Go/No-Go decision, not the detailed rationale
@@ -2331,7 +2331,7 @@ class _ResultsScreenState extends State<ResultsScreen>
             if (_isBasicOrHigher && decisionRationale.isNotEmpty) const SizedBox(height: 24),
 
             // Agent Reports Section - Expandable details for each AI agent (Premium only)
-            if (_isPremium && agentResults.isNotEmpty && _showDetails)
+            if (_isBasicOrHigher && agentResults.isNotEmpty && _showDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2389,10 +2389,10 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isPremium && agentResults.isNotEmpty) const SizedBox(height: 24),
+            if (_isBasicOrHigher && agentResults.isNotEmpty) const SizedBox(height: 24),
 
-            // OCR Extracted Text Section (Premium only)
-            if (_isPremium && ocrExtractedText.isNotEmpty && _showDetails)
+            // OCR Extracted Text Section
+            if (_isBasicOrHigher && ocrExtractedText.isNotEmpty && _showDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2463,10 +2463,10 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isPremium && ocrExtractedText.isNotEmpty && _showDetails) const SizedBox(height: 24),
+            if (_isBasicOrHigher && ocrExtractedText.isNotEmpty && _showDetails) const SizedBox(height: 24),
 
             // ─── GOD MODE: AI Decision Explanation ───
-            if (_isPremium && _analysis != null && _showDetails)
+            if (_isBasicOrHigher && _analysis != null && _showDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2515,10 +2515,10 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isPremium && _analysis != null && _showDetails) const SizedBox(height: 16),
+            if (_isBasicOrHigher && _analysis != null && _showDetails) const SizedBox(height: 16),
 
             // ─── GOD MODE: Similar Precedents ───
-            if (_isPremium && _showDetails)
+            if (_isBasicOrHigher && _showDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2564,10 +2564,10 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isPremium && _showDetails) const SizedBox(height: 16),
+            if (_isBasicOrHigher && _showDetails) const SizedBox(height: 16),
 
             // ─── GOD MODE: Breach Alerts (HIBP) ───
-            if (_isPremium && _showDetails)
+            if (_isBasicOrHigher && _showDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2613,10 +2613,10 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isPremium && _showDetails) const SizedBox(height: 16),
+            if (_isBasicOrHigher && _showDetails) const SizedBox(height: 16),
 
             // ─── GOD MODE: Entity Graph ───
-            if (_isPremium && _showDetails)
+            if (_isBasicOrHigher && _showDetails)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
@@ -2666,21 +2666,15 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isPremium && _showDetails) const SizedBox(height: 16),
-
-            // Upgrade prompt for lower tiers
-            if (!_isPremium) ...[
-              _buildUpgradePrompt(),
-              const SizedBox(height: 24),
-            ],
+            if (_isBasicOrHigher && _showDetails) const SizedBox(height: 16),
 
             // Action Buttons
             Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                  // AI Generate Documents Button (Premium only, enabled for GO and NO_GO)
-                  if (_isPremium) ...[
+                  // AI Generate Documents Button (Basic+ users)
+                  if (_isBasicOrHigher) ...[
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
