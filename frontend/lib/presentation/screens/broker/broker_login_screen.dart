@@ -38,8 +38,13 @@ class _BrokerLoginScreenState extends State<BrokerLoginScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        // Store token and navigate to dashboard
-        context.go('/broker/dashboard');
+        // Store token in AuthService so all subsequent API calls are authenticated
+        await authService.setBrokerToken(
+          data['access_token'],
+          data['refresh_token'] ?? '',
+          data['user'] ?? {},
+        );
+        if (mounted) context.go('/broker/dashboard');
       } else {
         final error = jsonDecode(response.body)['detail'] ?? 'Login failed';
         setState(() => _errorMessage = error);

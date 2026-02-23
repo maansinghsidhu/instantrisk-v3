@@ -26,8 +26,11 @@ import '../screens/reports/share_view_screen.dart';
 
 import '../screens/chat/unified_chat_screen.dart';
 
-import '../screens/analytics/portfolio_screen.dart';
-import '../screens/analytics/performance_screen.dart';
+// Broker Workflow Screens (Underwriter-facing)
+import '../screens/broker_workflow/broker_submissions_screen.dart';
+import '../screens/broker_workflow/broker_submission_view_screen.dart';
+import '../screens/broker_workflow/create_quote_screen.dart';
+import '../screens/broker_workflow/broker_management_screen.dart';
 
 import '../screens/settings/settings_screen.dart';
 import '../screens/settings/profile_screen.dart';
@@ -65,8 +68,6 @@ import '../screens/sanctions/sanctions_detail_screen.dart';
 import '../screens/sanctions/sanctions_screening_progress_screen.dart';
 
 // God Mode Screens
-import '../screens/monitoring/risk_monitor_dashboard.dart';
-import '../screens/analytics/portfolio_dashboard.dart';
 import '../screens/entities/entity_graph_screen.dart';
 
 // Broker Portal Screens
@@ -98,6 +99,8 @@ class AppRouter {
     '/onboarding',
     '/pending-approval',
     '/2fa-verify',
+    '/broker/login',
+    '/broker/register',
   ];
 
   /// Initialize the router and set up auth service callback
@@ -116,6 +119,8 @@ class AppRouter {
     if (location.startsWith('/upload/')) return true;
     // Share links are public (no auth required)
     if (location.startsWith('/share/')) return true;
+    // Broker portal routes with /broker/ prefix bypass main app auth
+    if (location.startsWith('/broker/')) return true;
     return false;
   }
 
@@ -361,20 +366,6 @@ class AppRouter {
 
           // ─── GOD MODE ROUTES ───
 
-          // Risk Monitor Dashboard - 24/7 alerts
-          GoRoute(
-            path: '/monitoring',
-            name: 'riskMonitor',
-            builder: (context, state) => const RiskMonitorDashboard(),
-          ),
-
-          // Portfolio Analytics Dashboard - DuckDB analytics
-          GoRoute(
-            path: '/analytics/portfolio-dashboard',
-            name: 'portfolioDashboard',
-            builder: (context, state) => const PortfolioDashboard(),
-          ),
-
           // Entity Graph - per assessment
           GoRoute(
             path: '/assessments/:assessmentId/entities',
@@ -418,22 +409,6 @@ class AppRouter {
                 builder: (context, state) => UnifiedChatScreen(
                   conversationId: state.pathParameters['conversationId'],
                 ),
-              ),
-            ],
-          ),
-
-          // ANALYTICS TAB
-          GoRoute(
-            path: '/analytics',
-            name: 'analytics',
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: PortfolioScreen(),
-            ),
-            routes: [
-              GoRoute(
-                path: 'performance',
-                name: 'performance',
-                builder: (context, state) => const PerformanceScreen(),
               ),
             ],
           ),

@@ -28,7 +28,9 @@ from app.services.rag_indexer import rag_indexer
 from app.services.qdrant_service import qdrant_service
 
 # RAG Configuration
-RAG_DATA_DIR = Path("/app/app/data") if Path("/app/app/data").exists() else Path("app/data")
+RAG_DATA_DIR = (
+    Path("/app/app/data") if Path("/app/app/data").exists() else Path("app/data")
+)
 RAG_TOP_K = 5  # Number of relevant documents to retrieve
 TRAINING_DATA_DIR = RAG_DATA_DIR / "training_data"
 
@@ -91,9 +93,15 @@ class ChatService:
         # Add language instruction if not English
         if language and language != "en":
             lang_names = {
-                "fr": "French", "de": "German", "es": "Spanish",
-                "it": "Italian", "pt": "Portuguese", "nl": "Dutch",
-                "ar": "Arabic", "zh": "Chinese", "ja": "Japanese"
+                "fr": "French",
+                "de": "German",
+                "es": "Spanish",
+                "it": "Italian",
+                "pt": "Portuguese",
+                "nl": "Dutch",
+                "ar": "Arabic",
+                "zh": "Chinese",
+                "ja": "Japanese",
             }
             lang_name = lang_names.get(language, language)
             system_content += f"""
@@ -178,41 +186,51 @@ Use the Q&A examples above to match the expected response style. Reference the c
 
         for result in rag_results:
             context_parts.append(result["text"])
-            sources.append({
-                "title": result.get("title", "Insurance Knowledge"),
-                "snippet": result["text"][:200] + "...",
-                "relevance": result.get("score", 0.8),
-                "source_type": result.get("source", "knowledge_base"),
-            })
+            sources.append(
+                {
+                    "title": result.get("title", "Insurance Knowledge"),
+                    "snippet": result["text"][:200] + "...",
+                    "relevance": result.get("score", 0.8),
+                    "source_type": result.get("source", "knowledge_base"),
+                }
+            )
 
         # If assessment_id provided, add user's document context
         if assessment_id:
-            assessment_context = await self._get_assessment_context(assessment_id, user_id)
+            assessment_context = await self._get_assessment_context(
+                assessment_id, user_id
+            )
             if assessment_context:
-                context_parts.append(f"User's Assessment Context:\n{assessment_context}")
-                sources.append({
-                    "title": "Your Assessment",
-                    "snippet": assessment_context[:200] + "...",
-                    "relevance": 1.0,
-                    "source_type": "user_doc",
-                })
+                context_parts.append(
+                    f"User's Assessment Context:\n{assessment_context}"
+                )
+                sources.append(
+                    {
+                        "title": "Your Assessment",
+                        "snippet": assessment_context[:200] + "...",
+                        "relevance": 1.0,
+                        "source_type": "user_doc",
+                    }
+                )
 
         # Search user's training documents for relevant context
         if user_id:
             try:
                 training_results = await qdrant_service.search_similar(
-                    query=query,
-                    user_id=str(user_id),
-                    limit=3
+                    query=query, user_id=str(user_id), limit=3
                 )
                 for result in training_results:
-                    context_parts.append(f"From Training Document ({result.get('filename', 'Unknown')}):\n{result.get('text', '')}")
-                    sources.append({
-                        "title": f"Training: {result.get('filename', 'Document')}",
-                        "snippet": result.get("text", "")[:200] + "...",
-                        "relevance": result.get("score", 0.7),
-                        "source_type": "training_doc",
-                    })
+                    context_parts.append(
+                        f"From Training Document ({result.get('filename', 'Unknown')}):\n{result.get('text', '')}"
+                    )
+                    sources.append(
+                        {
+                            "title": f"Training: {result.get('filename', 'Document')}",
+                            "snippet": result.get("text", "")[:200] + "...",
+                            "relevance": result.get("score", 0.7),
+                            "source_type": "training_doc",
+                        }
+                    )
             except Exception as e:
                 logger.warning(f"Failed to search training documents: {e}")
 
@@ -230,7 +248,7 @@ Use the Q&A examples above to match the expected response style. Reference the c
         """
         try:
             # Search for Q&A examples (few-shot)
-            qa_results = rag_indexer.search(query, top_k=2, doc_type="qa")
+            qa_results = rag_indexer.search(query, top_k=2, doc_type="insurance_qa")
 
             # Search for documents (clauses, policies, regulatory, claims)
             doc_results = rag_indexer.search(query, top_k=3)
@@ -240,22 +258,26 @@ Use the Q&A examples above to match the expected response style. Reference the c
             results = []
 
             for r in qa_results:
-                results.append({
-                    "text": r["text"],
-                    "title": r.get("question", "Insurance Q&A Example")[:80],
-                    "source": "training_data",
-                    "category": "few_shot",
-                    "score": r.get("score", 0.8),
-                })
+                results.append(
+                    {
+                        "text": r["text"],
+                        "title": r.get("question", "Insurance Q&A Example")[:80],
+                        "source": "training_data",
+                        "category": "few_shot",
+                        "score": r.get("score", 0.8),
+                    }
+                )
 
             for r in doc_results:
-                results.append({
-                    "text": r["text"],
-                    "title": r.get("name", r.get("category", "Document")),
-                    "source": r.get("source", "knowledge_base"),
-                    "category": r.get("category", ""),
-                    "score": r.get("score", 0.7),
-                })
+                results.append(
+                    {
+                        "text": r["text"],
+                        "title": r.get("name", r.get("category", "Document")),
+                        "source": r.get("source", "knowledge_base"),
+                        "category": r.get("category", ""),
+                        "score": r.get("score", 0.7),
+                    }
+                )
 
             if results:
                 return results
@@ -308,13 +330,15 @@ Use the Q&A examples above to match the expected response style. Reference the c
                 overlap = len(query_terms & doc_terms)
                 if overlap > 0:
                     score = overlap / max(len(query_terms), 1)
-                    results.append({
-                        "text": text[:1000],
-                        "title": "Fallback Result",
-                        "source": "keyword_search",
-                        "category": doc_type,
-                        "score": score,
-                    })
+                    results.append(
+                        {
+                            "text": text[:1000],
+                            "title": "Fallback Result",
+                            "source": "keyword_search",
+                            "category": doc_type,
+                            "score": score,
+                        }
+                    )
 
         results.sort(key=lambda x: x["score"], reverse=True)
         return results[:top_k]
@@ -339,12 +363,16 @@ Use the Q&A examples above to match the expected response style. Reference the c
                 context_parts = []
                 try:
                     if assessment.risk_category:
-                        context_parts.append(f"Risk Category: {assessment.risk_category}")
+                        context_parts.append(
+                            f"Risk Category: {assessment.risk_category}"
+                        )
                 except Exception as e:
                     logger.debug(f"Could not read risk_category: {e}")
                 try:
                     if assessment.ai_analysis:
-                        context_parts.append(f"AI Analysis: {json.dumps(assessment.ai_analysis) if isinstance(assessment.ai_analysis, dict) else assessment.ai_analysis}")
+                        context_parts.append(
+                            f"AI Analysis: {json.dumps(assessment.ai_analysis) if isinstance(assessment.ai_analysis, dict) else assessment.ai_analysis}"
+                        )
                 except Exception as e:
                     logger.debug(f"Could not read ai_analysis: {e}")
                 try:
@@ -466,12 +494,14 @@ Use the Q&A examples above to match the expected response style. Reference the c
                 title_result = await self.db.execute(title_query)
                 first_message = title_result.scalar_one_or_none()
 
-                conv_list.append({
-                    "id": conv.conversation_id,
-                    "title": (first_message or "New Conversation")[:50],
-                    "last_message_at": conv.last_message_at.isoformat(),
-                    "message_count": conv.message_count,
-                })
+                conv_list.append(
+                    {
+                        "id": conv.conversation_id,
+                        "title": (first_message or "New Conversation")[:50],
+                        "last_message_at": conv.last_message_at.isoformat(),
+                        "message_count": conv.message_count,
+                    }
+                )
 
             return conv_list
         except Exception as e:

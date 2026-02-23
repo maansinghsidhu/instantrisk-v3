@@ -373,5 +373,20 @@
   "onboardingTitle3": "24/7 बीमा AI सहायक",
   "onboardingDesc3": "20GB+ Lloyd's बाजार ज्ञान पर प्रशिक्षित हमारे AI से बीमा प्रश्नों के तुरंत उत्तर प्राप्त करें",
   "skip": "छोड़ें",
-  "getStartedNow": "शुरू करें"
+  "getStartedNow": "शुरू करें",
+  "analysisCanContinueInBackground": "आप इस विंडो को बंद कर सकते हैं। विश्लेषण पृष्ठभूमि में जारी रहेगा।",
+  "clickCalculatePricing": "तकनीकी प्रीमियम उत्पन्न करने के लिए गणना करें पर क्लिक करें।",
+  "discard": "रद्द करें",
+  "discardChangesMessage": "आपके पास सहेजे न गए परिवर्तन हैं। क्या आप उन्हें रद्द करना चाहते हैं?",
+  "discardChangesQuestion": "परिवर्तन रद्द करें?",
+  "expandLiveResults": "लाइव परिणाम दिखाएं",
+  "failedToSaveLanguage": "भाषा प्राथमिकता सहेजने में विफल। कृपया पुनः प्रयास करें।",
+  "languageChangedTo": "भाषा {languageName} में बदल दी गई",
+  "minimizeLiveResults": "छोटा करें",
+  "noAiAnalysisYet": "अभी तक कोई AI विश्लेषण उपलब्ध नहीं है।\nजोखिम अंतर्दृष्टि उत्पन्न करने के लिए विश्लेषण पर क्लिक करें।",
+  "pricingNotAvailableDeclined": "अस्वीकृत जोखिमों के लिए मूल्य निर्धारण उपलब्ध नहीं है।",
+  "rtlLabel": "RTL",
+  "saveLanguagePreference": "भाषा प्राथमिकता सहेजें",
+  "undo": "पूर्ववत करें",
+  "unsavedChangesPressSave": "आपके पास सहेजे न गए परिवर्तन हैं। नई भाषा लागू करने के लिए सहेजें दबाएं।"
 }

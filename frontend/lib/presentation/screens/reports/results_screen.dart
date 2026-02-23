@@ -12,7 +12,6 @@ import '../../../l10n/generated/app_localizations.dart';
 // God Mode integrations
 import '../../widgets/analysis/similar_risks_panel.dart';
 import '../../widgets/analysis/shap_waterfall_chart.dart';
-import '../../widgets/monitoring/breach_alert_badge.dart';
 import '../../widgets/entities/entity_graph_viz.dart';
 
 /// Results Screen - Displays GO/NO-GO decision with real AI analysis
@@ -2557,55 +2556,6 @@ class _ResultsScreenState extends State<ResultsScreen>
                       ),
                       children: [
                         SimilarRisksPanel(
-                          assessmentId: widget.assessmentId,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            if (_isBasicOrHigher && _showDetails) const SizedBox(height: 16),
-
-            // ─── GOD MODE: Breach Alerts (HIBP) ───
-            if (_isBasicOrHigher && _showDetails)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceOf(context),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.danger.withValues(alpha: 0.2)),
-                  ),
-                  child: Theme(
-                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                    child: ExpansionTile(
-                      initiallyExpanded: false,
-                      tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.danger.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.security, color: AppTheme.danger, size: 20),
-                      ),
-                      title: Text(
-                        'Data Breach Monitor',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
-                          fontFamily: 'Inter',
-                        ),
-                      ),
-                      subtitle: Text(
-                        'HIBP breach detection alerts',
-                        style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
-                      ),
-                      children: [
-                        BreachAlertBadge(
                           assessmentId: widget.assessmentId,
                         ),
                       ],

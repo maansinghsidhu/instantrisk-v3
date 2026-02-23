@@ -38,7 +38,7 @@ from app.schemas.generated_document import (
     PrefillRequest,
     PrefillResponse,
     FinalizeRequest,
-    FinalizeResponse
+    FinalizeResponse,
 )
 from app.services.document_generator import document_generator
 from app.services.reference_document_service import reference_document_service
@@ -71,7 +71,7 @@ def _parse_doc_id(doc_id: str) -> int | None:
     # Strip known string prefixes produced by the frontend
     for prefix in ("gen_", "doc_"):
         if raw.startswith(prefix):
-            raw = raw[len(prefix):]
+            raw = raw[len(prefix) :]
             break
     try:
         return int(raw)
@@ -79,11 +79,14 @@ def _parse_doc_id(doc_id: str) -> int | None:
         return None
 
 
-@router.post("/assessments/{assessment_id}/suggest-documents", response_model=DocumentSuggestionResponse)
+@router.post(
+    "/assessments/{assessment_id}/suggest-documents",
+    response_model=DocumentSuggestionResponse,
+)
 async def suggest_documents(
     assessment_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get AI-suggested documents for an assessment.
@@ -94,8 +97,7 @@ async def suggest_documents(
     """
     # Get assessment
     query = select(Assessment).where(
-        Assessment.id == assessment_id,
-        Assessment.created_by == current_user.id
+        Assessment.id == assessment_id, Assessment.created_by == current_user.id
     )
     result = await db.execute(query)
     assessment = result.scalars().first()
@@ -104,7 +106,9 @@ async def suggest_documents(
         raise HTTPException(404, "Assessment not found")
 
     # Build assessment dict
-    risk_category = assessment.risk_category.value if assessment.risk_category else "general"
+    risk_category = (
+        assessment.risk_category.value if assessment.risk_category else "general"
+    )
     territory = assessment.territory or ""
     sum_insured = float(assessment.sum_insured) if assessment.sum_insured else None
 
@@ -133,7 +137,9 @@ async def suggest_documents(
                     perils.append(risk.get("name", risk.get("risk", "")))
 
         # Get special features
-        features = ai_analysis.get("special_features", ai_analysis.get("notable_features", []))
+        features = ai_analysis.get(
+            "special_features", ai_analysis.get("notable_features", [])
+        )
         if isinstance(features, list):
             special_features.extend(features)
 
@@ -172,17 +178,23 @@ async def suggest_documents(
         "sum_insured_display": _fmt_currency(assessment.sum_insured),
         "deductible_display": _fmt_currency(assessment.deductible),
         "territory": territory,
-        "inception_date": str(assessment.inception_date) if assessment.inception_date else None,
+        "inception_date": str(assessment.inception_date)
+        if assessment.inception_date
+        else None,
         "expiry_date": str(assessment.expiry_date) if assessment.expiry_date else None,
         "risk_score": assessment.risk_score,
         "ai_analysis": ai_analysis,
         "perils": perils,
         "special_features": special_features,
         "broker_name": assessment.broker_name,
-        "commission_rate": float(assessment.commission_rate) if assessment.commission_rate else None,
+        "commission_rate": float(assessment.commission_rate)
+        if assessment.commission_rate
+        else None,
         "insured_entity_name": assessment.insured_entity_name,
         "companies_house_number": assessment.companies_house_number,
-        "renewal_date": str(assessment.renewal_date) if assessment.renewal_date else None,
+        "renewal_date": str(assessment.renewal_date)
+        if assessment.renewal_date
+        else None,
         "loss_run_reporting_rules": assessment.loss_run_reporting_rules,
         "regulatory_framework": assessment.regulatory_framework,
     }
@@ -190,34 +202,167 @@ async def suggest_documents(
     # Code-based document suggestions — instant, no AI call needed
     category_docs = {
         "cyber": [
-            {"document_type": "mrc_slip", "template_key": "mrc_slip", "mandatory": True, "confidence": 0.95, "priority": 1, "reason": "Standard Lloyd's MRC placing slip for cyber risk"},
-            {"document_type": "policy_wording", "template_key": "policy_wording", "mandatory": True, "confidence": 0.92, "priority": 1, "reason": "Full cyber policy wording with data breach coverage terms"},
-            {"document_type": "endorsement_schedule", "template_key": "endorsement_schedule", "mandatory": False, "confidence": 0.80, "priority": 2, "reason": "Endorsement schedule for cyber-specific amendments"},
-            {"document_type": "cover_note", "template_key": "cover_note", "mandatory": False, "confidence": 0.75, "priority": 3, "reason": "Interim cover note pending full policy issuance"},
+            {
+                "document_type": "mrc_slip",
+                "template_key": "mrc_slip",
+                "mandatory": True,
+                "confidence": 0.95,
+                "priority": 1,
+                "reason": "Standard Lloyd's MRC placing slip for cyber risk",
+            },
+            {
+                "document_type": "policy_wording",
+                "template_key": "policy_wording",
+                "mandatory": True,
+                "confidence": 0.92,
+                "priority": 1,
+                "reason": "Full cyber policy wording with data breach coverage terms",
+            },
+            {
+                "document_type": "endorsement_schedule",
+                "template_key": "endorsement_schedule",
+                "mandatory": False,
+                "confidence": 0.80,
+                "priority": 2,
+                "reason": "Endorsement schedule for cyber-specific amendments",
+            },
+            {
+                "document_type": "cover_note",
+                "template_key": "cover_note",
+                "mandatory": False,
+                "confidence": 0.75,
+                "priority": 3,
+                "reason": "Interim cover note pending full policy issuance",
+            },
         ],
         "marine": [
-            {"document_type": "mrc_slip", "template_key": "mrc_slip", "mandatory": True, "confidence": 0.95, "priority": 1, "reason": "Standard Lloyd's MRC marine placing slip"},
-            {"document_type": "policy_wording", "template_key": "policy_wording", "mandatory": True, "confidence": 0.92, "priority": 1, "reason": "Marine hull/cargo policy wording"},
-            {"document_type": "endorsement_schedule", "template_key": "endorsement_schedule", "mandatory": True, "confidence": 0.88, "priority": 2, "reason": "Institute cargo clauses endorsement"},
-            {"document_type": "cover_note", "template_key": "cover_note", "mandatory": False, "confidence": 0.70, "priority": 3, "reason": "Interim marine cover note"},
+            {
+                "document_type": "mrc_slip",
+                "template_key": "mrc_slip",
+                "mandatory": True,
+                "confidence": 0.95,
+                "priority": 1,
+                "reason": "Standard Lloyd's MRC marine placing slip",
+            },
+            {
+                "document_type": "policy_wording",
+                "template_key": "policy_wording",
+                "mandatory": True,
+                "confidence": 0.92,
+                "priority": 1,
+                "reason": "Marine hull/cargo policy wording",
+            },
+            {
+                "document_type": "endorsement_schedule",
+                "template_key": "endorsement_schedule",
+                "mandatory": True,
+                "confidence": 0.88,
+                "priority": 2,
+                "reason": "Institute cargo clauses endorsement",
+            },
+            {
+                "document_type": "cover_note",
+                "template_key": "cover_note",
+                "mandatory": False,
+                "confidence": 0.70,
+                "priority": 3,
+                "reason": "Interim marine cover note",
+            },
         ],
         "property": [
-            {"document_type": "mrc_slip", "template_key": "mrc_slip", "mandatory": True, "confidence": 0.95, "priority": 1, "reason": "Standard Lloyd's MRC property slip"},
-            {"document_type": "policy_wording", "template_key": "policy_wording", "mandatory": True, "confidence": 0.92, "priority": 1, "reason": "Property all-risks policy wording"},
-            {"document_type": "endorsement_schedule", "template_key": "endorsement_schedule", "mandatory": False, "confidence": 0.78, "priority": 2, "reason": "Property endorsement schedule"},
+            {
+                "document_type": "mrc_slip",
+                "template_key": "mrc_slip",
+                "mandatory": True,
+                "confidence": 0.95,
+                "priority": 1,
+                "reason": "Standard Lloyd's MRC property slip",
+            },
+            {
+                "document_type": "policy_wording",
+                "template_key": "policy_wording",
+                "mandatory": True,
+                "confidence": 0.92,
+                "priority": 1,
+                "reason": "Property all-risks policy wording",
+            },
+            {
+                "document_type": "endorsement_schedule",
+                "template_key": "endorsement_schedule",
+                "mandatory": False,
+                "confidence": 0.78,
+                "priority": 2,
+                "reason": "Property endorsement schedule",
+            },
         ],
         "financial_lines": [
-            {"document_type": "mrc_slip", "template_key": "mrc_slip", "mandatory": True, "confidence": 0.95, "priority": 1, "reason": "Standard Lloyd's MRC financial lines slip"},
-            {"document_type": "policy_wording", "template_key": "policy_wording", "mandatory": True, "confidence": 0.93, "priority": 1, "reason": "Professional indemnity policy wording"},
-            {"document_type": "endorsement_schedule", "template_key": "endorsement_schedule", "mandatory": False, "confidence": 0.82, "priority": 2, "reason": "PI endorsement schedule with limit of liability"},
-            {"document_type": "cover_note", "template_key": "cover_note", "mandatory": False, "confidence": 0.72, "priority": 3, "reason": "Interim PI cover note"},
+            {
+                "document_type": "mrc_slip",
+                "template_key": "mrc_slip",
+                "mandatory": True,
+                "confidence": 0.95,
+                "priority": 1,
+                "reason": "Standard Lloyd's MRC financial lines slip",
+            },
+            {
+                "document_type": "policy_wording",
+                "template_key": "policy_wording",
+                "mandatory": True,
+                "confidence": 0.93,
+                "priority": 1,
+                "reason": "Professional indemnity policy wording",
+            },
+            {
+                "document_type": "endorsement_schedule",
+                "template_key": "endorsement_schedule",
+                "mandatory": False,
+                "confidence": 0.82,
+                "priority": 2,
+                "reason": "PI endorsement schedule with limit of liability",
+            },
+            {
+                "document_type": "cover_note",
+                "template_key": "cover_note",
+                "mandatory": False,
+                "confidence": 0.72,
+                "priority": 3,
+                "reason": "Interim PI cover note",
+            },
         ],
     }
     default_docs = [
-        {"document_type": "mrc_slip", "template_key": "mrc_slip", "mandatory": True, "confidence": 0.95, "priority": 1, "reason": "Standard Lloyd's MRC placing slip"},
-        {"document_type": "policy_wording", "template_key": "policy_wording", "mandatory": True, "confidence": 0.90, "priority": 1, "reason": "Full policy wording with terms and conditions"},
-        {"document_type": "endorsement_schedule", "template_key": "endorsement_schedule", "mandatory": False, "confidence": 0.80, "priority": 2, "reason": "Endorsement schedule for amendments"},
-        {"document_type": "cover_note", "template_key": "cover_note", "mandatory": False, "confidence": 0.70, "priority": 3, "reason": "Cover note for interim coverage confirmation"},
+        {
+            "document_type": "mrc_slip",
+            "template_key": "mrc_slip",
+            "mandatory": True,
+            "confidence": 0.95,
+            "priority": 1,
+            "reason": "Standard Lloyd's MRC placing slip",
+        },
+        {
+            "document_type": "policy_wording",
+            "template_key": "policy_wording",
+            "mandatory": True,
+            "confidence": 0.90,
+            "priority": 1,
+            "reason": "Full policy wording with terms and conditions",
+        },
+        {
+            "document_type": "endorsement_schedule",
+            "template_key": "endorsement_schedule",
+            "mandatory": False,
+            "confidence": 0.80,
+            "priority": 2,
+            "reason": "Endorsement schedule for amendments",
+        },
+        {
+            "document_type": "cover_note",
+            "template_key": "cover_note",
+            "mandatory": False,
+            "confidence": 0.70,
+            "priority": 3,
+            "reason": "Cover note for interim coverage confirmation",
+        },
     ]
     suggestions = {
         "suggested_documents": category_docs.get(risk_category.lower(), default_docs),
@@ -245,14 +390,16 @@ async def suggest_documents(
         for clause_id, reason in mandatory_lma_ids.items():
             clause_data = clauses_library_service.get_clause_by_id(clause_id)
             if clause_data:
-                lma_clauses.append(LMAClauseSuggestion(
-                    id=clause_data["id"],
-                    name=clause_data["name"],
-                    mandatory=True,
-                    category=clause_data.get("category", "general"),
-                    selected=True,
-                    reason=reason
-                ))
+                lma_clauses.append(
+                    LMAClauseSuggestion(
+                        id=clause_data["id"],
+                        name=clause_data["name"],
+                        mandatory=True,
+                        category=clause_data.get("category", "general"),
+                        selected=True,
+                        reason=reason,
+                    )
+                )
                 existing_ids.add(clause_data["id"])
 
         # 2. Risk-category specific recommended clauses (pre-selected)
@@ -265,55 +412,60 @@ async def suggest_documents(
             "casualty": ["liability", "casualty"],
             "energy": ["energy", "offshore"],
         }
-        search_terms = category_searches.get(risk_category.lower(), [risk_category.lower()])
+        search_terms = category_searches.get(
+            risk_category.lower(), [risk_category.lower()]
+        )
 
         for term in search_terms[:2]:  # Max 2 search terms
             results, _ = clauses_library_service.search(
-                query=term,
-                source="lma",
-                page_size=5
+                query=term, source="lma", page_size=5
             )
             for clause_data in results:
                 if clause_data["id"] not in existing_ids:
-                    lma_clauses.append(LMAClauseSuggestion(
-                        id=clause_data["id"],
-                        name=clause_data["name"],
-                        mandatory=False,
-                        category=clause_data.get("category", "general"),
-                        selected=True,
-                        reason=f"Recommended for {risk_category} risks"
-                    ))
+                    lma_clauses.append(
+                        LMAClauseSuggestion(
+                            id=clause_data["id"],
+                            name=clause_data["name"],
+                            mandatory=False,
+                            category=clause_data.get("category", "general"),
+                            selected=True,
+                            reason=f"Recommended for {risk_category} risks",
+                        )
+                    )
                     existing_ids.add(clause_data["id"])
 
         # 3. Search clause library for risk-category relevant clauses from all sources
         category_results, _ = clauses_library_service.search(
-            query=risk_category,
-            page_size=15
+            query=risk_category, page_size=15
         )
         for clause_data in category_results:
             if clause_data["id"] not in existing_ids:
-                lma_clauses.append(LMAClauseSuggestion(
-                    id=clause_data["id"],
-                    name=clause_data["name"],
-                    mandatory=False,
-                    category=clause_data.get("category", "general"),
-                    selected=False,
-                    reason=f"Available for {risk_category} policies"
-                ))
+                lma_clauses.append(
+                    LMAClauseSuggestion(
+                        id=clause_data["id"],
+                        name=clause_data["name"],
+                        mandatory=False,
+                        category=clause_data.get("category", "general"),
+                        selected=False,
+                        reason=f"Available for {risk_category} policies",
+                    )
+                )
                 existing_ids.add(clause_data["id"])
 
         # 4. Add remaining LMA clauses not yet included
         lma_results, _ = clauses_library_service.search(source="lma", page_size=50)
         for clause_data in lma_results:
             if clause_data["id"] not in existing_ids:
-                lma_clauses.append(LMAClauseSuggestion(
-                    id=clause_data["id"],
-                    name=clause_data["name"],
-                    mandatory=False,
-                    category=clause_data.get("category", "general"),
-                    selected=False,
-                    reason="Available in LMA clause library"
-                ))
+                lma_clauses.append(
+                    LMAClauseSuggestion(
+                        id=clause_data["id"],
+                        name=clause_data["name"],
+                        mandatory=False,
+                        category=clause_data.get("category", "general"),
+                        selected=False,
+                        reason="Available in LMA clause library",
+                    )
+                )
                 existing_ids.add(clause_data["id"])
 
     except Exception as e:
@@ -334,23 +486,28 @@ async def suggest_documents(
                 priority=doc.get("priority", 1),
                 mandatory=doc.get("mandatory", False),
                 confidence=doc.get("confidence", 0.0),
-                reason=doc.get("reason", "")
+                reason=doc.get("reason", ""),
             )
             for doc in suggestions.get("suggested_documents", [])
         ],
         bundle_name=suggestions.get("bundle_name", "Document Bundle"),
-        total_estimated_time_seconds=suggestions.get("total_estimated_time_seconds", 60),
-        lma_clauses=lma_clauses
+        total_estimated_time_seconds=suggestions.get(
+            "total_estimated_time_seconds", 60
+        ),
+        lma_clauses=lma_clauses,
     )
 
 
-@router.post("/assessments/{assessment_id}/generate-documents", response_model=GenerationJobResponse)
+@router.post(
+    "/assessments/{assessment_id}/generate-documents",
+    response_model=GenerationJobResponse,
+)
 async def generate_documents(
     assessment_id: str,
     request: GenerationJobCreate,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Start document generation for an assessment.
@@ -372,11 +529,10 @@ async def generate_documents(
         )
 
     # Get assessment with eager-loaded documents to avoid lazy loading issues
-    query = select(Assessment).options(
-        selectinload(Assessment.documents)
-    ).where(
-        Assessment.id == assessment_id,
-        Assessment.created_by == current_user.id
+    query = (
+        select(Assessment)
+        .options(selectinload(Assessment.documents))
+        .where(Assessment.id == assessment_id, Assessment.created_by == current_user.id)
     )
     result = await db.execute(query)
     assessment = result.scalars().first()
@@ -401,7 +557,7 @@ async def generate_documents(
             "category": t.category,
             "document_type": t.document_type,
             "fields": t.fields,
-            "sections": t.sections
+            "sections": t.sections,
         }
         for t in db_templates
     ]
@@ -413,7 +569,9 @@ async def generate_documents(
         assessment_id=assessment_id,
         status="pending",
         total_documents=len(request.document_types),
-        document_suggestions=[{"document_type": dt, "status": "pending"} for dt in request.document_types]
+        document_suggestions=[
+            {"document_type": dt, "status": "pending"} for dt in request.document_types
+        ],
     )
     db.add(job)
     await db.commit()
@@ -424,7 +582,9 @@ async def generate_documents(
         "id": assessment.id,
         "reference_number": assessment.reference_number,
         "title": assessment.title,
-        "risk_category": assessment.risk_category.value if assessment.risk_category else None,
+        "risk_category": assessment.risk_category.value
+        if assessment.risk_category
+        else None,
         "decision": assessment.decision.value if assessment.decision else None,
         "insured_name": assessment.insured_name,
         "broker_reference": assessment.broker_reference,
@@ -432,15 +592,21 @@ async def generate_documents(
         "sum_insured": assessment.sum_insured,
         "deductible": assessment.deductible,
         "territory": assessment.territory,
-        "inception_date": str(assessment.inception_date) if assessment.inception_date else None,
+        "inception_date": str(assessment.inception_date)
+        if assessment.inception_date
+        else None,
         "expiry_date": str(assessment.expiry_date) if assessment.expiry_date else None,
         "risk_score": assessment.risk_score,
         "ai_analysis": assessment.ai_analysis,
         "broker_name": assessment.broker_name,
-        "commission_rate": float(assessment.commission_rate) if assessment.commission_rate else None,
+        "commission_rate": float(assessment.commission_rate)
+        if assessment.commission_rate
+        else None,
         "insured_entity_name": assessment.insured_entity_name,
         "companies_house_number": assessment.companies_house_number,
-        "renewal_date": str(assessment.renewal_date) if assessment.renewal_date else None,
+        "renewal_date": str(assessment.renewal_date)
+        if assessment.renewal_date
+        else None,
         "loss_run_reporting_rules": assessment.loss_run_reporting_rules,
         "regulatory_framework": assessment.regulatory_framework,
         "rapidrate_results": assessment.rapidrate_results or {},
@@ -451,6 +617,7 @@ async def generate_documents(
     ai_data = assessment.ai_analysis or {}
     if isinstance(ai_data, str):
         import json as _json
+
         try:
             ai_data = _json.loads(ai_data)
         except Exception:
@@ -479,9 +646,15 @@ async def generate_documents(
                 is_empty = is_empty or current_val == 0 or current_val == 0.0
             if is_empty:
                 ai_val = ai_data.get(ai_key)
-                if ai_val is not None and str(ai_val).strip() and str(ai_val).strip().lower() != "none":
+                if (
+                    ai_val is not None
+                    and str(ai_val).strip()
+                    and str(ai_val).strip().lower() != "none"
+                ):
                     assessment_data[field] = ai_val
-                    logger.info(f"Backfilled {field} from ai_analysis.{ai_key}: {ai_val}")
+                    logger.info(
+                        f"Backfilled {field} from ai_analysis.{ai_key}: {ai_val}"
+                    )
 
     # Get extracted data from linked documents
     extracted_data = {}
@@ -498,8 +671,8 @@ async def generate_documents(
         request.document_types,
         extracted_data,
         request.clause_ids,  # Pass selected clause IDs
-        request.language,    # Pass target language
-        str(current_user.id) # Pass user_id for OpenDraft pipeline
+        request.language,  # Pass target language
+        str(current_user.id),  # Pass user_id for OpenDraft pipeline
     )
 
     return GenerationJobResponse(
@@ -510,15 +683,19 @@ async def generate_documents(
         completed_documents=0,
         progress_percentage=0,
         warnings=training_warnings if training_warnings else None,
-        created_at=job.created_at
+        created_at=job.created_at,
     )
 
 
-async def _update_job_progress(job_id: str, agent: str, description: str, percentage: int):
+async def _update_job_progress(
+    job_id: str, agent: str, description: str, percentage: int
+):
     """Helper to update job progress in database."""
     async with AsyncSessionLocal() as db:
         try:
-            job_query = select(DocumentGenerationJob).where(DocumentGenerationJob.id == job_id)
+            job_query = select(DocumentGenerationJob).where(
+                DocumentGenerationJob.id == job_id
+            )
             result = await db.execute(job_query)
             job = result.scalars().first()
             if job:
@@ -538,7 +715,7 @@ async def _run_generation_job(
     extracted_data: dict,
     clause_ids: list = None,
     language: str = None,
-    user_id: str = None
+    user_id: str = None,
 ):
     """Background task to run document generation via the 19-agent OpenDraft pipeline.
 
@@ -550,23 +727,33 @@ async def _run_generation_job(
         language: Optional target language code for document generation
         user_id: User ID for per-user RAG and ML adapter predictions
     """
-    await _run_opendraft_job(job_id, assessment_data, user_id, document_types)
+    await _run_opendraft_job(
+        job_id,
+        assessment_data,
+        user_id,
+        document_types,
+        clause_ids=clause_ids,
+        language=language,
+    )
 
 
 @router.get("/generation-jobs/")
 async def list_generation_jobs(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """List all generation jobs for the current user."""
-    assessment_query = select(Assessment.id).where(Assessment.created_by == current_user.id)
+    assessment_query = select(Assessment.id).where(
+        Assessment.created_by == current_user.id
+    )
     assessment_result = await db.execute(assessment_query)
     assessment_ids = [a[0] for a in assessment_result.fetchall()]
     if not assessment_ids:
         return []
-    query = select(DocumentGenerationJob).where(
-        DocumentGenerationJob.assessment_id.in_(assessment_ids)
-    ).order_by(DocumentGenerationJob.created_at.desc())
+    query = (
+        select(DocumentGenerationJob)
+        .where(DocumentGenerationJob.assessment_id.in_(assessment_ids))
+        .order_by(DocumentGenerationJob.created_at.desc())
+    )
     result = await db.execute(query)
     jobs = result.scalars().all()
     return [GenerationJobResponse.model_validate(job) for job in jobs]
@@ -576,7 +763,7 @@ async def list_generation_jobs(
 async def get_generation_status(
     job_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Get the status of a document generation job with detailed step progress."""
     query = select(DocumentGenerationJob).where(DocumentGenerationJob.id == job_id)
@@ -624,12 +811,14 @@ async def get_generation_status(
             status = "completed"  # agents before the current one are done
         else:
             status = "pending"
-        steps.append(GenerationStepProgress(
-            agent=agent,
-            description=description,
-            percentage=threshold,
-            status=status
-        ))
+        steps.append(
+            GenerationStepProgress(
+                agent=agent,
+                description=description,
+                percentage=threshold,
+                status=status,
+            )
+        )
 
     return GenerationJobProgress(
         job_id=job.id,
@@ -640,7 +829,7 @@ async def get_generation_status(
         completed_documents=job.completed_documents or 0,
         total_documents=job.total_documents or 0,
         steps=steps,
-        error_message=job.error_message if hasattr(job, 'error_message') else None
+        error_message=job.error_message if hasattr(job, "error_message") else None,
     )
 
 
@@ -648,7 +837,7 @@ async def get_generation_status(
 async def get_generation_job(
     job_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Get full details of a generation job."""
     query = select(DocumentGenerationJob).where(DocumentGenerationJob.id == job_id)
@@ -671,37 +860,41 @@ async def get_generation_job(
         error_message=job.error_message,
         created_at=job.created_at,
         started_at=job.started_at,
-        completed_at=job.completed_at
+        completed_at=job.completed_at,
     )
 
 
-@router.get("/assessments/{assessment_id}/generated", response_model=GeneratedDocumentListResponse)
+@router.get(
+    "/assessments/{assessment_id}/generated",
+    response_model=GeneratedDocumentListResponse,
+)
 async def list_generated_documents(
     assessment_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """List all generated documents for an assessment."""
     # Verify assessment ownership
     assessment_result = await db.execute(
         select(Assessment).where(
-            Assessment.id == assessment_id,
-            Assessment.created_by == current_user.id
+            Assessment.id == assessment_id, Assessment.created_by == current_user.id
         )
     )
     if not assessment_result.scalar_one_or_none():
         raise HTTPException(404, "Assessment not found or access denied")
 
-    query = select(GeneratedDocument).where(
-        GeneratedDocument.assessment_id == assessment_id
-    ).order_by(GeneratedDocument.created_at.desc())
+    query = (
+        select(GeneratedDocument)
+        .where(GeneratedDocument.assessment_id == assessment_id)
+        .order_by(GeneratedDocument.created_at.desc())
+    )
 
     result = await db.execute(query)
     documents = result.scalars().all()
 
     return GeneratedDocumentListResponse(
         items=[GeneratedDocumentResponse.model_validate(doc) for doc in documents],
-        total=len(documents)
+        total=len(documents),
     )
 
 
@@ -710,11 +903,13 @@ async def list_all_generated_documents(
     page: int = 1,
     page_size: int = 10,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """List all generated documents for the current user across all assessments."""
     # Get assessments owned by user
-    assessment_query = select(Assessment.id).where(Assessment.created_by == current_user.id)
+    assessment_query = select(Assessment.id).where(
+        Assessment.created_by == current_user.id
+    )
     assessment_result = await db.execute(assessment_query)
     assessment_ids = [a[0] for a in assessment_result.fetchall()]
 
@@ -722,9 +917,13 @@ async def list_all_generated_documents(
         return GeneratedDocumentListResponse(items=[], total=0)
 
     # Get generated documents for those assessments
-    query = select(GeneratedDocument).where(
-        GeneratedDocument.assessment_id.in_(assessment_ids)
-    ).order_by(GeneratedDocument.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    query = (
+        select(GeneratedDocument)
+        .where(GeneratedDocument.assessment_id.in_(assessment_ids))
+        .order_by(GeneratedDocument.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
 
     result = await db.execute(query)
     documents = result.scalars().all()
@@ -738,7 +937,7 @@ async def list_all_generated_documents(
 
     return GeneratedDocumentListResponse(
         items=[GeneratedDocumentResponse.model_validate(doc) for doc in documents],
-        total=total
+        total=total,
     )
 
 
@@ -746,7 +945,7 @@ async def list_all_generated_documents(
 async def get_generated_document(
     doc_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Get a single generated document."""
     # Parse doc_id: frontend may send string IDs like "gen_1770850906225" or plain integers
@@ -759,8 +958,7 @@ async def get_generated_document(
         select(GeneratedDocument)
         .join(Assessment, GeneratedDocument.assessment_id == Assessment.id)
         .where(
-            GeneratedDocument.id == parsed_id,
-            Assessment.created_by == current_user.id
+            GeneratedDocument.id == parsed_id, Assessment.created_by == current_user.id
         )
     )
     result = await db.execute(query)
@@ -777,7 +975,7 @@ async def update_generated_document(
     doc_id: str,
     update_data: GeneratedDocumentUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Update a generated document (e.g., edit content)."""
     # Parse doc_id: frontend may send string IDs like "gen_1770850906225" or plain integers
@@ -790,8 +988,7 @@ async def update_generated_document(
         select(GeneratedDocument)
         .join(Assessment, GeneratedDocument.assessment_id == Assessment.id)
         .where(
-            GeneratedDocument.id == parsed_id,
-            Assessment.created_by == current_user.id
+            GeneratedDocument.id == parsed_id, Assessment.created_by == current_user.id
         )
     )
     result = await db.execute(query)
@@ -812,13 +1009,15 @@ async def update_generated_document(
     return GeneratedDocumentResponse.model_validate(doc)
 
 
-@router.post("/assessments/{assessment_id}/prefill/{template_id}", response_model=PrefillResponse)
+@router.post(
+    "/assessments/{assessment_id}/prefill/{template_id}", response_model=PrefillResponse
+)
 async def prefill_template(
     assessment_id: str,
     template_id: str,
     request: PrefillRequest = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get AI-prefilled data for a template based on assessment.
@@ -826,11 +1025,10 @@ async def prefill_template(
     Optionally uses RAG from reference documents for enhancement.
     """
     # Get assessment with eager-loaded documents
-    query = select(Assessment).options(
-        selectinload(Assessment.documents)
-    ).where(
-        Assessment.id == assessment_id,
-        Assessment.created_by == current_user.id
+    query = (
+        select(Assessment)
+        .options(selectinload(Assessment.documents))
+        .where(Assessment.id == assessment_id, Assessment.created_by == current_user.id)
     )
     result = await db.execute(query)
     assessment = result.scalars().first()
@@ -852,7 +1050,7 @@ async def prefill_template(
                     "id": t.id,
                     "name": t.name,
                     "fields": t.fields,
-                    "sections": t.sections
+                    "sections": t.sections,
                 }
         except (ValueError, TypeError):
             pass
@@ -865,7 +1063,9 @@ async def prefill_template(
         "id": assessment.id,
         "reference_number": assessment.reference_number,
         "title": assessment.title,
-        "risk_category": assessment.risk_category.value if assessment.risk_category else None,
+        "risk_category": assessment.risk_category.value
+        if assessment.risk_category
+        else None,
         "decision": assessment.decision.value if assessment.decision else None,
         "insured_name": assessment.insured_name,
         "broker_reference": assessment.broker_reference,
@@ -873,7 +1073,9 @@ async def prefill_template(
         "sum_insured": assessment.sum_insured,
         "deductible": assessment.deductible,
         "territory": assessment.territory,
-        "inception_date": str(assessment.inception_date) if assessment.inception_date else None,
+        "inception_date": str(assessment.inception_date)
+        if assessment.inception_date
+        else None,
         "expiry_date": str(assessment.expiry_date) if assessment.expiry_date else None,
     }
 
@@ -888,8 +1090,10 @@ async def prefill_template(
     if request and request.include_rag:
         rag_context = await reference_document_service.get_rag_context(
             query=f"{assessment.title} {assessment.risk_category.value if assessment.risk_category else ''} policy wording",
-            risk_category=assessment.risk_category.value if assessment.risk_category else None,
-            limit=3
+            risk_category=assessment.risk_category.value
+            if assessment.risk_category
+            else None,
+            limit=3,
         )
 
     # Get prefill data
@@ -897,7 +1101,7 @@ async def prefill_template(
         assessment=assessment_data,
         template=template,
         extracted_data=extracted_data,
-        rag_context=rag_context
+        rag_context=rag_context,
     )
 
     return PrefillResponse(
@@ -908,7 +1112,7 @@ async def prefill_template(
         data_conflicts=prefill.get("data_conflicts", []),
         completion_percentage=prefill.get("completion_percentage", 0),
         rag_context_used=rag_context is not None,
-        rag_sources=[]
+        rag_sources=[],
     )
 
 
@@ -917,7 +1121,7 @@ async def finalize_document(
     doc_id: str,
     request: FinalizeRequest = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Finalize a document and generate PDF.
@@ -932,8 +1136,7 @@ async def finalize_document(
         select(GeneratedDocument)
         .join(Assessment, GeneratedDocument.assessment_id == Assessment.id)
         .where(
-            GeneratedDocument.id == parsed_id,
-            Assessment.created_by == current_user.id
+            GeneratedDocument.id == parsed_id, Assessment.created_by == current_user.id
         )
     )
     result = await db.execute(query)
@@ -947,7 +1150,9 @@ async def finalize_document(
         doc.final_content = request.final_content
 
     # Generate PDF using WeasyPrint
-    pdf_filename = f"{doc.document_type}_{doc.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    pdf_filename = (
+        f"{doc.document_type}_{doc.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    )
     pdf_dir = os.path.join(settings.resolved_upload_dir, "generated")
     os.makedirs(pdf_dir, exist_ok=True)
     pdf_path = os.path.join(pdf_dir, pdf_filename)
@@ -994,7 +1199,8 @@ async def finalize_document(
                     is_list = all(
                         line.strip().startswith(("-", "•", "*", "–"))
                         or not line.strip()
-                        for line in lines if line.strip()
+                        for line in lines
+                        if line.strip()
                     )
                     if is_list:
                         parts.append("<ul>")
@@ -1017,7 +1223,7 @@ async def finalize_document(
     if isinstance(raw_content, dict):
         doc_title = raw_content.get("document_title", "")
     if not doc_title:
-        doc_title = doc.document_type.upper().replace('_', ' ')
+        doc_title = doc.document_type.upper().replace("_", " ")
 
     # Create HTML template for PDF
     html_template = f"""
@@ -1116,11 +1322,11 @@ async def finalize_document(
     <body>
         <div class="header">
             <h1>{doc_title}</h1>
-            <p>Document ID: {doc.id} | Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>
+            <p>Document ID: {doc.id} | Generated: {datetime.now().strftime("%Y-%m-%d %H:%M")}</p>
         </div>
         <div class="meta">
             <div class="meta-item">
-                <span class="meta-label">Document Type:</span> {doc.document_type.replace('_', ' ').title()}
+                <span class="meta-label">Document Type:</span> {doc.document_type.replace("_", " ").title()}
             </div>
             <div class="meta-item">
                 <span class="meta-label">Status:</span> Finalized
@@ -1137,20 +1343,22 @@ async def finalize_document(
     # Generate PDF with WeasyPrint
     try:
         from weasyprint import HTML
+
         pdf_bytes = HTML(string=html_template).write_pdf()
 
-        with open(pdf_path, 'wb') as f:
+        with open(pdf_path, "wb") as f:
             f.write(pdf_bytes)
 
         pdf_size = len(pdf_bytes)
     except Exception as e:
         # Fallback: create a simple text-based PDF if WeasyPrint fails
         import logging
+
         logging.error(f"WeasyPrint PDF generation failed: {e}")
         # Create empty placeholder file
         pdf_size = 0
-        with open(pdf_path, 'wb') as f:
-            f.write(b'%PDF-1.4\n%\xe2\xe3\xcf\xd3\n')  # Minimal PDF header
+        with open(pdf_path, "wb") as f:
+            f.write(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")  # Minimal PDF header
 
     doc.mark_finalized(pdf_path, pdf_filename, pdf_size)
     await db.commit()
@@ -1161,8 +1369,8 @@ async def finalize_document(
         status="finalized",
         pdf_url=f"/api/v1/generated-documents/{doc.id}/download",
         pdf_file_name=pdf_filename,
-        pdf_file_size=0,
-        finalized_at=doc.finalized_at
+        pdf_file_size=pdf_size,
+        finalized_at=doc.finalized_at,
     )
 
 
@@ -1170,7 +1378,7 @@ async def finalize_document(
 async def download_document(
     doc_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Download a finalized document PDF."""
     # Parse doc_id: frontend may send string IDs like "gen_1770850906225" or plain integers
@@ -1183,8 +1391,7 @@ async def download_document(
         select(GeneratedDocument)
         .join(Assessment, GeneratedDocument.assessment_id == Assessment.id)
         .where(
-            GeneratedDocument.id == parsed_id,
-            Assessment.created_by == current_user.id
+            GeneratedDocument.id == parsed_id, Assessment.created_by == current_user.id
         )
     )
     result = await db.execute(query)
@@ -1201,9 +1408,7 @@ async def download_document(
 
     if os.path.exists(doc.pdf_path):
         return FileResponse(
-            doc.pdf_path,
-            media_type="application/pdf",
-            filename=doc.pdf_file_name
+            doc.pdf_path, media_type="application/pdf", filename=doc.pdf_file_name
         )
     else:
         raise HTTPException(404, "PDF file not found")
@@ -1226,17 +1431,33 @@ CLAUSES_PATH = TEMPLATES_BASE_PATH / "clauses"
 
 class GenerateDocumentV3Request(BaseModel):
     """Request for V3 document generation."""
-    document_type: str = Field(..., description="Type of document to generate (policy, endorsement, certificate)")
-    line_of_business: str = Field(..., description="Line of business (cyber, property, marine, etc.)")
+
+    document_type: str = Field(
+        ...,
+        description="Type of document to generate (policy, endorsement, certificate)",
+    )
+    line_of_business: str = Field(
+        ..., description="Line of business (cyber, property, marine, etc.)"
+    )
     template_id: Optional[str] = Field(None, description="Specific template ID to use")
-    selected_clauses: List[str] = Field(default_factory=list, description="List of clause IDs to include")
-    variables: dict = Field(default_factory=dict, description="Variables to populate in the document")
-    include_standard_clauses: bool = Field(True, description="Include standard mandatory clauses")
-    language: Optional[str] = Field(None, description="Target language code (en, de, fr, es, it, pt, nl, ar, zh, ja). Uses user's preferred language if not specified.")
+    selected_clauses: List[str] = Field(
+        default_factory=list, description="List of clause IDs to include"
+    )
+    variables: dict = Field(
+        default_factory=dict, description="Variables to populate in the document"
+    )
+    include_standard_clauses: bool = Field(
+        True, description="Include standard mandatory clauses"
+    )
+    language: Optional[str] = Field(
+        None,
+        description="Target language code (en, de, fr, es, it, pt, nl, ar, zh, ja). Uses user's preferred language if not specified.",
+    )
 
 
 class GeneratedDocumentV3Response(BaseModel):
     """Response for V3 document generation."""
+
     document_id: str
     document_type: str
     line_of_business: str
@@ -1252,6 +1473,7 @@ class GeneratedDocumentV3Response(BaseModel):
 
 class ClauseSuggestion(BaseModel):
     """Suggested clause for a document."""
+
     clause_id: str
     clause_name: str
     clause_type: str
@@ -1263,6 +1485,7 @@ class ClauseSuggestion(BaseModel):
 
 class SuggestClausesResponse(BaseModel):
     """Response for clause suggestions."""
+
     line_of_business: str
     document_type: str
     mandatory_clauses: List[ClauseSuggestion]
@@ -1322,10 +1545,7 @@ def _get_clause_by_id(clause_id: str) -> Optional[dict]:
     for clause_type_data in clause_types:
         for c in clause_type_data.get("clauses", []):
             if c.get("id") == clause_id:
-                return {
-                    **c,
-                    "clause_type": clause_type_data.get("type", "")
-                }
+                return {**c, "clause_type": clause_type_data.get("type", "")}
 
     return None
 
@@ -1339,58 +1559,86 @@ def _get_mandatory_clauses(line_of_business: str, document_type: str) -> List[di
     # Core mandatory clauses for ALL Lloyd's policies
     core_mandatory = [
         {
-            "id": "LMA5021", "name": "War & Civil War Exclusion",
-            "clause_type": "exclusion", "line_of_business": "general",
-            "text": "This insurance excludes loss, damage, liability or expense directly or indirectly caused by war, invasion, acts of foreign enemies, hostilities, civil war, revolution, rebellion, insurrection, or military power."
+            "id": "LMA5021",
+            "name": "War & Civil War Exclusion",
+            "clause_type": "exclusion",
+            "line_of_business": "general",
+            "text": "This insurance excludes loss, damage, liability or expense directly or indirectly caused by war, invasion, acts of foreign enemies, hostilities, civil war, revolution, rebellion, insurrection, or military power.",
         },
         {
-            "id": "LMA3100", "name": "Sanctions Limitation & Exclusion",
-            "clause_type": "exclusion", "line_of_business": "general",
-            "text": "No insurer shall provide cover or pay any claim to the extent that doing so would expose that insurer to any sanction under United Nations resolutions or EU, UK, or US trade sanctions laws."
+            "id": "LMA3100",
+            "name": "Sanctions Limitation & Exclusion",
+            "clause_type": "exclusion",
+            "line_of_business": "general",
+            "text": "No insurer shall provide cover or pay any claim to the extent that doing so would expose that insurer to any sanction under United Nations resolutions or EU, UK, or US trade sanctions laws.",
         },
         {
-            "id": "LMA5400", "name": "Several Liability Clause",
-            "clause_type": "condition", "line_of_business": "general",
-            "text": "The liability of an insurer under this contract is several and not joint with other insurers. An insurer is liable only for the proportion of liability it has underwritten."
+            "id": "LMA5400",
+            "name": "Several Liability Clause",
+            "clause_type": "condition",
+            "line_of_business": "general",
+            "text": "The liability of an insurer under this contract is several and not joint with other insurers. An insurer is liable only for the proportion of liability it has underwritten.",
         },
         {
-            "id": "LMA5027", "name": "Market Reform Contract",
-            "clause_type": "condition", "line_of_business": "general",
-            "text": "This insurance is subject to the Market Reform Contract provisions as agreed by the Lloyd's Market Association."
+            "id": "LMA5027",
+            "name": "Market Reform Contract",
+            "clause_type": "condition",
+            "line_of_business": "general",
+            "text": "This insurance is subject to the Market Reform Contract provisions as agreed by the Lloyd's Market Association.",
         },
         {
-            "id": "LMA5515", "name": "Law & Jurisdiction (England & Wales)",
-            "clause_type": "condition", "line_of_business": "general",
-            "text": "This insurance shall be governed by and construed in accordance with the law of England and Wales. Each party agrees to submit to the exclusive jurisdiction of the English courts."
+            "id": "LMA5515",
+            "name": "Law & Jurisdiction (England & Wales)",
+            "clause_type": "condition",
+            "line_of_business": "general",
+            "text": "This insurance shall be governed by and construed in accordance with the law of England and Wales. Each party agrees to submit to the exclusive jurisdiction of the English courts.",
         },
         {
-            "id": "LMA5406", "name": "Claims Cooperation Clause",
-            "clause_type": "condition", "line_of_business": "general",
-            "text": "The Insured shall cooperate fully with Underwriters in the investigation, defence and settlement of any claim. The Insured shall not admit liability or make any payment without the written consent of Underwriters."
+            "id": "LMA5406",
+            "name": "Claims Cooperation Clause",
+            "clause_type": "condition",
+            "line_of_business": "general",
+            "text": "The Insured shall cooperate fully with Underwriters in the investigation, defence and settlement of any claim. The Insured shall not admit liability or make any payment without the written consent of Underwriters.",
         },
     ]
 
     # Line-specific mandatory clauses
     line_specific = {
         "property": [
-            {"id": "LMA5567", "name": "Terrorism Exclusion (Property)",
-             "clause_type": "exclusion", "line_of_business": "property",
-             "text": "This insurance excludes loss or damage directly or indirectly caused by any act of terrorism."},
+            {
+                "id": "LMA5567",
+                "name": "Terrorism Exclusion (Property)",
+                "clause_type": "exclusion",
+                "line_of_business": "property",
+                "text": "This insurance excludes loss or damage directly or indirectly caused by any act of terrorism.",
+            },
         ],
         "marine": [
-            {"id": "ICC-A", "name": "Institute Cargo Clauses (A)",
-             "clause_type": "coverage", "line_of_business": "marine",
-             "text": "This insurance covers all risks of loss of or damage to the subject-matter insured except as excluded."},
+            {
+                "id": "ICC-A",
+                "name": "Institute Cargo Clauses (A)",
+                "clause_type": "coverage",
+                "line_of_business": "marine",
+                "text": "This insurance covers all risks of loss of or damage to the subject-matter insured except as excluded.",
+            },
         ],
         "cyber": [
-            {"id": "LMA5401", "name": "Cyber Attack Exclusion",
-             "clause_type": "exclusion", "line_of_business": "cyber",
-             "text": "This insurance excludes loss directly or indirectly caused by a cyber attack unless specifically covered under this policy."},
+            {
+                "id": "LMA5401",
+                "name": "Cyber Attack Exclusion",
+                "clause_type": "exclusion",
+                "line_of_business": "cyber",
+                "text": "This insurance excludes loss directly or indirectly caused by a cyber attack unless specifically covered under this policy.",
+            },
         ],
         "aviation": [
-            {"id": "AVN48B", "name": "War, Hi-jacking and Other Perils Exclusion",
-             "clause_type": "exclusion", "line_of_business": "aviation",
-             "text": "This insurance excludes claims arising from war, hi-jacking, confiscation, and related perils in aviation."},
+            {
+                "id": "AVN48B",
+                "name": "War, Hi-jacking and Other Perils Exclusion",
+                "clause_type": "exclusion",
+                "line_of_business": "aviation",
+                "text": "This insurance excludes claims arising from war, hi-jacking, confiscation, and related perils in aviation.",
+            },
         ],
     }
 
@@ -1402,41 +1650,77 @@ def _get_recommended_clauses(line_of_business: str, document_type: str) -> List[
     """Get recommended clauses for a line of business and document type."""
     line_recommended = {
         "property": [
-            {"id": "NMA2914", "name": "Joint Excess Loss Clause",
-             "clause_type": "condition", "line_of_business": "property",
-             "text": "If other insurance covers the same loss, the Company shall not be liable for more than its rateable proportion of the amount exceeding the total of other deductibles."},
-            {"id": "LMA5014", "name": "Duty of Fair Presentation",
-             "clause_type": "condition", "line_of_business": "property",
-             "text": "The Insured shall make a fair presentation of the risk in accordance with the Insurance Act 2015."},
-            {"id": "LMA5096", "name": "Premium Payment Clause",
-             "clause_type": "condition", "line_of_business": "general",
-             "text": "Premium is payable in accordance with the London Market settlement procedures within 30 days."},
+            {
+                "id": "NMA2914",
+                "name": "Joint Excess Loss Clause",
+                "clause_type": "condition",
+                "line_of_business": "property",
+                "text": "If other insurance covers the same loss, the Company shall not be liable for more than its rateable proportion of the amount exceeding the total of other deductibles.",
+            },
+            {
+                "id": "LMA5014",
+                "name": "Duty of Fair Presentation",
+                "clause_type": "condition",
+                "line_of_business": "property",
+                "text": "The Insured shall make a fair presentation of the risk in accordance with the Insurance Act 2015.",
+            },
+            {
+                "id": "LMA5096",
+                "name": "Premium Payment Clause",
+                "clause_type": "condition",
+                "line_of_business": "general",
+                "text": "Premium is payable in accordance with the London Market settlement procedures within 30 days.",
+            },
         ],
         "marine": [
-            {"id": "ICC-B", "name": "Institute Cargo Clauses (B)",
-             "clause_type": "coverage", "line_of_business": "marine",
-             "text": "Named perils coverage for marine cargo including fire, explosion, stranding, and collision."},
-            {"id": "IWC-CARGO", "name": "Institute War Clauses (Cargo)",
-             "clause_type": "coverage", "line_of_business": "marine",
-             "text": "War risk coverage extension for marine cargo shipments."},
+            {
+                "id": "ICC-B",
+                "name": "Institute Cargo Clauses (B)",
+                "clause_type": "coverage",
+                "line_of_business": "marine",
+                "text": "Named perils coverage for marine cargo including fire, explosion, stranding, and collision.",
+            },
+            {
+                "id": "IWC-CARGO",
+                "name": "Institute War Clauses (Cargo)",
+                "clause_type": "coverage",
+                "line_of_business": "marine",
+                "text": "War risk coverage extension for marine cargo shipments.",
+            },
         ],
         "cyber": [
-            {"id": "LMA5402", "name": "Cyber Act War Exclusion",
-             "clause_type": "exclusion", "line_of_business": "cyber",
-             "text": "Excludes losses from cyber operations linked to war, whether declared or not."},
-            {"id": "LMA5394", "name": "Pandemic Exclusion",
-             "clause_type": "exclusion", "line_of_business": "general",
-             "text": "Excludes losses arising from or in connection with any pandemic or epidemic."},
+            {
+                "id": "LMA5402",
+                "name": "Cyber Act War Exclusion",
+                "clause_type": "exclusion",
+                "line_of_business": "cyber",
+                "text": "Excludes losses from cyber operations linked to war, whether declared or not.",
+            },
+            {
+                "id": "LMA5394",
+                "name": "Pandemic Exclusion",
+                "clause_type": "exclusion",
+                "line_of_business": "general",
+                "text": "Excludes losses arising from or in connection with any pandemic or epidemic.",
+            },
         ],
         "aviation": [
-            {"id": "AVN52E", "name": "War and Allied Perils Extension",
-             "clause_type": "coverage", "line_of_business": "aviation",
-             "text": "Extends coverage to include war and allied perils for aviation risks."},
+            {
+                "id": "AVN52E",
+                "name": "War and Allied Perils Extension",
+                "clause_type": "coverage",
+                "line_of_business": "aviation",
+                "text": "Extends coverage to include war and allied perils for aviation risks.",
+            },
         ],
         "casualty": [
-            {"id": "LMA3200", "name": "Employer's Liability Clause",
-             "clause_type": "coverage", "line_of_business": "casualty",
-             "text": "Coverage for employer's liability arising from bodily injury to employees."},
+            {
+                "id": "LMA3200",
+                "name": "Employer's Liability Clause",
+                "clause_type": "coverage",
+                "line_of_business": "casualty",
+                "text": "Coverage for employer's liability arising from bodily injury to employees.",
+            },
         ],
     }
 
@@ -1455,8 +1739,7 @@ def _substitute_variables(text: str, variables: dict) -> str:
 
 @router.post("/documents/generate-v3", response_model=GeneratedDocumentV3Response)
 async def generate_document_v3(
-    request: GenerateDocumentV3Request,
-    current_user: User = Depends(get_current_user)
+    request: GenerateDocumentV3Request, current_user: User = Depends(get_current_user)
 ):
     """
     Generate a document using V3 template system with multi-language support.
@@ -1479,7 +1762,9 @@ async def generate_document_v3(
         try:
             target_language = SupportedLanguage(request.language)
         except ValueError:
-            warnings.append(f"Invalid language code: {request.language}. Using English.")
+            warnings.append(
+                f"Invalid language code: {request.language}. Using English."
+            )
             target_language = SupportedLanguage.ENGLISH
     elif current_user.preferred_language:
         target_language = current_user.preferred_language
@@ -1517,9 +1802,13 @@ async def generate_document_v3(
         policies = _load_policies_for_line(line_lower)
         if policies:
             template_used = policies[0]
-            warnings.append(f"No specific template requested. Using default: {template_used.get('name')}")
+            warnings.append(
+                f"No specific template requested. Using default: {template_used.get('name')}"
+            )
         else:
-            warnings.append(f"No templates found for line: {line_lower}. Using generic structure.")
+            warnings.append(
+                f"No templates found for line: {line_lower}. Using generic structure."
+            )
 
     # Build sections from template
     if template_used:
@@ -1528,11 +1817,13 @@ async def generate_document_v3(
             # Substitute variables
             section_content = _substitute_variables(section_content, request.variables)
 
-            sections.append({
-                "name": section.get("name", ""),
-                "content": section_content,
-                "order": len(sections) + 1
-            })
+            sections.append(
+                {
+                    "name": section.get("name", ""),
+                    "content": section_content,
+                    "order": len(sections) + 1,
+                }
+            )
 
     # Add selected clauses
     clauses_included = []
@@ -1541,14 +1832,18 @@ async def generate_document_v3(
     if request.include_standard_clauses:
         mandatory = _get_mandatory_clauses(line_lower, request.document_type)
         for clause in mandatory:
-            clause_text = _substitute_variables(clause.get("text", ""), request.variables)
-            clauses_included.append({
-                "id": clause.get("id", ""),
-                "name": clause.get("name", ""),
-                "text": clause_text,
-                "type": clause.get("clause_type", ""),
-                "is_mandatory": True
-            })
+            clause_text = _substitute_variables(
+                clause.get("text", ""), request.variables
+            )
+            clauses_included.append(
+                {
+                    "id": clause.get("id", ""),
+                    "name": clause.get("name", ""),
+                    "text": clause_text,
+                    "type": clause.get("clause_type", ""),
+                    "is_mandatory": True,
+                }
+            )
 
     # Include explicitly selected clauses
     for clause_id in request.selected_clauses:
@@ -1558,14 +1853,18 @@ async def generate_document_v3(
 
         clause = _get_clause_by_id(clause_id)
         if clause:
-            clause_text = _substitute_variables(clause.get("text", ""), request.variables)
-            clauses_included.append({
-                "id": clause.get("id", ""),
-                "name": clause.get("name", ""),
-                "text": clause_text,
-                "type": clause.get("clause_type", ""),
-                "is_mandatory": False
-            })
+            clause_text = _substitute_variables(
+                clause.get("text", ""), request.variables
+            )
+            clauses_included.append(
+                {
+                    "id": clause.get("id", ""),
+                    "name": clause.get("name", ""),
+                    "text": clause_text,
+                    "type": clause.get("clause_type", ""),
+                    "is_mandatory": False,
+                }
+            )
         else:
             warnings.append(f"Clause not found: {clause_id}")
 
@@ -1581,9 +1880,7 @@ async def generate_document_v3(
     if target_language and target_language != SupportedLanguage.ENGLISH:
         # Translate title
         title = await translation_service.translate_text(
-            title,
-            target_language,
-            context="insurance document title"
+            title, target_language, context="insurance document title"
         )
 
         # Translate sections
@@ -1594,13 +1891,13 @@ async def generate_document_v3(
                 translated_section["name"] = await translation_service.translate_text(
                     section["name"],
                     target_language,
-                    context="insurance document section header"
+                    context="insurance document section header",
                 )
             if section.get("content"):
-                translated_section["content"] = await translation_service.translate_text(
-                    section["content"],
-                    target_language,
-                    context="insurance document"
+                translated_section[
+                    "content"
+                ] = await translation_service.translate_text(
+                    section["content"], target_language, context="insurance document"
                 )
             translated_section["original_language"] = "en"
             translated_section["translated_to"] = target_language.value
@@ -1611,8 +1908,7 @@ async def generate_document_v3(
         translated_clauses = []
         for clause in clauses_included:
             translated_clause = await translation_service.translate_clause(
-                clause,
-                target_language
+                clause, target_language
             )
             translated_clauses.append(translated_clause)
         clauses_included = translated_clauses
@@ -1630,7 +1926,7 @@ async def generate_document_v3(
         variables_applied=request.variables,
         warnings=warnings,
         generated_at=datetime.now(timezone.utc),
-        language=target_language.value if target_language else "en"
+        language=target_language.value if target_language else "en",
     )
 
 
@@ -1640,7 +1936,7 @@ async def suggest_clauses(
     document_type: str = "policy",
     territory: Optional[str] = None,
     sum_insured: Optional[float] = None,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Get pre-selected clause suggestions for a line of business and document type.
@@ -1672,7 +1968,7 @@ async def suggest_clauses(
             is_mandatory=True,
             is_recommended=True,
             reason=f"Required for {line_of_business} {document_type} — Lloyd's market standard",
-            line_of_business=c.get("category", "general")
+            line_of_business=c.get("category", "general"),
         )
         for c in recommendations.get("mandatory", [])
     ]
@@ -1685,7 +1981,7 @@ async def suggest_clauses(
             is_mandatory=False,
             is_recommended=True,
             reason=f"Commonly included in {line_of_business} policies",
-            line_of_business=c.get("category", "general")
+            line_of_business=c.get("category", "general"),
         )
         for c in recommendations.get("recommended", [])
     ]
@@ -1698,16 +1994,16 @@ async def suggest_clauses(
             is_mandatory=False,
             is_recommended=False,
             reason=f"Available for {line_of_business} placements",
-            line_of_business=c.get("category", "general")
+            line_of_business=c.get("category", "general"),
         )
         for c in recommendations.get("optional", [])
     ]
 
     # Also include clauses from the full 33k+ clause library
     already_suggested = set(
-        [c.clause_id for c in mandatory_suggestions] +
-        [c.clause_id for c in recommended_suggestions] +
-        [c.clause_id for c in optional_from_lma]
+        [c.clause_id for c in mandatory_suggestions]
+        + [c.clause_id for c in recommended_suggestions]
+        + [c.clause_id for c in optional_from_lma]
     )
 
     line_lower = line_of_business.lower().replace(" ", "_")
@@ -1724,7 +2020,12 @@ async def suggest_clauses(
         if clause_id in already_suggested:
             continue
         clause_category = clause.get("category", "general")
-        if clause_category == line_lower or clause_category in ["core", "general", "claims", "sanctions"]:
+        if clause_category == line_lower or clause_category in [
+            "core",
+            "general",
+            "claims",
+            "sanctions",
+        ]:
             optional_suggestions.append(
                 ClauseSuggestion(
                     clause_id=clause_id,
@@ -1733,13 +2034,17 @@ async def suggest_clauses(
                     is_mandatory=False,
                     is_recommended=False,
                     reason=f"Available from {clause.get('source', 'clause library')}",
-                    line_of_business=clause_category
+                    line_of_business=clause_category,
                 )
             )
         if len(optional_suggestions) >= 500:
             break
 
-    total = len(mandatory_suggestions) + len(recommended_suggestions) + len(optional_suggestions)
+    total = (
+        len(mandatory_suggestions)
+        + len(recommended_suggestions)
+        + len(optional_suggestions)
+    )
 
     return SuggestClausesResponse(
         line_of_business=line_of_business,
@@ -1747,7 +2052,7 @@ async def suggest_clauses(
         mandatory_clauses=mandatory_suggestions,
         recommended_clauses=recommended_suggestions,
         optional_clauses=optional_suggestions,
-        total_suggested=total
+        total_suggested=total,
     )
 
 
@@ -1755,11 +2060,12 @@ async def suggest_clauses(
 # AI-Driven Document Generation (OpenDraft Pipeline)
 # =============================================================================
 
+
 @router.post("/document-generation/ai-recommend")
 async def ai_recommend_documents(
     request: dict,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     AI-driven document recommendation.
@@ -1774,8 +2080,7 @@ async def ai_recommend_documents(
 
     # Load assessment
     query = select(Assessment).where(
-        Assessment.id == assessment_id,
-        Assessment.created_by == current_user.id
+        Assessment.id == assessment_id, Assessment.created_by == current_user.id
     )
     result = await db.execute(query)
     assessment = result.scalars().first()
@@ -1785,11 +2090,14 @@ async def ai_recommend_documents(
     # Try OpenDraft AI analysis
     try:
         from app.services.opendraft_generator import opendraft_generator
+
         assessment_data = {
             "id": assessment.id,
             "reference_number": assessment.reference_number,
             "title": assessment.title,
-            "risk_category": assessment.risk_category.value if assessment.risk_category else "general",
+            "risk_category": assessment.risk_category.value
+            if assessment.risk_category
+            else "general",
             "decision": assessment.decision.value if assessment.decision else None,
             "insured_name": assessment.insured_name,
             "territory": assessment.territory or "",
@@ -1808,7 +2116,9 @@ async def ai_recommend_documents(
         return {"recommended_documents": recommendations}
     except Exception as e:
         logger.error(f"AI document recommendation failed: {e}", exc_info=True)
-        risk_category = assessment.risk_category.value if assessment.risk_category else "general"
+        risk_category = (
+            assessment.risk_category.value if assessment.risk_category else "general"
+        )
         fallback = _get_fallback_recommendations(risk_category)
         return {"recommended_documents": fallback, "is_fallback": True}
 
@@ -1817,7 +2127,7 @@ async def ai_recommend_documents(
 async def ai_clause_search(
     request: dict,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     AI-driven clause search with source attribution.
@@ -1836,22 +2146,35 @@ async def ai_clause_search(
         clauses_by_doc = {}
 
         # Mandatory LMA clauses for all document types
-        mandatory_ids = ["LMA5021", "LMA5390", "LMA5400", "LMA5027", "LMA5515", "LMA5406"]
+        mandatory_ids = [
+            "LMA5021",
+            "LMA5390",
+            "LMA5400",
+            "LMA5027",
+            "LMA5515",
+            "LMA5406",
+        ]
 
-        for doc_type in (document_types or ["policy_wording"]):
+        for doc_type in document_types or ["policy_wording"]:
             doc_clauses = []
 
             # 1. Add mandatory LMA clauses with real text
             for clause_id in mandatory_ids:
                 clause_data = clauses_library_service.get_clause_by_id(clause_id)
                 if clause_data:
-                    doc_clauses.append({
-                        "clause_id": clause_data["id"],
-                        "name": clause_data["name"],
-                        "source": clause_data.get("source", "lma"),
-                        "content_preview": (clause_data.get("text", "") or clause_data.get("name", ""))[:200] + "...",
-                        "is_mandatory": True,
-                    })
+                    doc_clauses.append(
+                        {
+                            "clause_id": clause_data["id"],
+                            "name": clause_data["name"],
+                            "source": clause_data.get("source", "lma"),
+                            "content_preview": (
+                                clause_data.get("text", "")
+                                or clause_data.get("name", "")
+                            )[:200]
+                            + "...",
+                            "is_mandatory": True,
+                        }
+                    )
 
             # 2. Search for document-type-relevant clauses
             type_searches = {
@@ -1869,13 +2192,18 @@ async def ai_clause_search(
                 results, _ = clauses_library_service.search(query=term, page_size=8)
                 for r in results:
                     if r["id"] not in existing_ids and len(doc_clauses) < 20:
-                        doc_clauses.append({
-                            "clause_id": r["id"],
-                            "name": r["name"],
-                            "source": r.get("source", "library"),
-                            "content_preview": (r.get("text", "") or r.get("name", ""))[:200] + "...",
-                            "is_mandatory": False,
-                        })
+                        doc_clauses.append(
+                            {
+                                "clause_id": r["id"],
+                                "name": r["name"],
+                                "source": r.get("source", "library"),
+                                "content_preview": (
+                                    r.get("text", "") or r.get("name", "")
+                                )[:200]
+                                + "...",
+                                "is_mandatory": False,
+                            }
+                        )
                         existing_ids.add(r["id"])
 
             # 3. Also search RAG for user-specific docs if available
@@ -1890,7 +2218,9 @@ async def ai_clause_search(
                 risk_cat = ""
                 insured = ""
                 if assess:
-                    risk_cat = assess.risk_category.value if assess.risk_category else ""
+                    risk_cat = (
+                        assess.risk_category.value if assess.risk_category else ""
+                    )
                     insured = assess.insured_name or assess.insured_entity_name or ""
 
                 # Use risk-category-aware search instead of generic query
@@ -1928,21 +2258,33 @@ async def ai_clause_search(
                         name_parts = []
                         if filename:
                             # Clean filename for display
-                            clean_name = filename.rsplit(".", 1)[0].replace("_", " ").replace("-", " ").title()
+                            clean_name = (
+                                filename.rsplit(".", 1)[0]
+                                .replace("_", " ")
+                                .replace("-", " ")
+                                .title()
+                            )
                             name_parts.append(clean_name)
                         if category and category != "policy":
                             name_parts.append(f"({category})")
-                        display_name = " ".join(name_parts) if name_parts else "User Document"
+                        display_name = (
+                            " ".join(name_parts) if name_parts else "User Document"
+                        )
 
-                        doc_clauses.append({
-                            "clause_id": f"user_{abs(hash(text[:200]))%100000}",
-                            "name": display_name,
-                            "source": "user_uploaded",
-                            "content_preview": text[:200] + ("..." if len(text) > 200 else ""),
-                            "is_mandatory": False,
-                        })
+                        doc_clauses.append(
+                            {
+                                "clause_id": f"user_{abs(hash(text[:200])) % 100000}",
+                                "name": display_name,
+                                "source": "user_uploaded",
+                                "content_preview": text[:200]
+                                + ("..." if len(text) > 200 else ""),
+                                "is_mandatory": False,
+                            }
+                        )
             except Exception as e:
-                logging.getLogger(__name__).debug(f"User clause search for {doc_type} skipped: {e}")
+                logging.getLogger(__name__).debug(
+                    f"User clause search for {doc_type} skipped: {e}"
+                )
 
             clauses_by_doc[doc_type] = doc_clauses
 
@@ -1951,13 +2293,43 @@ async def ai_clause_search(
         logger.error(f"AI clause search failed: {e}", exc_info=True)
         # Minimal fallback
         clauses_by_doc = {}
-        for doc_type in (document_types or ["policy_wording"]):
+        for doc_type in document_types or ["policy_wording"]:
             clauses_by_doc[doc_type] = [
-                {"clause_id": "preamble", "name": "Preamble & Recitals", "source": "template", "content_preview": "Standard opening recitals...", "is_mandatory": True},
-                {"clause_id": "insuring_agreement", "name": "Insuring Agreement", "source": "template", "content_preview": "The Insurer agrees to indemnify...", "is_mandatory": True},
-                {"clause_id": "exclusions", "name": "General Exclusions", "source": "template", "content_preview": "Standard exclusions...", "is_mandatory": True},
-                {"clause_id": "conditions", "name": "General Conditions", "source": "template", "content_preview": "General conditions...", "is_mandatory": True},
-                {"clause_id": "law_jurisdiction", "name": "Law & Jurisdiction", "source": "template", "content_preview": "English law...", "is_mandatory": True},
+                {
+                    "clause_id": "preamble",
+                    "name": "Preamble & Recitals",
+                    "source": "template",
+                    "content_preview": "Standard opening recitals...",
+                    "is_mandatory": True,
+                },
+                {
+                    "clause_id": "insuring_agreement",
+                    "name": "Insuring Agreement",
+                    "source": "template",
+                    "content_preview": "The Insurer agrees to indemnify...",
+                    "is_mandatory": True,
+                },
+                {
+                    "clause_id": "exclusions",
+                    "name": "General Exclusions",
+                    "source": "template",
+                    "content_preview": "Standard exclusions...",
+                    "is_mandatory": True,
+                },
+                {
+                    "clause_id": "conditions",
+                    "name": "General Conditions",
+                    "source": "template",
+                    "content_preview": "General conditions...",
+                    "is_mandatory": True,
+                },
+                {
+                    "clause_id": "law_jurisdiction",
+                    "name": "Law & Jurisdiction",
+                    "source": "template",
+                    "content_preview": "English law...",
+                    "is_mandatory": True,
+                },
             ]
         return {"clauses_by_document": clauses_by_doc, "is_fallback": True}
 
@@ -1967,7 +2339,7 @@ async def generate_documents_opendraft(
     request: dict,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Generate documents using OpenDraft 19-agent pipeline (async).
@@ -1982,8 +2354,7 @@ async def generate_documents_opendraft(
 
     # Load assessment
     query = select(Assessment).where(
-        Assessment.id == assessment_id,
-        Assessment.created_by == current_user.id
+        Assessment.id == assessment_id, Assessment.created_by == current_user.id
     )
     result = await db.execute(query)
     assessment = result.scalars().first()
@@ -1992,6 +2363,7 @@ async def generate_documents_opendraft(
 
     # Create job record
     import uuid
+
     job_id = str(uuid.uuid4())[:8]
     job = DocumentGenerationJob(
         id=job_id,
@@ -2006,7 +2378,9 @@ async def generate_documents_opendraft(
         "id": assessment.id,
         "reference_number": assessment.reference_number,
         "title": assessment.title,
-        "risk_category": assessment.risk_category.value if assessment.risk_category else "general",
+        "risk_category": assessment.risk_category.value
+        if assessment.risk_category
+        else "general",
         "decision": assessment.decision.value if assessment.decision else None,
         "insured_name": assessment.insured_name,
         "broker_reference": assessment.broker_reference,
@@ -2014,16 +2388,22 @@ async def generate_documents_opendraft(
         "premium": assessment.premium,
         "sum_insured": assessment.sum_insured,
         "deductible": assessment.deductible,
-        "inception_date": str(assessment.inception_date) if assessment.inception_date else None,
+        "inception_date": str(assessment.inception_date)
+        if assessment.inception_date
+        else None,
         "expiry_date": str(assessment.expiry_date) if assessment.expiry_date else None,
         "risk_score": assessment.risk_score,
         "ai_analysis": assessment.ai_analysis or {},
         "rapidrate_results": assessment.rapidrate_results or {},
         "broker_name": assessment.broker_name,
-        "commission_rate": float(assessment.commission_rate) if assessment.commission_rate else None,
+        "commission_rate": float(assessment.commission_rate)
+        if assessment.commission_rate
+        else None,
         "insured_entity_name": assessment.insured_entity_name,
         "companies_house_number": assessment.companies_house_number,
-        "renewal_date": str(assessment.renewal_date) if assessment.renewal_date else None,
+        "renewal_date": str(assessment.renewal_date)
+        if assessment.renewal_date
+        else None,
         "loss_run_reporting_rules": assessment.loss_run_reporting_rules,
         "regulatory_framework": assessment.regulatory_framework,
     }
@@ -2032,6 +2412,7 @@ async def generate_documents_opendraft(
     ai_data = assessment.ai_analysis or {}
     if isinstance(ai_data, str):
         import json as _json
+
         try:
             ai_data = _json.loads(ai_data)
         except Exception:
@@ -2056,7 +2437,11 @@ async def generate_documents_opendraft(
                 is_empty = is_empty or current_val == 0 or current_val == 0.0
             if is_empty:
                 ai_val = ai_data.get(ai_key)
-                if ai_val is not None and str(ai_val).strip() and str(ai_val).strip().lower() != "none":
+                if (
+                    ai_val is not None
+                    and str(ai_val).strip()
+                    and str(ai_val).strip().lower() != "none"
+                ):
                     assessment_data[field] = ai_val
 
     # Queue background task — returns immediately
@@ -2071,7 +2456,14 @@ async def generate_documents_opendraft(
     return {"job_id": job_id, "status": "pending"}
 
 
-async def _run_opendraft_job(job_id: str, assessment_data: dict, user_id: str, doc_types: list):
+async def _run_opendraft_job(
+    job_id: str,
+    assessment_data: dict,
+    user_id: str,
+    doc_types: list,
+    clause_ids: list = None,
+    language: str = None,
+):
     """Background task that runs the 19-agent pipeline and updates job progress in DB."""
     from app.core.database import AsyncSessionLocal
     from app.services.opendraft_generator import opendraft_generator
@@ -2093,9 +2485,13 @@ async def _run_opendraft_job(job_id: str, assessment_data: dict, user_id: str, d
                         agent_name = progress.get("agent", "")
                         status = progress.get("status", "running")
                         phase = progress.get("phase", "")
-                        percentage = min(int((agent_num / 19) * 95), 95)  # cap at 95% until truly done
+                        percentage = min(
+                            int((agent_num / 19) * 95), 95
+                        )  # cap at 95% until truly done
                         if status == "running":
-                            cb_job.update_progress(agent_name, f"{phase}: {agent_name}", percentage)
+                            cb_job.update_progress(
+                                agent_name, f"{phase}: {agent_name}", percentage
+                            )
                             await cb_db.commit()
 
             result = await opendraft_generator.generate(
@@ -2103,14 +2499,20 @@ async def _run_opendraft_job(job_id: str, assessment_data: dict, user_id: str, d
                 user_id=user_id,
                 doc_types=doc_types,
                 progress_callback=progress_callback,
+                clause_ids=clause_ids,
+                language=language,
             )
 
             # Store result and mark complete (convert UUIDs to strings for JSONB)
             import json as _json
+
             def _default(o):
-                if hasattr(o, 'hex'):  # UUID
+                if hasattr(o, "hex"):  # UUID
                     return str(o)
-                raise TypeError(f"Object of type {type(o).__name__} is not JSON serializable")
+                raise TypeError(
+                    f"Object of type {type(o).__name__} is not JSON serializable"
+                )
+
             safe_result = _json.loads(_json.dumps(result, default=_default))
 
             job = await db.get(DocumentGenerationJob, job_id)
@@ -2121,14 +2523,17 @@ async def _run_opendraft_job(job_id: str, assessment_data: dict, user_id: str, d
                 # Create individual GeneratedDocument records for each document
                 from app.models.generated_document import GeneratedDocument
                 from sqlalchemy.orm.attributes import flag_modified
+
                 doc_ids = []
                 for doc_data in safe_result.get("documents", []):
                     sections_to_store = doc_data.get("sections", [])
                     if sections_to_store:
                         sample_keys = list(sections_to_store[0].keys())
-                        logger.info(f"Storing doc '{doc_data.get('document_type')}': "
-                                    f"{len(sections_to_store)} sections, "
-                                    f"section[0] keys={sample_keys}")
+                        logger.info(
+                            f"Storing doc '{doc_data.get('document_type')}': "
+                            f"{len(sections_to_store)} sections, "
+                            f"section[0] keys={sample_keys}"
+                        )
                     gen_doc = GeneratedDocument(
                         assessment_id=job.assessment_id,
                         generation_job_id=job_id,
@@ -2145,7 +2550,9 @@ async def _run_opendraft_job(job_id: str, assessment_data: dict, user_id: str, d
                             "risk_challenge": doc_data.get("risk_challenge", {}),
                             "quality_gate": doc_data.get("quality_gate", {}),
                             "gap_analysis": doc_data.get("gap_analysis", {}),
-                            "source_attribution": doc_data.get("source_attribution", {}),
+                            "source_attribution": doc_data.get(
+                                "source_attribution", {}
+                            ),
                             "ml_predictions": doc_data.get("ml_predictions"),
                         },
                         ai_confidence=0.85,
@@ -2160,7 +2567,9 @@ async def _run_opendraft_job(job_id: str, assessment_data: dict, user_id: str, d
                 job.agent_outputs = safe_result
                 flag_modified(job, "agent_outputs")
                 await db.commit()
-                logger.info(f"OpenDraft job {job_id} completed: {len(doc_ids)} documents created (IDs: {doc_ids})")
+                logger.info(
+                    f"OpenDraft job {job_id} completed: {len(doc_ids)} documents created (IDs: {doc_ids})"
+                )
 
         except Exception as e:
             logger.error(f"OpenDraft job {job_id} failed: {e}", exc_info=True)
@@ -2200,28 +2609,34 @@ def _get_fallback_recommendations(risk_category: str) -> list:
     ]
 
     if risk_category in ("marine", "cargo", "hull"):
-        base.append({
-            "type": "war_risks_endorsement",
-            "name": "War Risks Endorsement",
-            "reason": "Marine risks typically require separate war risks coverage",
-            "priority": "recommended",
-            "estimated_sections": 4,
-        })
+        base.append(
+            {
+                "type": "war_risks_endorsement",
+                "name": "War Risks Endorsement",
+                "reason": "Marine risks typically require separate war risks coverage",
+                "priority": "recommended",
+                "estimated_sections": 4,
+            }
+        )
     elif risk_category in ("property", "fire"):
-        base.append({
-            "type": "nat_cat_endorsement",
-            "name": "Natural Catastrophe Endorsement",
-            "reason": "Property risks need natural catastrophe sub-limits",
-            "priority": "recommended",
-            "estimated_sections": 5,
-        })
+        base.append(
+            {
+                "type": "nat_cat_endorsement",
+                "name": "Natural Catastrophe Endorsement",
+                "reason": "Property risks need natural catastrophe sub-limits",
+                "priority": "recommended",
+                "estimated_sections": 5,
+            }
+        )
 
-    base.append({
-        "type": "pricing_summary",
-        "name": "Pricing Summary",
-        "reason": "Technical pricing breakdown with rate derivation",
-        "priority": "optional",
-        "estimated_sections": 6,
-    })
+    base.append(
+        {
+            "type": "pricing_summary",
+            "name": "Pricing Summary",
+            "reason": "Technical pricing breakdown with rate derivation",
+            "priority": "optional",
+            "estimated_sections": 6,
+        }
+    )
 
     return base

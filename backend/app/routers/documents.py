@@ -11,7 +11,17 @@ import os
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, BackgroundTasks, Request
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+    UploadFile,
+    File,
+    Form,
+    BackgroundTasks,
+    Request,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,7 +33,12 @@ from app.models.document import Document, DocumentStatus, DocumentType
 from app.services.ocr_service import OCRService
 
 # Security imports
-from app.utils import validate_file, FileValidationError, scan_file_content, sanitize_filename
+from app.utils import (
+    validate_file,
+    FileValidationError,
+    scan_file_content,
+    sanitize_filename,
+)
 from app.middleware import log_file_blocked, log_malware_detected
 import logging
 
@@ -60,40 +75,44 @@ def calculate_checksum(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
-async def process_document_ocr(document_id: int, db: AsyncSession):
+async def process_document_ocr(document_id: int):
     """
     Background task to process document with OCR.
 
+    Creates its own DB session since the request-scoped session will be
+    closed before this background task runs.
+
     Args:
         document_id: ID of the document to process.
-        db: Database session.
     """
-    result = await db.execute(select(Document).where(Document.id == document_id))
-    document = result.scalar_one_or_none()
+    from app.core.database import AsyncSessionLocal
 
-    if not document:
-        return
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(Document).where(Document.id == document_id))
+        document = result.scalar_one_or_none()
 
-    try:
-        document.mark_processing()
-        await db.commit()
+        if not document:
+            return
 
-        # Initialize OCR service and process
-        ocr_service = OCRService()
-        ocr_result = await ocr_service.process_document(document.file_path)
+        try:
+            document.mark_processing()
+            await db.commit()
 
-        document.mark_completed(
-            ocr_text=ocr_result["text"],
-            confidence=ocr_result["confidence"]
-        )
-        document.extracted_data = ocr_result.get("extracted_data", {})
-        document.ocr_language = ocr_result.get("language", "en")
+            # Initialize OCR service and process
+            ocr_service = OCRService()
+            ocr_result = await ocr_service.process_document(document.file_path)
 
-        await db.commit()
+            document.mark_completed(
+                ocr_text=ocr_result["text"], confidence=ocr_result["confidence"]
+            )
+            document.extracted_data = ocr_result.get("extracted_data", {})
+            document.ocr_language = ocr_result.get("language", "en")
 
-    except Exception as e:
-        document.mark_failed(str(e))
-        await db.commit()
+            await db.commit()
+
+        except Exception as e:
+            document.mark_failed(str(e))
+            await db.commit()
 
 
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
@@ -105,7 +124,7 @@ async def upload_document(
     assessment_id: Optional[str] = Form(None),
     ocr_language: str = Form("en"),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     Upload a document for processing.
@@ -127,7 +146,9 @@ async def upload_document(
         HTTPException: If file type is not allowed, malicious, or too large.
     """
     # Get client IP for logging
-    client_ip = getattr(request.state, "client_ip", request.client.host if request.client else "unknown")
+    client_ip = getattr(
+        request.state, "client_ip", request.client.host if request.client else "unknown"
+    )
 
     # Sanitize filename
     safe_filename = sanitize_filename(file.filename)
@@ -135,10 +156,12 @@ async def upload_document(
     # Validate file extension
     extension = get_file_extension(safe_filename)
     if extension not in settings.ALLOWED_EXTENSIONS:
-        await log_file_blocked(safe_filename, "Extension not allowed", client_ip, current_user.id)
+        await log_file_blocked(
+            safe_filename, "Extension not allowed", client_ip, current_user.id
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File type not allowed. Allowed types: {', '.join(settings.ALLOWED_EXTENSIONS)}"
+            detail=f"File type not allowed. Allowed types: {', '.join(settings.ALLOWED_EXTENSIONS)}",
         )
 
     # Read file content
@@ -146,10 +169,12 @@ async def upload_document(
 
     # Validate file size
     if len(content) > settings.MAX_UPLOAD_SIZE:
-        await log_file_blocked(safe_filename, "File too large", client_ip, current_user.id)
+        await log_file_blocked(
+            safe_filename, "File too large", client_ip, current_user.id
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File too large. Maximum size: {settings.MAX_UPLOAD_SIZE // (1024 * 1024)}MB"
+            detail=f"File too large. Maximum size: {settings.MAX_UPLOAD_SIZE // (1024 * 1024)}MB",
         )
 
     # Security validation: MIME type, embedded scripts, macros
@@ -159,17 +184,21 @@ async def upload_document(
         await log_file_blocked(safe_filename, e.message, client_ip, current_user.id)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File validation failed: {e.message}"
+            detail=f"File validation failed: {e.message}",
         )
 
     # Antivirus scan
     is_clean, scan_message = await scan_file_content(content, safe_filename)
     if not is_clean:
-        await log_malware_detected(safe_filename, scan_message, client_ip, current_user.id)
-        logger.critical(f"MALWARE BLOCKED: {safe_filename} from user {current_user.id} - {scan_message}")
+        await log_malware_detected(
+            safe_filename, scan_message, client_ip, current_user.id
+        )
+        logger.critical(
+            f"MALWARE BLOCKED: {safe_filename} from user {current_user.id} - {scan_message}"
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File rejected: potential security threat detected"
+            detail="File rejected: potential security threat detected",
         )
 
     # Generate unique file path
@@ -180,7 +209,9 @@ async def upload_document(
     checksum = calculate_checksum(content)
 
     # Save file to disk
-    storage_dir = Path(settings.resolved_upload_dir) / "documents" / str(current_user.id)
+    storage_dir = (
+        Path(settings.resolved_upload_dir) / "documents" / str(current_user.id)
+    )
     storage_dir.mkdir(parents=True, exist_ok=True)
     full_path = storage_dir / f"{file_id}{extension}"
     with open(full_path, "wb") as f:
@@ -197,21 +228,23 @@ async def upload_document(
         assessment_id=assessment_id,
         ocr_language=ocr_language,
         checksum=checksum,
-        status=DocumentStatus.PENDING
+        status=DocumentStatus.PENDING,
     )
 
     db.add(document)
     await db.commit()
     await db.refresh(document)
 
-    # Queue OCR processing as background task
-    background_tasks.add_task(process_document_ocr, document.id, db)
+    # Queue OCR processing as background task (use document ID only; background
+    # function must create its own DB session since the request-scoped session
+    # will be closed before the background task runs)
+    background_tasks.add_task(process_document_ocr, document.id)
 
     return {
         "message": "Document uploaded successfully",
         "document_id": document.id,
         "filename": document.filename,
-        "status": document.status.value
+        "status": document.status.value,
     }
 
 
@@ -219,7 +252,7 @@ async def upload_document(
 async def get_document(
     document_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     Get document details by ID.
@@ -240,15 +273,13 @@ async def get_document(
 
     if not document:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
         )
 
     # Check access (user can only see their own documents unless admin)
     if document.uploaded_by != current_user.id and current_user.role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
     return {
@@ -263,7 +294,9 @@ async def get_document(
         "extracted_data": document.extracted_data,
         "error_message": document.error_message,
         "created_at": document.created_at.isoformat(),
-        "processed_at": document.processed_at.isoformat() if document.processed_at else None
+        "processed_at": document.processed_at.isoformat()
+        if document.processed_at
+        else None,
     }
 
 
@@ -271,7 +304,7 @@ async def get_document(
 async def download_document(
     document_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Download a document file.
@@ -292,28 +325,32 @@ async def download_document(
 
     if not document:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
         )
 
     # Check access
     if document.uploaded_by != current_user.id and current_user.role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
-    # Check if file exists
-    if not os.path.exists(document.file_path):
+    # Resolve the full path from the stored relative path
+    full_path = Path(settings.resolved_upload_dir) / document.file_path
+    if not full_path.exists():
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="File not found on server"
+            status_code=status.HTTP_404_NOT_FOUND, detail="File not found on server"
         )
+
+    return FileResponse(
+        path=str(full_path),
+        filename=document.filename,
+        media_type=document.mime_type or "application/octet-stream",
+    )
 
     return FileResponse(
         path=document.file_path,
         filename=document.filename,
-        media_type=document.mime_type or "application/octet-stream"
+        media_type=document.mime_type or "application/octet-stream",
     )
 
 
@@ -321,7 +358,7 @@ async def download_document(
 async def get_document_text(
     document_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     Get extracted OCR text from a document.
@@ -342,28 +379,26 @@ async def get_document_text(
 
     if not document:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
         )
 
     # Check access
     if document.uploaded_by != current_user.id and current_user.role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
     if document.status != DocumentStatus.COMPLETED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Document not processed. Status: {document.status.value}"
+            detail=f"Document not processed. Status: {document.status.value}",
         )
 
     return {
         "document_id": document.id,
         "text": document.ocr_text,
         "confidence": document.ocr_confidence,
-        "language": document.ocr_language
+        "language": document.ocr_language,
     }
 
 
@@ -375,7 +410,7 @@ async def list_documents(
     page: int = 1,
     page_size: int = 20,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     List documents with optional filters.
@@ -424,12 +459,12 @@ async def list_documents(
                 "filename": doc.filename,
                 "document_type": doc.document_type.value,
                 "status": doc.status.value,
-                "created_at": doc.created_at.isoformat()
+                "created_at": doc.created_at.isoformat(),
             }
             for doc in documents
         ],
         "page": page,
-        "page_size": page_size
+        "page_size": page_size,
     }
 
 
@@ -437,7 +472,7 @@ async def list_documents(
 async def delete_document(
     document_id: int,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> None:
     """
     Delete a document.
@@ -455,15 +490,13 @@ async def delete_document(
 
     if not document:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
         )
 
     # Check access (only owner or admin can delete)
     if document.uploaded_by != current_user.id and current_user.role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
     # TODO: Delete from MinIO storage
@@ -479,7 +512,7 @@ async def reprocess_document(
     background_tasks: BackgroundTasks,
     ocr_language: Optional[str] = None,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     Reprocess a document with OCR.
@@ -502,15 +535,13 @@ async def reprocess_document(
 
     if not document:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Document not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
         )
 
     # Check access
     if document.uploaded_by != current_user.id and current_user.role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
     # Update language if provided
@@ -523,9 +554,6 @@ async def reprocess_document(
     await db.commit()
 
     # Queue reprocessing
-    background_tasks.add_task(process_document_ocr, document.id, db)
+    background_tasks.add_task(process_document_ocr, document.id)
 
-    return {
-        "message": "Document queued for reprocessing",
-        "document_id": document.id
-    }
+    return {"message": "Document queued for reprocessing", "document_id": document.id}

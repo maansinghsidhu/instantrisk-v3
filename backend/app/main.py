@@ -31,7 +31,7 @@ from app.routers import (
 from app.routers import reference_documents, document_generation
 from app.routers import pricing_quotes, pricing_benchmarks, teams
 from app.routers import extraction, analysis, sanctions, language
-from app.routers import precedents, monitoring, explainability
+from app.routers import precedents, explainability
 from app.routers import templates_v3, chat, clauses
 from app.routers import subscription, approval, sharing, two_factor, security
 from app.routers import claims as claims_router
@@ -41,7 +41,6 @@ from app.routers import admin_reset
 from app.routers import training
 from app.routers import rapidrate
 from app.routers import investigation
-from app.routers import analytics
 from app.routers import entities
 from app.routers import events as events_router
 from app.routers import (
@@ -227,6 +226,12 @@ async def lifespan(app: FastAPI):
             "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS regulatory_framework VARCHAR(255)",
             # v102: Computer vision property inspection
             "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS property_analysis JSON",
+            # v110: Broker portal columns
+            "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS deadline TIMESTAMP WITH TIME ZONE",
+            "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS upload_session_token VARCHAR(100)",
+            "ALTER TABLE assessments ADD COLUMN IF NOT EXISTS assigned_underwriter_id UUID",
+            # v111: Broker commission rate on users table
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS commission_rate FLOAT",
             # Syndicates table (required for assessments FK)
             """CREATE TABLE IF NOT EXISTS syndicates (
                     id SERIAL PRIMARY KEY,
@@ -410,6 +415,10 @@ async def lifespan(app: FastAPI):
                 )""",
             "CREATE INDEX IF NOT EXISTS idx_compliance_checks_assessment ON compliance_checks(assessment_id)",
             "CREATE INDEX IF NOT EXISTS idx_compliance_checks_status ON compliance_checks(overall_status)",
+            # Broker portal fields on quotes table
+            "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS accepted_by UUID REFERENCES users(id)",
+            "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS declined_at TIMESTAMP WITH TIME ZONE",
+            "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS decline_reason TEXT",
         ]
         # Run each migration in its own transaction
         for sql in migrations:
@@ -463,6 +472,115 @@ async def lifespan(app: FastAPI):
                 print("Test users already exist")
     except Exception as e:
         print(f"User seed skipped: {e}")
+
+    # Backfill NULL expiry_dates on existing assessments (1 year from created_at)
+    try:
+        from sqlalchemy import text
+        from app.core.database import AsyncSessionLocal
+
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                text("""
+                    UPDATE assessments
+                    SET expiry_date = created_at + INTERVAL '1 year'
+                    WHERE expiry_date IS NULL
+                """)
+            )
+            if result.rowcount > 0:
+                print(f"Backfilled expiry_date on {result.rowcount} assessments")
+            await session.commit()
+    except Exception as e:
+        print(f"Expiry date backfill skipped: {e}")
+
+    # Seed exposure_losses demo data for loss ratio analytics
+    try:
+        from sqlalchemy import text
+        from app.core.database import AsyncSessionLocal
+
+        async with AsyncSessionLocal() as session:
+            # Check if any exposure_losses exist
+            count_result = await session.execute(
+                text("SELECT COUNT(*) FROM exposure_losses")
+            )
+            count = count_result.scalar()
+            if count == 0:
+                # Get bound assessments to link losses to
+                assess_result = await session.execute(
+                    text("""
+                        SELECT id, premium, risk_category, territory, created_at
+                        FROM assessments
+                        WHERE decision = 'go' AND premium IS NOT NULL AND premium > 0
+                        LIMIT 25
+                    """)
+                )
+                bound = assess_result.fetchall()
+                if bound:
+                    import random
+
+                    random.seed(42)
+                    # Ensure a default syndicate exists for loss records
+                    syn_result = await session.execute(
+                        text("SELECT id FROM syndicates LIMIT 1")
+                    )
+                    syn_id = syn_result.scalar()
+                    if not syn_id:
+                        await session.execute(
+                            text(
+                                "INSERT INTO syndicates (name, aiin, managing_agent, created_at, updated_at) VALUES ('Demo Syndicate', '1234', 'Demo Managing Agent', NOW(), NOW())"
+                            )
+                        )
+                        await session.flush()
+                        syn_result2 = await session.execute(
+                            text("SELECT id FROM syndicates LIMIT 1")
+                        )
+                        syn_id = syn_result2.scalar()
+                    if not syn_id:
+                        syn_id = 1  # fallback
+
+                    inserted = 0
+                    for row in bound:
+                        (
+                            assess_id,
+                            premium,
+                            risk_cat,
+                            territory,
+                            created_at,
+                        ) = row
+                        premium_val = float(premium) if premium else 100000
+                        # Generate 1-3 loss records per assessment
+                        for _ in range(random.randint(1, 3)):
+                            loss_ratio = random.uniform(0.35, 0.95)
+                            loss_amount = round(premium_val * loss_ratio, 2)
+                            await session.execute(
+                                text("""
+                                    INSERT INTO exposure_losses (
+                                        assessment_id, syndicate_id, loss_amount, currency,
+                                        loss_type, loss_date, territory, created_at
+                                    ) VALUES (
+                                        :assess_id, :syn_id, :loss, 'GBP',
+                                        :loss_type, :loss_date, :territory, NOW()
+                                    )
+                                """),
+                                {
+                                    "assess_id": assess_id,
+                                    "syn_id": syn_id,
+                                    "loss": loss_amount,
+                                    "loss_type": random.choice(
+                                        ["attritional", "large", "cat"]
+                                    ),
+                                    "territory": territory or "US",
+                                    "loss_date": created_at,
+                                },
+                            )
+                            inserted += 1
+                    await session.commit()
+                    print(f"Seeded {inserted} exposure_losses records")
+                else:
+                    print("No bound assessments with premium found for loss seeding")
+            else:
+                print(f"Exposure losses already exist ({count} rows)")
+    except Exception as e:
+        print(f"Exposure losses seed skipped: {e}")
 
     # Enable pgvector extension and create vector tables
     try:
@@ -823,11 +941,6 @@ app.include_router(
     tags=["Precedent Search"],
 )
 app.include_router(
-    monitoring.router,
-    prefix=f"{settings.api_prefix}/monitoring",
-    tags=["Risk Monitoring"],
-)
-app.include_router(
     explainability.router,
     prefix=f"{settings.api_prefix}/explainability",
     tags=["AI Explainability"],
@@ -883,11 +996,6 @@ app.include_router(
     investigation.router,
     prefix=f"{settings.api_prefix}/investigation",
     tags=["Autonomous Investigation"],
-)
-app.include_router(
-    analytics.router,
-    prefix=f"{settings.api_prefix}/analytics",
-    tags=["Portfolio Analytics"],
 )
 app.include_router(
     entities.router,

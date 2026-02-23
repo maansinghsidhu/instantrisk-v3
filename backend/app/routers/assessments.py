@@ -7,7 +7,7 @@ and AI-powered risk analysis.
 
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy import select, func, cast, Float
@@ -17,14 +17,19 @@ from app.config import settings
 from app.core.database import get_db
 from app.core.security import get_current_user, get_current_syndicate_user
 from app.models.user import User
-from app.models.assessment import Assessment, AssessmentStatus, AssessmentDecision, RiskCategory
+from app.models.assessment import (
+    Assessment,
+    AssessmentStatus,
+    AssessmentDecision,
+    RiskCategory,
+)
 from app.schemas.assessment import (
     AssessmentCreate,
     AssessmentUpdate,
     AssessmentResponse,
     AssessmentListResponse,
     AssessmentDecisionUpdate,
-    AssessmentSummary
+    AssessmentSummary,
 )
 from app.services.ai_service import AIService
 
@@ -49,12 +54,15 @@ async def run_ai_analysis(assessment_id: str, user_id: str = None):
     Creates its own database session to avoid closed-session issues.
     """
     import logging
+
     logger = logging.getLogger("instantrisk.analysis")
 
     # Create a fresh database session for the background task
     async with AsyncSessionLocal() as db:
         try:
-            result = await db.execute(select(Assessment).where(Assessment.id == assessment_id))
+            result = await db.execute(
+                select(Assessment).where(Assessment.id == assessment_id)
+            )
             assessment = result.scalar_one_or_none()
 
             if not assessment:
@@ -67,28 +75,81 @@ async def run_ai_analysis(assessment_id: str, user_id: str = None):
 
             # Run AI analysis (with user training doc context)
             ai_service = AIService()
-            analysis_result = await ai_service.analyze_risk(assessment, user_id=str(user_id) if user_id else None)
+            analysis_result = await ai_service.analyze_risk(
+                assessment, user_id=str(user_id) if user_id else None
+            )
 
             assessment.risk_score = analysis_result.get("risk_score")
             assessment.confidence_score = analysis_result.get("confidence_score")
             assessment.ai_analysis = analysis_result.get("analysis", {})
             assessment.ai_recommendations = analysis_result.get("recommendations", [])
 
+            # Apply extracted fields from AI analysis (inception_date, expiry_date, etc.)
+            extracted = analysis_result.get("extracted_fields", {}) or {}
+            if extracted:
+                from dateutil.parser import parse as parse_date
+
+                # inception_date
+                if not assessment.inception_date and extracted.get("inception_date"):
+                    try:
+                        assessment.inception_date = parse_date(
+                            extracted["inception_date"]
+                        )
+                    except Exception:
+                        pass
+
+                # expiry_date
+                if not assessment.expiry_date and extracted.get("expiry_date"):
+                    try:
+                        assessment.expiry_date = parse_date(extracted["expiry_date"])
+                    except Exception:
+                        pass
+
+                # If we got inception but no expiry, default to inception + 1 year
+                if assessment.inception_date and not assessment.expiry_date:
+                    from datetime import timedelta
+
+                    assessment.expiry_date = assessment.inception_date + timedelta(
+                        days=365
+                    )
+
+                # broker_name
+                if not assessment.broker_name and extracted.get("broker_name"):
+                    assessment.broker_name = extracted["broker_name"]
+
+                # insured_entity_name
+                if not assessment.insured_entity_name and extracted.get(
+                    "insured_entity_name"
+                ):
+                    assessment.insured_entity_name = extracted["insured_entity_name"]
+
+                # territory
+                if not assessment.territory and extracted.get("territory"):
+                    assessment.territory = extracted["territory"]
+
             # Parse AI decision into assessment decision
             analysis = analysis_result.get("analysis", {})
             decision_str = (
-                analysis_result.get("suggested_decision")
-                or analysis.get("decision")
-                or analysis_result.get("decision")
-                or ""
-            ).lower().strip()
+                (
+                    analysis_result.get("suggested_decision")
+                    or analysis.get("decision")
+                    or analysis_result.get("decision")
+                    or ""
+                )
+                .lower()
+                .strip()
+            )
 
             risk_score = analysis_result.get("risk_score", 50)
 
             if decision_str:
                 if "no" in decision_str and "go" in decision_str:
                     assessment.decision = AssessmentDecision.NO_GO
-                elif "go" in decision_str or "accept" in decision_str or "approve" in decision_str:
+                elif (
+                    "go" in decision_str
+                    or "accept" in decision_str
+                    or "approve" in decision_str
+                ):
                     assessment.decision = AssessmentDecision.GO
                 elif "decline" in decision_str or "reject" in decision_str:
                     assessment.decision = AssessmentDecision.NO_GO
@@ -111,7 +172,30 @@ async def run_ai_analysis(assessment_id: str, user_id: str = None):
 
             assessment.status = AssessmentStatus.PENDING_REVIEW
             await db.commit()
-            logger.info(f"AI analysis completed for {assessment_id}: score={assessment.risk_score}, decision={assessment.decision}")
+            logger.info(
+                f"AI analysis completed for {assessment_id}: score={assessment.risk_score}, decision={assessment.decision}"
+            )
+
+            # Auto-build entity graph via Companies House after analysis
+            company_name = (
+                assessment.insured_entity_name
+                or assessment.insured_name
+                or assessment.title
+            )
+            if company_name:
+                try:
+                    from app.services.entity_graph_service import build_entity_graph
+
+                    graph = await build_entity_graph(company_name, depth=2)
+                    if graph and graph.entities:
+                        logger.info(
+                            f"Entity graph built for '{company_name}': "
+                            f"{len(graph.entities)} entities, {len(graph.relationships)} relationships"
+                        )
+                except Exception as eg_err:
+                    logger.warning(
+                        f"Entity graph build failed for '{company_name}': {eg_err}"
+                    )
 
         except Exception as e:
             logger.error(f"AI analysis failed for {assessment_id}: {e}")
@@ -123,12 +207,14 @@ async def run_ai_analysis(assessment_id: str, user_id: str = None):
                 await db.rollback()
 
 
-@router.post("/", response_model=AssessmentResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", response_model=AssessmentResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_assessment(
     assessment_data: AssessmentCreate,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> Assessment:
     """Create a new risk assessment."""
     try:
@@ -140,25 +226,36 @@ async def create_assessment(
             description=assessment_data.description,
             risk_category=assessment_data.risk_category,
             created_by=current_user.id,
-            syndicate_id=getattr(assessment_data, 'syndicate_id', None),
-            insured_name=getattr(assessment_data, 'insured_name', None),
-            insured_entity_name=getattr(assessment_data, 'insured_entity_name', None),
-            companies_house_number=getattr(assessment_data, 'companies_house_number', None),
-            broker_reference=getattr(assessment_data, 'broker_reference', None),
-            broker_name=getattr(assessment_data, 'broker_name', None),
-            commission_rate=getattr(assessment_data, 'commission_rate', None),
-            premium=getattr(assessment_data, 'premium', None),
-            sum_insured=getattr(assessment_data, 'sum_insured', None),
-            deductible=getattr(assessment_data, 'deductible', None),
-            inception_date=getattr(assessment_data, 'inception_date', None),
-            expiry_date=getattr(assessment_data, 'expiry_date', None),
-            renewal_date=getattr(assessment_data, 'renewal_date', None),
-            territory=getattr(assessment_data, 'territory', None),
-            exposure_details=getattr(assessment_data, 'exposure_details', None) or {},
-            loss_run_reporting_rules=getattr(assessment_data, 'loss_run_reporting_rules', None),
-            regulatory_framework=getattr(assessment_data, 'regulatory_framework', None),
+            syndicate_id=getattr(assessment_data, "syndicate_id", None),
+            insured_name=getattr(assessment_data, "insured_name", None),
+            insured_entity_name=getattr(assessment_data, "insured_entity_name", None),
+            companies_house_number=getattr(
+                assessment_data, "companies_house_number", None
+            ),
+            broker_reference=getattr(assessment_data, "broker_reference", None),
+            broker_name=getattr(assessment_data, "broker_name", None),
+            commission_rate=getattr(assessment_data, "commission_rate", None),
+            premium=getattr(assessment_data, "premium", None),
+            sum_insured=getattr(assessment_data, "sum_insured", None),
+            deductible=getattr(assessment_data, "deductible", None),
+            inception_date=getattr(assessment_data, "inception_date", None),
+            expiry_date=getattr(assessment_data, "expiry_date", None)
+            or (
+                (
+                    getattr(assessment_data, "inception_date", None)
+                    or datetime.now(timezone.utc)
+                )
+                + timedelta(days=365)
+            ),
+            renewal_date=getattr(assessment_data, "renewal_date", None),
+            territory=getattr(assessment_data, "territory", None),
+            exposure_details=getattr(assessment_data, "exposure_details", None) or {},
+            loss_run_reporting_rules=getattr(
+                assessment_data, "loss_run_reporting_rules", None
+            ),
+            regulatory_framework=getattr(assessment_data, "regulatory_framework", None),
             status=AssessmentStatus.DRAFT,
-            decision=AssessmentDecision.PENDING
+            decision=AssessmentDecision.PENDING,
         )
 
         db.add(assessment)
@@ -168,9 +265,12 @@ async def create_assessment(
         return assessment
     except Exception as e:
         import traceback
+
         error_detail = traceback.format_exc()
         print(f"CREATE ASSESSMENT ERROR: {error_detail}")
-        raise HTTPException(status_code=500, detail=f"Failed to create assessment: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create assessment: {str(e)}"
+        )
 
 
 @router.get("/", response_model=AssessmentListResponse)
@@ -183,7 +283,7 @@ async def list_assessments(
     page: int = 1,
     page_size: int = 20,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     List assessments with optional filters and pagination.
@@ -214,7 +314,9 @@ async def list_assessments(
             count_query = count_query.where(Assessment.created_by == current_user.id)
         elif user_role == "syndicate" and current_user.syndicate_id:
             query = query.where(Assessment.syndicate_id == current_user.syndicate_id)
-            count_query = count_query.where(Assessment.syndicate_id == current_user.syndicate_id)
+            count_query = count_query.where(
+                Assessment.syndicate_id == current_user.syndicate_id
+            )
 
         # Apply filters
         if status:
@@ -231,9 +333,9 @@ async def list_assessments(
             count_query = count_query.where(Assessment.syndicate_id == syndicate_id)
         if search:
             search_filter = (
-                Assessment.title.ilike(f"%{search}%") |
-                Assessment.insured_name.ilike(f"%{search}%") |
-                Assessment.reference_number.ilike(f"%{search}%")
+                Assessment.title.ilike(f"%{search}%")
+                | Assessment.insured_name.ilike(f"%{search}%")
+                | Assessment.reference_number.ilike(f"%{search}%")
             )
             query = query.where(search_filter)
             count_query = count_query.where(search_filter)
@@ -258,19 +360,21 @@ async def list_assessments(
             "total": total,
             "page": page,
             "page_size": page_size,
-            "pages": pages
+            "pages": pages,
         }
     except Exception as e:
         import traceback
+
         error_detail = traceback.format_exc()
         print(f"LIST ASSESSMENTS ERROR: {error_detail}")
-        raise HTTPException(status_code=500, detail=f"Failed to list assessments: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to list assessments: {str(e)}"
+        )
 
 
 @router.get("/summary", response_model=AssessmentSummary)
 async def get_assessment_summary(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
 ) -> dict:
     """
     Get summary statistics for assessments.
@@ -298,7 +402,13 @@ async def get_assessment_summary(
 
     # Pending count
     pending_query = select(func.count(Assessment.id)).where(
-        Assessment.status.in_([AssessmentStatus.DRAFT, AssessmentStatus.PENDING_REVIEW, AssessmentStatus.IN_PROGRESS])
+        Assessment.status.in_(
+            [
+                AssessmentStatus.DRAFT,
+                AssessmentStatus.PENDING_REVIEW,
+                AssessmentStatus.IN_PROGRESS,
+            ]
+        )
     )
     if base_filter:
         pending_query = pending_query.where(*base_filter)
@@ -306,15 +416,21 @@ async def get_assessment_summary(
     pending = pending_result.scalar() or 0
 
     # Completed count
-    completed_query = select(func.count(Assessment.id)).where(Assessment.status == AssessmentStatus.COMPLETED)
+    completed_query = select(func.count(Assessment.id)).where(
+        Assessment.status == AssessmentStatus.COMPLETED
+    )
     if base_filter:
         completed_query = completed_query.where(*base_filter)
     completed_result = await db.execute(completed_query)
     completed = completed_result.scalar() or 0
 
     # Decision counts
-    go_query = select(func.count(Assessment.id)).where(Assessment.decision == AssessmentDecision.GO)
-    no_go_query = select(func.count(Assessment.id)).where(Assessment.decision == AssessmentDecision.NO_GO)
+    go_query = select(func.count(Assessment.id)).where(
+        Assessment.decision == AssessmentDecision.GO
+    )
+    no_go_query = select(func.count(Assessment.id)).where(
+        Assessment.decision == AssessmentDecision.NO_GO
+    )
 
     if base_filter:
         go_query = go_query.where(*base_filter)
@@ -324,7 +440,9 @@ async def get_assessment_summary(
     no_go_result = await db.execute(no_go_query)
 
     # Average risk score
-    avg_query = select(func.avg(cast(Assessment.risk_score, Float))).where(Assessment.risk_score.isnot(None))
+    avg_query = select(func.avg(cast(Assessment.risk_score, Float))).where(
+        Assessment.risk_score.isnot(None)
+    )
     if base_filter:
         avg_query = avg_query.where(*base_filter)
     avg_result = await db.execute(avg_query)
@@ -337,7 +455,7 @@ async def get_assessment_summary(
         "go_decisions": go_result.scalar() or 0,
         "no_go_decisions": no_go_result.scalar() or 0,
         "refer_decisions": 0,
-        "average_risk_score": round(avg_risk, 2) if avg_risk else 0.0
+        "average_risk_score": round(avg_risk, 2) if avg_risk else 0.0,
     }
 
 
@@ -345,7 +463,7 @@ async def get_assessment_summary(
 async def get_assessment(
     assessment_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> Assessment:
     """
     Get assessment details by ID.
@@ -366,20 +484,20 @@ async def get_assessment(
 
     if not assessment:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found"
         )
 
     # Check access based on role
     if current_user.role == "broker" and assessment.created_by != current_user.id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
-    elif current_user.role == "syndicate" and assessment.syndicate_id != current_user.syndicate_id:
+    elif (
+        current_user.role == "syndicate"
+        and assessment.syndicate_id != current_user.syndicate_id
+    ):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
     return assessment
@@ -389,7 +507,7 @@ async def get_assessment(
 async def get_assessment_status(
     assessment_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Get assessment analysis status for polling fallback."""
     result = await db.execute(select(Assessment).where(Assessment.id == assessment_id))
@@ -398,24 +516,41 @@ async def get_assessment_status(
     if not assessment:
         raise HTTPException(status_code=404, detail="Assessment not found")
 
-    if assessment.status in (AssessmentStatus.COMPLETED, AssessmentStatus.PENDING_REVIEW):
+    if assessment.status in (
+        AssessmentStatus.COMPLETED,
+        AssessmentStatus.PENDING_REVIEW,
+    ):
         return {
             "status": "completed",
             "result": {
-                "decision": assessment.decision.value if assessment.decision else "PENDING",
+                "decision": assessment.decision.value
+                if assessment.decision
+                else "PENDING",
                 "confidence": (assessment.confidence_score or 70) / 100,
                 "risk_score": assessment.risk_score or 50,
-                "processing_time": int((assessment.completed_at - assessment.created_at).total_seconds()) if assessment.completed_at else 0,
-            }
+                "processing_time": int(
+                    (assessment.completed_at - assessment.created_at).total_seconds()
+                )
+                if assessment.completed_at
+                else 0,
+            },
         }
     elif assessment.status == AssessmentStatus.FAILED:
         return {"status": "failed", "error": "Analysis failed"}
     elif assessment.status == AssessmentStatus.DRAFT:
         # DRAFT after analysis means it errored but was caught
-        has_analysis = bool(assessment.ai_analysis and not isinstance(assessment.ai_analysis, dict))
-        has_error = isinstance(assessment.ai_analysis, dict) and "error" in assessment.ai_analysis
+        has_analysis = bool(
+            assessment.ai_analysis and not isinstance(assessment.ai_analysis, dict)
+        )
+        has_error = (
+            isinstance(assessment.ai_analysis, dict)
+            and "error" in assessment.ai_analysis
+        )
         if has_error:
-            return {"status": "failed", "error": assessment.ai_analysis.get("error", "Analysis failed")}
+            return {
+                "status": "failed",
+                "error": assessment.ai_analysis.get("error", "Analysis failed"),
+            }
         return {"status": "in_progress", "progress": 10}
     else:
         return {"status": "in_progress", "progress": 50}
@@ -426,7 +561,7 @@ async def update_assessment(
     assessment_id: str,
     assessment_data: AssessmentUpdate,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> Assessment:
     """
     Update an existing assessment.
@@ -448,22 +583,20 @@ async def update_assessment(
 
     if not assessment:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found"
         )
 
     # Check access - only creator or admin can update
     if assessment.created_by != current_user.id and current_user.role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
     # Cannot update completed assessments
     if assessment.status == AssessmentStatus.COMPLETED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot update a completed assessment"
+            detail="Cannot update a completed assessment",
         )
 
     # Update fields
@@ -482,7 +615,7 @@ async def trigger_ai_analysis(
     assessment_id: str,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     Trigger AI analysis for an assessment.
@@ -504,15 +637,13 @@ async def trigger_ai_analysis(
 
     if not assessment:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found"
         )
 
     # Check access
     if assessment.created_by != current_user.id and current_user.role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
     # Queue AI analysis (creates its own DB session)
@@ -521,7 +652,7 @@ async def trigger_ai_analysis(
     return {
         "message": "AI analysis queued",
         "assessment_id": assessment.id,
-        "reference_number": assessment.reference_number
+        "reference_number": assessment.reference_number,
     }
 
 
@@ -530,7 +661,7 @@ async def set_assessment_decision(
     assessment_id: str,
     decision_data: AssessmentDecisionUpdate,
     current_user: User = Depends(get_current_syndicate_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> Assessment:
     """
     Set the GO/NO-GO decision for an assessment.
@@ -554,15 +685,17 @@ async def set_assessment_decision(
 
     if not assessment:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found"
         )
 
     # Check syndicate access
-    if current_user.role == "syndicate" and assessment.syndicate_id != current_user.syndicate_id:
+    if (
+        current_user.role == "syndicate"
+        and assessment.syndicate_id != current_user.syndicate_id
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Assessment not assigned to your syndicate"
+            detail="Assessment not assigned to your syndicate",
         )
 
     # Set decision
@@ -578,7 +711,7 @@ async def set_assessment_decision(
 async def delete_assessment(
     assessment_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> None:
     """
     Delete an assessment.
@@ -596,22 +729,20 @@ async def delete_assessment(
 
     if not assessment:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found"
         )
 
     # Only creator or admin can delete
     if assessment.created_by != current_user.id and current_user.role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
     # Cannot delete completed assessments
     if assessment.status == AssessmentStatus.COMPLETED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete a completed assessment"
+            detail="Cannot delete a completed assessment",
         )
 
     await db.delete(assessment)
@@ -622,7 +753,7 @@ async def delete_assessment(
 async def get_assessment_documents(
     assessment_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     Get uploaded documents for an assessment.
@@ -646,24 +777,25 @@ async def get_assessment_documents(
 
     if not assessment:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found"
         )
 
     # Check access based on role
     if current_user.role == "broker" and assessment.created_by != current_user.id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
-    elif current_user.role == "syndicate" and assessment.syndicate_id != current_user.syndicate_id:
+    elif (
+        current_user.role == "syndicate"
+        and assessment.syndicate_id != current_user.syndicate_id
+    ):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
     # First, get documents from the documents table
     from app.models.document import Document
+
     doc_result = await db.execute(
         select(Document).where(Document.assessment_id == assessment_id)
     )
@@ -671,19 +803,25 @@ async def get_assessment_documents(
 
     documents = []
     for doc in db_documents:
-        documents.append({
-            "id": doc.id,
-            "name": doc.filename,
-            "url": f"/api/v1/documents/{doc.id}/download",
-            "file_path": doc.file_path,
-            "mime_type": doc.mime_type,
-            "file_size": doc.file_size,
-            "document_type": doc.document_type.value if doc.document_type else "other",
-            "uploaded_at": doc.created_at.isoformat() if doc.created_at else None,
-            "processed_at": doc.processed_at.isoformat() if doc.processed_at else None,
-            "type": "document",
-            "status": doc.status.value if doc.status else "completed"
-        })
+        documents.append(
+            {
+                "id": doc.id,
+                "name": doc.filename,
+                "url": f"/api/v1/documents/{doc.id}/download",
+                "file_path": doc.file_path,
+                "mime_type": doc.mime_type,
+                "file_size": doc.file_size,
+                "document_type": doc.document_type.value
+                if doc.document_type
+                else "other",
+                "uploaded_at": doc.created_at.isoformat() if doc.created_at else None,
+                "processed_at": doc.processed_at.isoformat()
+                if doc.processed_at
+                else None,
+                "type": "document",
+                "status": doc.status.value if doc.status else "completed",
+            }
+        )
 
     # Also check upload session for any documents not in documents table
     session_result = await db.execute(
@@ -695,29 +833,27 @@ async def get_assessment_documents(
         try:
             docs = json.loads(upload_session.documents_json)
             for doc in docs:
-                documents.append({
-                    "id": doc.get("id"),
-                    "name": doc.get("filename", doc.get("name", "Document")),
-                    "url": doc.get("url"),
-                    "uploaded_at": doc.get("uploaded_at"),
-                    "type": "uploaded",
-                    "status": "processed"
-                })
+                documents.append(
+                    {
+                        "id": doc.get("id"),
+                        "name": doc.get("filename", doc.get("name", "Document")),
+                        "url": doc.get("url"),
+                        "uploaded_at": doc.get("uploaded_at"),
+                        "type": "uploaded",
+                        "status": "processed",
+                    }
+                )
         except json.JSONDecodeError:
             pass
 
-    return {
-        "items": documents,
-        "total": len(documents),
-        "assessment_id": assessment_id
-    }
+    return {"items": documents, "total": len(documents), "assessment_id": assessment_id}
 
 
 @router.get("/{assessment_id}/generated")
 async def get_assessment_generated_documents(
     assessment_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     Get AI-generated documents for an assessment.
@@ -738,48 +874,48 @@ async def get_assessment_generated_documents(
 
     if not assessment:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found"
         )
 
     # Check access based on role
     if current_user.role == "broker" and assessment.created_by != current_user.id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
-    elif current_user.role == "syndicate" and assessment.syndicate_id != current_user.syndicate_id:
+    elif (
+        current_user.role == "syndicate"
+        and assessment.syndicate_id != current_user.syndicate_id
+    ):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
     # Get generated documents
     gen_result = await db.execute(
-        select(GeneratedDocument).where(GeneratedDocument.assessment_id == assessment_id)
+        select(GeneratedDocument).where(
+            GeneratedDocument.assessment_id == assessment_id
+        )
     )
     gen_documents = gen_result.scalars().all()
 
     items = []
     for doc in gen_documents:
-        items.append({
-            "id": doc.id,
-            "title": doc.title,
-            "document_type": doc.document_type,
-            "status": doc.status,
-            "ai_confidence": doc.ai_confidence,
-            "draft_content": doc.draft_content,
-            "compliance_report": doc.compliance_report,
-            "placeholders_remaining": doc.placeholders_remaining,
-            "created_at": doc.created_at.isoformat() if doc.created_at else None,
-            "updated_at": doc.updated_at.isoformat() if doc.updated_at else None,
-        })
+        items.append(
+            {
+                "id": doc.id,
+                "title": doc.title,
+                "document_type": doc.document_type,
+                "status": doc.status,
+                "ai_confidence": doc.ai_confidence,
+                "draft_content": doc.draft_content,
+                "compliance_report": doc.compliance_report,
+                "placeholders_remaining": doc.placeholders_remaining,
+                "created_at": doc.created_at.isoformat() if doc.created_at else None,
+                "updated_at": doc.updated_at.isoformat() if doc.updated_at else None,
+            }
+        )
 
-    return {
-        "items": items,
-        "total": len(items),
-        "assessment_id": assessment_id
-    }
+    return {"items": items, "total": len(items), "assessment_id": assessment_id}
 
 
 @router.post("/{assessment_id}/upgrade-analysis")
@@ -788,7 +924,7 @@ async def upgrade_analysis(
     target_mode: str,
     background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     Upgrade an existing assessment to a deeper analysis mode.
@@ -815,7 +951,7 @@ async def upgrade_analysis(
     if target_mode not in valid_modes:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid mode. Must be one of: {', '.join(valid_modes)}"
+            detail=f"Invalid mode. Must be one of: {', '.join(valid_modes)}",
         )
 
     # Get assessment
@@ -824,15 +960,13 @@ async def upgrade_analysis(
 
     if not assessment:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found"
         )
 
     # Verify ownership
     if assessment.created_by != current_user.id and current_user.role != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
     # Check upgrade is valid (can only go deeper, not shallower)
@@ -842,7 +976,7 @@ async def upgrade_analysis(
     if mode_order.get(target_mode, 0) <= mode_order.get(current_mode, 0):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot downgrade or repeat analysis. Current mode: {current_mode}, requested: {target_mode}"
+            detail=f"Cannot downgrade or repeat analysis. Current mode: {current_mode}, requested: {target_mode}",
         )
 
     # Get documents for this assessment
@@ -875,7 +1009,9 @@ async def upgrade_analysis(
                         # Extract path from URL: https://host/uploads/token/file.pdf -> /var/www/instantrisk-v2/uploads/token/file.pdf
                         if "/uploads/" in url:
                             relative_path = url.split("/uploads/", 1)[1]
-                            file_path = f"/var/www/instantrisk-v2/uploads/{relative_path}"
+                            file_path = (
+                                f"/var/www/instantrisk-v2/uploads/{relative_path}"
+                            )
                             if os.path.exists(file_path):
                                 file_paths.append(file_path)
             except json.JSONDecodeError:
@@ -884,7 +1020,7 @@ async def upgrade_analysis(
     if not file_paths:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No documents found for re-analysis"
+            detail="No documents found for re-analysis",
         )
 
     # Store previous analysis
@@ -914,22 +1050,23 @@ async def upgrade_analysis(
                 from app.services.document_processor import document_processor
 
                 # Send start message
-                await send_progress_update(ws_session_id, {
-                    "type": "start",
-                    "mode": target_mode,
-                    "message": f"Upgrading to {target_mode} analysis..."
-                })
+                await send_progress_update(
+                    ws_session_id,
+                    {
+                        "type": "start",
+                        "mode": target_mode,
+                        "message": f"Upgrading to {target_mode} analysis...",
+                    },
+                )
 
                 # Run analysis using document_processor which handles PDF extraction
                 if len(file_paths) == 1:
                     analysis = await document_processor.analyze_document(
-                        file_paths[0],
-                        mode=target_mode
+                        file_paths[0], mode=target_mode
                     )
                 else:
                     analysis = await document_processor.analyze_multiple_documents(
-                        file_paths,
-                        mode=target_mode
+                        file_paths, mode=target_mode
                     )
 
                 # Add analysis mode to results
@@ -961,25 +1098,30 @@ async def upgrade_analysis(
                 # Store RapidRate pricing results if available
                 agent_results = analysis.get("agent_results", {})
                 if agent_results.get("rapidrate_pricing"):
-                    assessment_ref.rapidrate_results = agent_results["rapidrate_pricing"]
+                    assessment_ref.rapidrate_results = agent_results[
+                        "rapidrate_pricing"
+                    ]
                 await db_session.commit()
 
                 # Send completion message
-                await send_progress_update(ws_session_id, {
-                    "type": "complete",
-                    "decision": decision.value,
-                    "confidence": confidence,
-                    "risk_score": risk_score,
-                    "assessment_id": assessment_id
-                })
+                await send_progress_update(
+                    ws_session_id,
+                    {
+                        "type": "complete",
+                        "decision": decision.value,
+                        "confidence": confidence,
+                        "risk_score": risk_score,
+                        "assessment_id": assessment_id,
+                    },
+                )
 
             except Exception as e:
                 import traceback
+
                 traceback.print_exc()
-                await send_progress_update(ws_session_id, {
-                    "type": "error",
-                    "message": str(e)
-                })
+                await send_progress_update(
+                    ws_session_id, {"type": "error", "message": str(e)}
+                )
 
     # Start background task
     asyncio.create_task(run_upgrade_analysis())
@@ -989,7 +1131,7 @@ async def upgrade_analysis(
         "session_id": ws_session_id,
         "message": f"Upgrading to {target_mode} analysis",
         "websocket_url": f"/api/v1/analysis/ws/{ws_session_id}",
-        "assessment_id": assessment_id
+        "assessment_id": assessment_id,
     }
 
 
@@ -997,7 +1139,7 @@ async def upgrade_analysis(
 async def get_analysis_history(
     assessment_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """
     Get analysis history including any upgrades.
@@ -1015,16 +1157,17 @@ async def get_analysis_history(
 
     if not assessment:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found"
         )
 
     # Verify access
     if assessment.created_by != current_user.id and current_user.role != "admin":
-        if current_user.role == "syndicate" and assessment.syndicate_id != current_user.syndicate_id:
+        if (
+            current_user.role == "syndicate"
+            and assessment.syndicate_id != current_user.syndicate_id
+        ):
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied"
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
             )
 
     history = []
@@ -1032,29 +1175,37 @@ async def get_analysis_history(
     # Add previous analysis if exists
     if assessment.previous_analysis_json:
         prev_mode = assessment.previous_analysis_json.get("analysis_mode", "quick")
-        history.append({
-            "mode": prev_mode,
-            "analysis": assessment.previous_analysis_json,
-            "is_current": False
-        })
+        history.append(
+            {
+                "mode": prev_mode,
+                "analysis": assessment.previous_analysis_json,
+                "is_current": False,
+            }
+        )
 
     # Add current analysis
-    current_mode = assessment.analysis_mode or assessment.ai_analysis.get("analysis_mode", "unknown")
-    history.append({
-        "mode": current_mode,
-        "analysis": assessment.ai_analysis,
-        "is_current": True,
-        "decision": assessment.decision.value if assessment.decision else None,
-        "risk_score": assessment.risk_score,
-        "confidence_score": assessment.confidence_score
-    })
+    current_mode = assessment.analysis_mode or assessment.ai_analysis.get(
+        "analysis_mode", "unknown"
+    )
+    history.append(
+        {
+            "mode": current_mode,
+            "analysis": assessment.ai_analysis,
+            "is_current": True,
+            "decision": assessment.decision.value if assessment.decision else None,
+            "risk_score": assessment.risk_score,
+            "confidence_score": assessment.confidence_score,
+        }
+    )
 
     return {
         "assessment_id": assessment_id,
         "current_mode": current_mode,
         "can_upgrade": current_mode != "deep",
-        "next_mode": "go_no_go" if current_mode == "quick" else ("deep" if current_mode == "go_no_go" else None),
-        "history": history
+        "next_mode": "go_no_go"
+        if current_mode == "quick"
+        else ("deep" if current_mode == "go_no_go" else None),
+        "history": history,
     }
 
 
@@ -1092,7 +1243,10 @@ async def ml_analyze_assessment(
         )
 
     # Access control
-    if assessment.created_by != current_user.id and current_user.role not in ("admin", "syndicate"):
+    if assessment.created_by != current_user.id and current_user.role not in (
+        "admin",
+        "syndicate",
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied",
@@ -1102,7 +1256,9 @@ async def ml_analyze_assessment(
 
     # Build risk text from assessment fields
     assessment_dict = {
-        "risk_category": assessment.risk_category.value if assessment.risk_category else "",
+        "risk_category": assessment.risk_category.value
+        if assessment.risk_category
+        else "",
         "territory": assessment.territory or "",
         "summary": assessment.description or "",
         "insured_entity_name": assessment.insured_entity_name or "",
@@ -1117,13 +1273,19 @@ async def ml_analyze_assessment(
             "model_available": False,
             "model_name": "InstantRisk Engine v1",
             "message": "ML model not loaded — running in fallback mode. "
-                       "Ensure model files exist in app/data/models/instantrisk-engine-v1-final/",
+            "Ensure model files exist in app/data/models/instantrisk-engine-v1-final/",
             "predictions": {
                 "clauses": [],
-                "appetite": {"decision": "refer", "confidence": 0.0,
-                             "scores": {"accept": 0.33, "refer": 0.34, "decline": 0.33}},
-                "pricing": {"band": "medium", "confidence": 0.0,
-                            "scores": {"low": 0.33, "medium": 0.34, "high": 0.33}},
+                "appetite": {
+                    "decision": "refer",
+                    "confidence": 0.0,
+                    "scores": {"accept": 0.33, "refer": 0.34, "decline": 0.33},
+                },
+                "pricing": {
+                    "band": "medium",
+                    "confidence": 0.0,
+                    "scores": {"low": 0.33, "medium": 0.34, "high": 0.33},
+                },
                 "intent": {"intent": "unknown", "confidence": 0.0, "top_intents": []},
                 "personalized": False,
             },
@@ -1143,8 +1305,12 @@ async def ml_analyze_assessment(
             "predictions": predictions,
             "risk_text_used": risk_text,
             "label_counts": {
-                "clause_labels": insurance_model_service._config.get("num_clause_labels", 0),
-                "intent_labels": insurance_model_service._config.get("num_intent_labels", 0),
+                "clause_labels": insurance_model_service._config.get(
+                    "num_clause_labels", 0
+                ),
+                "intent_labels": insurance_model_service._config.get(
+                    "num_intent_labels", 0
+                ),
             },
         }
 
@@ -1184,10 +1350,16 @@ async def get_assessment_precedents(
             "count": len(similar),
         }
     except Exception:
-        return {"query_assessment_id": assessment_id, "similar_assessments": [], "count": 0}
+        return {
+            "query_assessment_id": assessment_id,
+            "similar_assessments": [],
+            "count": 0,
+        }
 
 
-@router.get("/{assessment_id}/breach-alerts", summary="Get breach alerts for assessment")
+@router.get(
+    "/{assessment_id}/breach-alerts", summary="Get breach alerts for assessment"
+)
 async def get_assessment_breach_alerts(
     assessment_id: str,
     db: AsyncSession = Depends(get_db),
@@ -1206,9 +1378,10 @@ async def get_assessment_breach_alerts(
         raise HTTPException(status_code=404, detail="Assessment not found")
 
     result = await db.execute(
-        select(RiskMonitoringAlert).where(
-            RiskMonitoringAlert.assessment_id == aid
-        ).order_by(RiskMonitoringAlert.detected_at.desc()).limit(20)
+        select(RiskMonitoringAlert)
+        .where(RiskMonitoringAlert.assessment_id == aid)
+        .order_by(RiskMonitoringAlert.detected_at.desc())
+        .limit(20)
     )
     alerts = result.scalars().all()
 
@@ -1230,7 +1403,9 @@ async def get_assessment_breach_alerts(
     }
 
 
-@router.get("/{assessment_id}/entities", summary="Get entity relationships for assessment")
+@router.get(
+    "/{assessment_id}/entities", summary="Get entity relationships for assessment"
+)
 async def get_assessment_entities(
     assessment_id: str,
     db: AsyncSession = Depends(get_db),
@@ -1246,7 +1421,11 @@ async def get_assessment_entities(
     if not assessment:
         raise HTTPException(status_code=404, detail="Assessment not found")
 
-    company_name = assessment.insured_entity_name or getattr(assessment, 'insured_name', None) or ''
+    company_name = (
+        assessment.insured_entity_name
+        or getattr(assessment, "insured_name", None)
+        or ""
+    )
 
     if not company_name:
         return {
@@ -1258,7 +1437,11 @@ async def get_assessment_entities(
         }
 
     try:
-        from app.services.entity_graph_service import get_entity_graph, entity_graph_to_dict
+        from app.services.entity_graph_service import (
+            get_entity_graph,
+            entity_graph_to_dict,
+        )
+
         graph_data = await get_entity_graph(company_name)
         if graph_data:
             nodes, edges = graph_data

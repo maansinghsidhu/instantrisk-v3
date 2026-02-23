@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:async';
+import 'dart:convert';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/documents_prefetch_service.dart';
@@ -25,18 +27,51 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  int _brokerUnreadCount = 0;
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _pollBrokerUnread();
+    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) => _pollBrokerUnread());
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _pollBrokerUnread() async {
+    // Only fetch for underwriters/admins
+    final role = authService.user?['role'] as String?;
+    if (role != 'underwriter' && role != 'admin') return;
+
+    try {
+      final response = await authService.get('/api/v1/broker-portal/submissions/unread-count');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final count = (data['unread_count'] as num?)?.toInt() ?? 0;
+        if (mounted && count != _brokerUnreadCount) {
+          setState(() => _brokerUnreadCount = count);
+        }
+      }
+    } catch (_) {
+      // Silently fail — badge will just stay at 0
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-
-    final isDark = AppTheme.isDark(context);
 
     // Desktop: Permanent sidebar (>1000px)
     if (screenWidth > 1000) {
       return Scaffold(
         body: Row(
           children: [
-            _Sidebar(onNavigate: null),
+            _Sidebar(onNavigate: null, brokerUnreadCount: _brokerUnreadCount),
             // Subtle divider between sidebar and content
             Container(width: 0.5, color: AppTheme.borderOf(context).withOpacity(0.3)),
             Expanded(child: widget.child),
@@ -78,6 +113,7 @@ class _MainShellState extends State<MainShell> {
         drawer: Drawer(
           child: _Sidebar(
             onNavigate: () => Navigator.of(context).pop(),
+            brokerUnreadCount: _brokerUnreadCount,
           ),
         ),
         body: widget.child,
@@ -96,8 +132,9 @@ class _MainShellState extends State<MainShell> {
 /// Sidebar for Web/Desktop — Clean, modern, ChatGPT-inspired
 class _Sidebar extends StatelessWidget {
   final VoidCallback? onNavigate;
+  final int brokerUnreadCount;
 
-  const _Sidebar({this.onNavigate});
+  const _Sidebar({this.onNavigate, this.brokerUnreadCount = 0});
 
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
@@ -107,6 +144,8 @@ class _Sidebar extends StatelessWidget {
     if (location.startsWith('/training')) return 3;
     if (location.startsWith('/documents')) return 4;
     if (location.startsWith('/settings')) return 5;
+    if (location.startsWith('/underwriter/broker-submissions')) return 6;
+    if (location.startsWith('/underwriter/broker-management')) return 7;
     return 0;
   }
 
@@ -119,6 +158,8 @@ class _Sidebar extends StatelessWidget {
       case 3: context.go('/training'); break;
       case 4: context.go('/documents'); break;
       case 5: context.go('/settings'); break;
+      case 6: context.go('/underwriter/broker-submissions'); break;
+      case 7: context.go('/underwriter/broker-management'); break;
     }
   }
 
@@ -231,30 +272,6 @@ class _Sidebar extends StatelessWidget {
                       onTap: () => _onItemTapped(context, 2),
                     ),
 
-                    // God Mode: Risk Monitor
-                    _SidebarItem(
-                      icon: Icons.monitor_heart_outlined,
-                      label: 'Risk Monitor',
-                      isSelected: GoRouterState.of(context).uri.toString().startsWith('/monitoring'),
-                      onTap: () {
-                        onNavigate?.call();
-                        context.go('/monitoring');
-                      },
-                      isPremium: !subscriptionService.isPremium,
-                    ),
-
-                    // God Mode: Portfolio Dashboard
-                    _SidebarItem(
-                      icon: Icons.bar_chart_outlined,
-                      label: 'Portfolio Analytics',
-                      isSelected: GoRouterState.of(context).uri.toString().startsWith('/analytics/portfolio-dashboard'),
-                      onTap: () {
-                        onNavigate?.call();
-                        context.go('/analytics/portfolio-dashboard');
-                      },
-                      isPremium: !subscriptionService.isPremium,
-                    ),
-
                     const _SectionLabel(label: 'DOCUMENTS'),
 
                     _SidebarItem(
@@ -275,6 +292,25 @@ class _Sidebar extends StatelessWidget {
                           : () => _showSidebarUpgradeDialog(context, 'Documents'),
                       isPremium: !subscriptionService.isPremium,
                     ),
+
+                    // BROKERS section — visible only to underwriters/admins
+                    if (authService.user?['role'] == 'underwriter' ||
+                        authService.user?['role'] == 'admin') ...[
+                      const _SectionLabel(label: 'BROKERS'),
+                      _SidebarItem(
+                        icon: Icons.inbox_outlined,
+                        label: 'Submissions',
+                        isSelected: selectedIndex == 6,
+                        onTap: () => _onItemTapped(context, 6),
+                        showBadge: brokerUnreadCount > 0,
+                      ),
+                      _SidebarItem(
+                        icon: Icons.people_outline_rounded,
+                        label: 'Broker Management',
+                        isSelected: selectedIndex == 7,
+                        onTap: () => _onItemTapped(context, 7),
+                      ),
+                    ],
 
                     const _SectionLabel(label: 'PREFERENCES'),
 

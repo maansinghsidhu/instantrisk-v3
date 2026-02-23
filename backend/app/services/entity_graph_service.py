@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 try:
     from neo4j import AsyncGraphDatabase, AsyncDriver
+
     NEO4J_AVAILABLE = True
 except ImportError:
     NEO4J_AVAILABLE = False
@@ -55,10 +56,27 @@ COMPANIES_HOUSE_API_KEY = os.environ.get("COMPANIES_HOUSE_API_KEY", "")
 
 # Jurisdictions flagged as high-risk for fraud / money laundering
 HIGH_RISK_JURISDICTIONS = {
-    "bvi", "british_virgin_islands", "cayman_islands", "panama", "seychelles",
-    "marshall_islands", "samoa", "vanuatu", "belize", "liberia", "bahamas",
-    "mauritius", "jersey", "guernsey", "isle_of_man", "liechtenstein",
-    "andorra", "monaco", "gibraltar", "cyprus", "malta",
+    "bvi",
+    "british_virgin_islands",
+    "cayman_islands",
+    "panama",
+    "seychelles",
+    "marshall_islands",
+    "samoa",
+    "vanuatu",
+    "belize",
+    "liberia",
+    "bahamas",
+    "mauritius",
+    "jersey",
+    "guernsey",
+    "isle_of_man",
+    "liechtenstein",
+    "andorra",
+    "monaco",
+    "gibraltar",
+    "cyprus",
+    "malta",
 }
 
 # Minimum company age (years) below which a company is considered suspicious
@@ -75,27 +93,30 @@ BENEFICIAL_OWNERSHIP_THRESHOLD = 25.0
 # Data Models
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class Entity:
     """Represents a legal entity (company, person, trust, fund)."""
+
     entity_id: str
     name: str
-    entity_type: str          # company | person | trust | fund | unknown
+    entity_type: str  # company | person | trust | fund | unknown
     jurisdiction: str = ""
     registration_number: str = ""
     incorporation_date: str = ""
     address: str = ""
-    status: str = "active"   # active | dissolved | struck_off | liquidation
-    source: str = ""          # opencorporates | companies_house | sec_edgar | manual
+    status: str = "active"  # active | dissolved | struck_off | liquidation
+    source: str = ""  # opencorporates | companies_house | sec_edgar | manual
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class Relationship:
     """Represents an ownership or control relationship between entities."""
+
     from_id: str
     to_id: str
-    relationship_type: str    # owns | controls | directs | shares_address | shareholder
+    relationship_type: str  # owns | controls | directs | shares_address | shareholder
     ownership_pct: float = 0.0
     start_date: str = ""
     end_date: str = ""
@@ -106,22 +127,26 @@ class Relationship:
 @dataclass
 class FraudSignal:
     """A detected fraud indicator."""
-    signal_type: str          # circular_ownership | shell_company | director_concentration | etc.
-    severity: str             # low | medium | high | critical
+
+    signal_type: (
+        str  # circular_ownership | shell_company | director_concentration | etc.
+    )
+    severity: str  # low | medium | high | critical
     description: str
     entities_involved: List[str] = field(default_factory=list)
-    confidence: float = 0.0   # 0.0 - 1.0
+    confidence: float = 0.0  # 0.0 - 1.0
 
 
 @dataclass
 class EntityGraph:
     """Complete entity graph with fraud analysis results."""
+
     root_company: str
     entities: List[Entity] = field(default_factory=list)
     relationships: List[Relationship] = field(default_factory=list)
     fraud_signals: List[FraudSignal] = field(default_factory=list)
-    overall_fraud_score: int = 0   # 0-100
-    risk_level: str = "low"        # low | medium | high | critical
+    overall_fraud_score: int = 0  # 0-100
+    risk_level: str = "low"  # low | medium | high | critical
     built_at: str = ""
     sources_used: List[str] = field(default_factory=list)
     errors: List[str] = field(default_factory=list)
@@ -130,6 +155,7 @@ class EntityGraph:
 # ---------------------------------------------------------------------------
 # Neo4j Graph Manager (with NetworkX fallback)
 # ---------------------------------------------------------------------------
+
 
 class GraphManager:
     """
@@ -163,7 +189,9 @@ class GraphManager:
             logger.info(f"GraphManager: connected to Neo4j at {NEO4J_URI}")
             return True
         except Exception as e:
-            logger.warning(f"GraphManager: Neo4j unavailable ({e}), using NetworkX fallback")
+            logger.warning(
+                f"GraphManager: Neo4j unavailable ({e}), using NetworkX fallback"
+            )
             if self._driver:
                 await self._driver.close()
             self._driver = None
@@ -242,7 +270,9 @@ class GraphManager:
                 source=rel.source,
             )
 
-    async def get_subgraph(self, root_id: str, depth: int = 3) -> Tuple[List[dict], List[dict]]:
+    async def get_subgraph(
+        self, root_id: str, depth: int = 3
+    ) -> Tuple[List[dict], List[dict]]:
         """
         Return nodes and edges reachable from root_id within given depth.
 
@@ -267,12 +297,14 @@ class GraphManager:
                         if nid not in nodes:
                             nodes[nid] = dict(node)
                     for rel in path.relationships:
-                        edges.append({
-                            "from_id": rel.start_node["entity_id"],
-                            "to_id": rel.end_node["entity_id"],
-                            "type": rel["relationship_type"],
-                            "ownership_pct": rel.get("ownership_pct", 0),
-                        })
+                        edges.append(
+                            {
+                                "from_id": rel.start_node["entity_id"],
+                                "to_id": rel.end_node["entity_id"],
+                                "type": rel["relationship_type"],
+                                "ownership_pct": rel.get("ownership_pct", 0),
+                            }
+                        )
                 return list(nodes.values()), edges
         else:
             # NetworkX BFS
@@ -311,12 +343,22 @@ async def get_graph_manager() -> GraphManager:
 # Data Fetchers
 # ---------------------------------------------------------------------------
 
-async def _safe_get(session: aiohttp.ClientSession, url: str, headers: dict = None,
-                    params: dict = None, timeout: int = 10) -> Optional[dict]:
+
+async def _safe_get(
+    session: aiohttp.ClientSession,
+    url: str,
+    headers: dict = None,
+    params: dict = None,
+    timeout: int = 10,
+) -> Optional[dict]:
     """Safe HTTP GET returning parsed JSON or None on failure."""
     try:
-        async with session.get(url, headers=headers or {}, params=params or {},
-                               timeout=aiohttp.ClientTimeout(total=timeout)) as resp:
+        async with session.get(
+            url,
+            headers=headers or {},
+            params=params or {},
+            timeout=aiohttp.ClientTimeout(total=timeout),
+        ) as resp:
             if resp.status == 200:
                 return await resp.json(content_type=None)
             elif resp.status == 404:
@@ -330,8 +372,7 @@ async def _safe_get(session: aiohttp.ClientSession, url: str, headers: dict = No
 
 
 async def fetch_opencorporates_company(
-    company_name: str,
-    session: aiohttp.ClientSession
+    company_name: str, session: aiohttp.ClientSession
 ) -> List[Dict[str, Any]]:
     """
     Search OpenCorporates for a company by name.
@@ -357,16 +398,20 @@ async def fetch_opencorporates_company(
         companies = []
         for item in results:
             c = item.get("company", {})
-            companies.append({
-                "name": c.get("name", ""),
-                "company_number": c.get("company_number", ""),
-                "jurisdiction": c.get("jurisdiction_code", ""),
-                "incorporation_date": c.get("incorporation_date", ""),
-                "status": c.get("current_status", "active"),
-                "registered_address": c.get("registered_address", {}).get("street_address", ""),
-                "opencorporates_url": c.get("opencorporates_url", ""),
-                "source": "opencorporates",
-            })
+            companies.append(
+                {
+                    "name": c.get("name", ""),
+                    "company_number": c.get("company_number", ""),
+                    "jurisdiction": c.get("jurisdiction_code", ""),
+                    "incorporation_date": c.get("incorporation_date", ""),
+                    "status": c.get("current_status", "active"),
+                    "registered_address": c.get("registered_address", {}).get(
+                        "street_address", ""
+                    ),
+                    "opencorporates_url": c.get("opencorporates_url", ""),
+                    "source": "opencorporates",
+                }
+            )
         return companies
 
     except Exception as e:
@@ -375,9 +420,7 @@ async def fetch_opencorporates_company(
 
 
 async def fetch_opencorporates_officers(
-    company_number: str,
-    jurisdiction: str,
-    session: aiohttp.ClientSession
+    company_number: str, jurisdiction: str, session: aiohttp.ClientSession
 ) -> List[Dict[str, Any]]:
     """Fetch company officers (directors/shareholders) from OpenCorporates."""
     try:
@@ -394,13 +437,15 @@ async def fetch_opencorporates_officers(
         results = []
         for item in officers:
             o = item.get("officer", {})
-            results.append({
-                "name": o.get("name", ""),
-                "role": o.get("position", "director"),
-                "start_date": o.get("start_date", ""),
-                "end_date": o.get("end_date", ""),
-                "source": "opencorporates",
-            })
+            results.append(
+                {
+                    "name": o.get("name", ""),
+                    "role": o.get("position", "director"),
+                    "start_date": o.get("start_date", ""),
+                    "end_date": o.get("end_date", ""),
+                    "source": "opencorporates",
+                }
+            )
         return results
 
     except Exception as e:
@@ -409,8 +454,7 @@ async def fetch_opencorporates_officers(
 
 
 async def fetch_companies_house_company(
-    company_name: str,
-    session: aiohttp.ClientSession
+    company_name: str, session: aiohttp.ClientSession
 ) -> List[Dict[str, Any]]:
     """
     Search Companies House (UK) for a company.
@@ -426,6 +470,7 @@ async def fetch_companies_house_company(
         url = "https://api.company-information.service.gov.uk/search/companies"
         params = {"q": company_name, "items_per_page": 10}
         import base64
+
         # Companies House uses HTTP Basic Auth: API key as username, empty password
         key_b64 = base64.b64encode(f"{COMPANIES_HOUSE_API_KEY}:".encode()).decode()
         headers = {"Authorization": f"Basic {key_b64}"}
@@ -437,16 +482,18 @@ async def fetch_companies_house_company(
         items = data.get("items", [])
         results = []
         for item in items:
-            results.append({
-                "name": item.get("title", ""),
-                "company_number": item.get("company_number", ""),
-                "jurisdiction": "gb",
-                "incorporation_date": item.get("date_of_creation", ""),
-                "status": item.get("company_status", "active"),
-                "registered_address": item.get("address_snippet", ""),
-                "company_type": item.get("company_type", ""),
-                "source": "companies_house",
-            })
+            results.append(
+                {
+                    "name": item.get("title", ""),
+                    "company_number": item.get("company_number", ""),
+                    "jurisdiction": "gb",
+                    "incorporation_date": item.get("date_of_creation", ""),
+                    "status": item.get("company_status", "active"),
+                    "registered_address": item.get("address_snippet", ""),
+                    "company_type": item.get("company_type", ""),
+                    "source": "companies_house",
+                }
+            )
         return results
 
     except Exception as e:
@@ -455,8 +502,7 @@ async def fetch_companies_house_company(
 
 
 async def fetch_companies_house_psc(
-    company_number: str,
-    session: aiohttp.ClientSession
+    company_number: str, session: aiohttp.ClientSession
 ) -> List[Dict[str, Any]]:
     """
     Fetch Persons with Significant Control (PSC) from Companies House.
@@ -468,6 +514,7 @@ async def fetch_companies_house_psc(
 
     try:
         import base64
+
         url = f"https://api.company-information.service.gov.uk/company/{company_number}/persons-with-significant-control"
         key_b64 = base64.b64encode(f"{COMPANIES_HOUSE_API_KEY}:".encode()).decode()
         headers = {"Authorization": f"Basic {key_b64}"}
@@ -490,16 +537,21 @@ async def fetch_companies_house_psc(
                 elif "25-to-50-percent" in nature:
                     ownership_pct = 37.5
 
-            results.append({
-                "name": item.get("name", ""),
-                "entity_type": "company" if item.get("kind") == "corporate-entity-person-with-significant-control" else "person",
-                "ownership_pct": ownership_pct,
-                "nationality": item.get("nationality", ""),
-                "country_of_residence": item.get("country_of_residence", ""),
-                "notified_on": item.get("notified_on", ""),
-                "natures_of_control": natures,
-                "source": "companies_house_psc",
-            })
+            results.append(
+                {
+                    "name": item.get("name", ""),
+                    "entity_type": "company"
+                    if item.get("kind")
+                    == "corporate-entity-person-with-significant-control"
+                    else "person",
+                    "ownership_pct": ownership_pct,
+                    "nationality": item.get("nationality", ""),
+                    "country_of_residence": item.get("country_of_residence", ""),
+                    "notified_on": item.get("notified_on", ""),
+                    "natures_of_control": natures,
+                    "source": "companies_house_psc",
+                }
+            )
         return results
 
     except Exception as e:
@@ -508,8 +560,7 @@ async def fetch_companies_house_psc(
 
 
 async def fetch_companies_house_officers(
-    company_number: str,
-    session: aiohttp.ClientSession
+    company_number: str, session: aiohttp.ClientSession
 ) -> List[Dict[str, Any]]:
     """Fetch company officers from Companies House."""
     if not COMPANIES_HOUSE_API_KEY:
@@ -517,6 +568,7 @@ async def fetch_companies_house_officers(
 
     try:
         import base64
+
         url = f"https://api.company-information.service.gov.uk/company/{company_number}/officers"
         key_b64 = base64.b64encode(f"{COMPANIES_HOUSE_API_KEY}:".encode()).decode()
         headers = {"Authorization": f"Basic {key_b64}"}
@@ -530,14 +582,16 @@ async def fetch_companies_house_officers(
         for item in items:
             if item.get("resigned_on"):
                 continue  # Skip resigned officers
-            results.append({
-                "name": item.get("name", ""),
-                "role": item.get("officer_role", "director"),
-                "appointed_on": item.get("appointed_on", ""),
-                "nationality": item.get("nationality", ""),
-                "country_of_residence": item.get("country_of_residence", ""),
-                "source": "companies_house",
-            })
+            results.append(
+                {
+                    "name": item.get("name", ""),
+                    "role": item.get("officer_role", "director"),
+                    "appointed_on": item.get("appointed_on", ""),
+                    "nationality": item.get("nationality", ""),
+                    "country_of_residence": item.get("country_of_residence", ""),
+                    "source": "companies_house",
+                }
+            )
         return results
 
     except Exception as e:
@@ -546,8 +600,7 @@ async def fetch_companies_house_officers(
 
 
 async def fetch_sec_edgar_company(
-    company_name: str,
-    session: aiohttp.ClientSession
+    company_name: str, session: aiohttp.ClientSession
 ) -> List[Dict[str, Any]]:
     """
     Search SEC EDGAR for US companies.
@@ -580,13 +633,17 @@ async def fetch_sec_edgar_company(
             if cik in seen_ciks:
                 continue
             seen_ciks.add(cik)
-            results.append({
-                "name": source.get("display_names", [company_name])[0] if source.get("display_names") else company_name,
-                "cik": cik,
-                "jurisdiction": "us",
-                "sic_description": source.get("category", ""),
-                "source": "sec_edgar",
-            })
+            results.append(
+                {
+                    "name": source.get("display_names", [company_name])[0]
+                    if source.get("display_names")
+                    else company_name,
+                    "cik": cik,
+                    "jurisdiction": "us",
+                    "sic_description": source.get("category", ""),
+                    "source": "sec_edgar",
+                }
+            )
         return results
 
     except Exception as e:
@@ -595,8 +652,7 @@ async def fetch_sec_edgar_company(
 
 
 async def fetch_sec_edgar_subsidiaries(
-    cik: str,
-    session: aiohttp.ClientSession
+    cik: str, session: aiohttp.ClientSession
 ) -> List[Dict[str, Any]]:
     """
     Fetch subsidiary companies from SEC EDGAR 10-K subsidiary exhibit.
@@ -605,7 +661,9 @@ async def fetch_sec_edgar_subsidiaries(
     subsidiary exhibits (EX-21.1).
     """
     try:
-        headers = {"User-Agent": "InstantRisk-EntityGraph/1.0 (compliance@instantrisk.com)"}
+        headers = {
+            "User-Agent": "InstantRisk-EntityGraph/1.0 (compliance@instantrisk.com)"
+        }
         # Pad CIK to 10 digits
         cik_padded = cik.zfill(10)
         url = f"https://data.sec.gov/submissions/CIK{cik_padded}.json"
@@ -629,11 +687,13 @@ async def fetch_sec_edgar_subsidiaries(
                     for doc in index_data.get("directory", {}).get("item", []):
                         if "EX-21" in doc.get("type", ""):
                             # Found subsidiary exhibit - note it (parsing is complex)
-                            subsidiaries.append({
-                                "name": f"Subsidiary exhibit found in 10-K",
-                                "source": "sec_edgar_ex21",
-                                "filing_url": f"https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/{doc.get('name', '')}",
-                            })
+                            subsidiaries.append(
+                                {
+                                    "name": f"Subsidiary exhibit found in 10-K",
+                                    "source": "sec_edgar_ex21",
+                                    "filing_url": f"https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/{doc.get('name', '')}",
+                                }
+                            )
                 break  # Only check most recent 10-K
 
         return subsidiaries
@@ -646,6 +706,7 @@ async def fetch_sec_edgar_subsidiaries(
 # ---------------------------------------------------------------------------
 # Graph Builder
 # ---------------------------------------------------------------------------
+
 
 class EntityGraphBuilder:
     """
@@ -765,7 +826,9 @@ class EntityGraphBuilder:
                         graph.relationships.append(rel)
 
                     # Fetch officers
-                    officers = await fetch_companies_house_officers(company_number, session)
+                    officers = await fetch_companies_house_officers(
+                        company_number, session
+                    )
                     for officer in officers:
                         officer_entity = Entity(
                             entity_id=f"officer_{company_number}_{officer['name'].lower().replace(' ', '_')[:30]}",
@@ -788,7 +851,9 @@ class EntityGraphBuilder:
                         graph.relationships.append(rel)
 
                 elif source == "opencorporates" and company_number and jurisdiction:
-                    officers = await fetch_opencorporates_officers(company_number, jurisdiction, session)
+                    officers = await fetch_opencorporates_officers(
+                        company_number, jurisdiction, session
+                    )
                     for officer in officers:
                         officer_entity = Entity(
                             entity_id=f"oc_officer_{jurisdiction}_{company_number}_{officer['name'].lower().replace(' ', '_')[:30]}",
@@ -837,7 +902,9 @@ class EntityGraphBuilder:
         graph.fraud_signals = self._detect_fraud_patterns(graph)
 
         # Step 5: Calculate overall fraud score
-        graph.overall_fraud_score, graph.risk_level = self._calculate_fraud_score(graph.fraud_signals)
+        graph.overall_fraud_score, graph.risk_level = self._calculate_fraud_score(
+            graph.fraud_signals
+        )
 
         logger.info(
             f"EntityGraphBuilder: graph built for '{company_name}' - "
@@ -853,12 +920,24 @@ class EntityGraphBuilder:
         jurisdiction = data.get("jurisdiction", "")
 
         if source == "companies_house":
-            entity_id = f"ch_{company_number}" if company_number else f"ch_{data['name'].lower().replace(' ', '_')[:40]}"
+            entity_id = (
+                f"ch_{company_number}"
+                if company_number
+                else f"ch_{data['name'].lower().replace(' ', '_')[:40]}"
+            )
         elif source == "opencorporates":
-            entity_id = f"oc_{jurisdiction}_{company_number}" if company_number else f"oc_{data['name'].lower().replace(' ', '_')[:40]}"
+            entity_id = (
+                f"oc_{jurisdiction}_{company_number}"
+                if company_number
+                else f"oc_{data['name'].lower().replace(' ', '_')[:40]}"
+            )
         elif source == "sec_edgar":
             cik = data.get("cik", "")
-            entity_id = f"sec_{cik}" if cik else f"sec_{data['name'].lower().replace(' ', '_')[:40]}"
+            entity_id = (
+                f"sec_{cik}"
+                if cik
+                else f"sec_{data['name'].lower().replace(' ', '_')[:40]}"
+            )
         else:
             entity_id = f"manual_{data['name'].lower().replace(' ', '_')[:40]}"
 
@@ -889,18 +968,25 @@ class EntityGraphBuilder:
         # Build an in-memory NetworkX graph for algorithm use
         G = nx.DiGraph()
         for entity in graph.entities:
-            G.add_node(entity.entity_id, **{
-                "name": entity.name,
-                "entity_type": entity.entity_type,
-                "jurisdiction": entity.jurisdiction,
-                "incorporation_date": entity.incorporation_date,
-                "status": entity.status,
-            })
+            G.add_node(
+                entity.entity_id,
+                **{
+                    "name": entity.name,
+                    "entity_type": entity.entity_type,
+                    "jurisdiction": entity.jurisdiction,
+                    "incorporation_date": entity.incorporation_date,
+                    "status": entity.status,
+                },
+            )
         for rel in graph.relationships:
-            G.add_edge(rel.from_id, rel.to_id, **{
-                "relationship_type": rel.relationship_type,
-                "ownership_pct": rel.ownership_pct,
-            })
+            G.add_edge(
+                rel.from_id,
+                rel.to_id,
+                **{
+                    "relationship_type": rel.relationship_type,
+                    "ownership_pct": rel.ownership_pct,
+                },
+            )
 
         # Algorithm 1: Circular Ownership Detection
         signals.extend(self._detect_circular_ownership(G, graph))
@@ -925,7 +1011,9 @@ class EntityGraphBuilder:
 
         return signals
 
-    def _detect_circular_ownership(self, G: nx.DiGraph, graph: EntityGraph) -> List[FraudSignal]:
+    def _detect_circular_ownership(
+        self, G: nx.DiGraph, graph: EntityGraph
+    ) -> List[FraudSignal]:
         """
         Detect circular ownership structures (A owns B owns C owns A).
 
@@ -944,15 +1032,17 @@ class EntityGraphBuilder:
 
                     cycle_desc = " -> ".join(names) + f" -> {names[0]}"
                     severity = "critical" if len(cycle) <= 3 else "high"
-                    signals.append(FraudSignal(
-                        signal_type="circular_ownership",
-                        severity=severity,
-                        description=f"Circular ownership detected: {cycle_desc}. "
-                                    f"This structure is commonly used to conceal true ownership "
-                                    f"and may indicate fraud or tax evasion.",
-                        entities_involved=cycle,
-                        confidence=0.95,
-                    ))
+                    signals.append(
+                        FraudSignal(
+                            signal_type="circular_ownership",
+                            severity=severity,
+                            description=f"Circular ownership detected: {cycle_desc}. "
+                            f"This structure is commonly used to conceal true ownership "
+                            f"and may indicate fraud or tax evasion.",
+                            entities_involved=cycle,
+                            confidence=0.95,
+                        )
+                    )
         except Exception as e:
             logger.warning(f"Circular ownership detection failed: {e}")
 
@@ -982,36 +1072,49 @@ class EntityGraphBuilder:
                     inc_year = int(date_str[:4])
                     age_years = current_year - inc_year
                     if age_years < SHELL_COMPANY_AGE_THRESHOLD_YEARS:
-                        indicators.append(f"incorporated {age_years} year(s) ago (very new)")
+                        indicators.append(
+                            f"incorporated {age_years} year(s) ago (very new)"
+                        )
                 except (ValueError, IndexError):
                     pass
 
             # Check jurisdiction
             jurisdiction_lower = (entity.jurisdiction or "").lower()
             if jurisdiction_lower in HIGH_RISK_JURISDICTIONS:
-                indicators.append(f"registered in high-risk jurisdiction: {entity.jurisdiction}")
+                indicators.append(
+                    f"registered in high-risk jurisdiction: {entity.jurisdiction}"
+                )
 
             # Check status
-            if entity.status and entity.status.lower() in ("dissolved", "struck-off", "struck_off", "liquidation"):
+            if entity.status and entity.status.lower() in (
+                "dissolved",
+                "struck-off",
+                "struck_off",
+                "liquidation",
+            ):
                 indicators.append(f"company status: {entity.status}")
 
             if len(indicators) >= 2:
-                signals.append(FraudSignal(
-                    signal_type="shell_company",
-                    severity="high" if len(indicators) >= 3 else "medium",
-                    description=f"Potential shell company detected: '{entity.name}'. "
-                                f"Indicators: {'; '.join(indicators)}.",
-                    entities_involved=[entity.entity_id],
-                    confidence=min(0.4 + 0.2 * len(indicators), 0.9),
-                ))
+                signals.append(
+                    FraudSignal(
+                        signal_type="shell_company",
+                        severity="high" if len(indicators) >= 3 else "medium",
+                        description=f"Potential shell company detected: '{entity.name}'. "
+                        f"Indicators: {'; '.join(indicators)}.",
+                        entities_involved=[entity.entity_id],
+                        confidence=min(0.4 + 0.2 * len(indicators), 0.9),
+                    )
+                )
             elif len(indicators) == 1 and "jurisdiction" in indicators[0]:
-                signals.append(FraudSignal(
-                    signal_type="offshore_entity",
-                    severity="low",
-                    description=f"Entity '{entity.name}' is registered in a high-risk jurisdiction: {entity.jurisdiction}.",
-                    entities_involved=[entity.entity_id],
-                    confidence=0.5,
-                ))
+                signals.append(
+                    FraudSignal(
+                        signal_type="offshore_entity",
+                        severity="low",
+                        description=f"Entity '{entity.name}' is registered in a high-risk jurisdiction: {entity.jurisdiction}.",
+                        entities_involved=[entity.entity_id],
+                        confidence=0.5,
+                    )
+                )
 
         return signals
 
@@ -1044,24 +1147,31 @@ class EntityGraphBuilder:
 
             count = len(company_ids)
             if count >= DIRECTOR_CONCENTRATION_THRESHOLD:
-                signals.append(FraudSignal(
-                    signal_type="director_concentration",
-                    severity="critical" if count >= 20 else "high",
-                    description=f"Director '{director_name}' controls {count} companies in this graph "
-                                f"(threshold: {DIRECTOR_CONCENTRATION_THRESHOLD}). "
-                                f"This may indicate a nominee director arrangement or fraud network.",
-                    entities_involved=[director_id] + company_ids,
-                    confidence=min(0.5 + (count - DIRECTOR_CONCENTRATION_THRESHOLD) * 0.02, 0.95),
-                ))
+                signals.append(
+                    FraudSignal(
+                        signal_type="director_concentration",
+                        severity="critical" if count >= 20 else "high",
+                        description=f"Director '{director_name}' controls {count} companies in this graph "
+                        f"(threshold: {DIRECTOR_CONCENTRATION_THRESHOLD}). "
+                        f"This may indicate a nominee director arrangement or fraud network.",
+                        entities_involved=[director_id] + company_ids,
+                        confidence=min(
+                            0.5 + (count - DIRECTOR_CONCENTRATION_THRESHOLD) * 0.02,
+                            0.95,
+                        ),
+                    )
+                )
             elif 5 <= count < DIRECTOR_CONCENTRATION_THRESHOLD:
-                signals.append(FraudSignal(
-                    signal_type="director_concentration",
-                    severity="medium",
-                    description=f"Director '{director_name}' appears in {count} companies. "
-                                f"Worth monitoring for nominee director arrangements.",
-                    entities_involved=[director_id] + company_ids,
-                    confidence=0.4,
-                ))
+                signals.append(
+                    FraudSignal(
+                        signal_type="director_concentration",
+                        severity="medium",
+                        description=f"Director '{director_name}' appears in {count} companies. "
+                        f"Worth monitoring for nominee director arrangements.",
+                        entities_involved=[director_id] + company_ids,
+                        confidence=0.4,
+                    )
+                )
 
         return signals
 
@@ -1077,42 +1187,51 @@ class EntityGraphBuilder:
             return signals
 
         offshore_entities = [
-            e for e in company_entities
+            e
+            for e in company_entities
             if (e.jurisdiction or "").lower() in HIGH_RISK_JURISDICTIONS
         ]
 
         offshore_pct = len(offshore_entities) / len(company_entities) * 100
 
         if offshore_pct >= 50:
-            signals.append(FraudSignal(
-                signal_type="jurisdiction_risk",
-                severity="critical",
-                description=f"{offshore_pct:.0f}% of entities ({len(offshore_entities)}/{len(company_entities)}) "
-                            f"are registered in high-risk jurisdictions. "
-                            f"This is a strong indicator of deliberate offshore structuring.",
-                entities_involved=[e.entity_id for e in offshore_entities],
-                confidence=0.85,
-            ))
+            signals.append(
+                FraudSignal(
+                    signal_type="jurisdiction_risk",
+                    severity="critical",
+                    description=f"{offshore_pct:.0f}% of entities ({len(offshore_entities)}/{len(company_entities)}) "
+                    f"are registered in high-risk jurisdictions. "
+                    f"This is a strong indicator of deliberate offshore structuring.",
+                    entities_involved=[e.entity_id for e in offshore_entities],
+                    confidence=0.85,
+                )
+            )
         elif offshore_pct >= 25:
-            signals.append(FraudSignal(
-                signal_type="jurisdiction_risk",
-                severity="high",
-                description=f"{offshore_pct:.0f}% of entities are in high-risk jurisdictions.",
-                entities_involved=[e.entity_id for e in offshore_entities],
-                confidence=0.7,
-            ))
+            signals.append(
+                FraudSignal(
+                    signal_type="jurisdiction_risk",
+                    severity="high",
+                    description=f"{offshore_pct:.0f}% of entities are in high-risk jurisdictions.",
+                    entities_involved=[e.entity_id for e in offshore_entities],
+                    confidence=0.7,
+                )
+            )
         elif offshore_pct > 0:
-            signals.append(FraudSignal(
-                signal_type="jurisdiction_risk",
-                severity="low",
-                description=f"{len(offshore_entities)} entity/entities in potentially high-risk jurisdiction(s).",
-                entities_involved=[e.entity_id for e in offshore_entities],
-                confidence=0.4,
-            ))
+            signals.append(
+                FraudSignal(
+                    signal_type="jurisdiction_risk",
+                    severity="low",
+                    description=f"{len(offshore_entities)} entity/entities in potentially high-risk jurisdiction(s).",
+                    entities_involved=[e.entity_id for e in offshore_entities],
+                    confidence=0.4,
+                )
+            )
 
         return signals
 
-    def _detect_ownership_concentration(self, graph: EntityGraph, G: nx.DiGraph) -> List[FraudSignal]:
+    def _detect_ownership_concentration(
+        self, graph: EntityGraph, G: nx.DiGraph
+    ) -> List[FraudSignal]:
         """
         Detect entities with >25% beneficial ownership (UK/EU threshold).
 
@@ -1125,30 +1244,38 @@ class EntityGraphBuilder:
             if rel.ownership_pct <= 0:
                 continue
 
-            from_entity = next((e for e in graph.entities if e.entity_id == rel.from_id), None)
-            to_entity = next((e for e in graph.entities if e.entity_id == rel.to_id), None)
+            from_entity = next(
+                (e for e in graph.entities if e.entity_id == rel.from_id), None
+            )
+            to_entity = next(
+                (e for e in graph.entities if e.entity_id == rel.to_id), None
+            )
 
             owner_name = from_entity.name if from_entity else rel.from_id
             company_name = to_entity.name if to_entity else rel.to_id
 
             if rel.ownership_pct >= 75:
-                signals.append(FraudSignal(
-                    signal_type="ownership_concentration",
-                    severity="medium",
-                    description=f"'{owner_name}' holds {rel.ownership_pct:.1f}% of '{company_name}'. "
-                                f"Near-total control may mask beneficial owner identity.",
-                    entities_involved=[rel.from_id, rel.to_id],
-                    confidence=0.6,
-                ))
+                signals.append(
+                    FraudSignal(
+                        signal_type="ownership_concentration",
+                        severity="medium",
+                        description=f"'{owner_name}' holds {rel.ownership_pct:.1f}% of '{company_name}'. "
+                        f"Near-total control may mask beneficial owner identity.",
+                        entities_involved=[rel.from_id, rel.to_id],
+                        confidence=0.6,
+                    )
+                )
             elif rel.ownership_pct >= BENEFICIAL_OWNERSHIP_THRESHOLD:
-                signals.append(FraudSignal(
-                    signal_type="ownership_concentration",
-                    severity="low",
-                    description=f"'{owner_name}' holds {rel.ownership_pct:.1f}% of '{company_name}' "
-                                f"(exceeds {BENEFICIAL_OWNERSHIP_THRESHOLD}% PSC threshold).",
-                    entities_involved=[rel.from_id, rel.to_id],
-                    confidence=0.5,
-                ))
+                signals.append(
+                    FraudSignal(
+                        signal_type="ownership_concentration",
+                        severity="low",
+                        description=f"'{owner_name}' holds {rel.ownership_pct:.1f}% of '{company_name}' "
+                        f"(exceeds {BENEFICIAL_OWNERSHIP_THRESHOLD}% PSC threshold).",
+                        entities_involved=[rel.from_id, rel.to_id],
+                        confidence=0.5,
+                    )
+                )
 
         return signals
 
@@ -1161,25 +1288,32 @@ class EntityGraphBuilder:
         signals = []
 
         dissolved_ids = {
-            e.entity_id for e in graph.entities
-            if e.status and e.status.lower() in ("dissolved", "struck-off", "struck_off", "liquidation")
+            e.entity_id
+            for e in graph.entities
+            if e.status
+            and e.status.lower()
+            in ("dissolved", "struck-off", "struck_off", "liquidation")
         }
 
         for rel in graph.relationships:
             if rel.to_id in dissolved_ids or rel.from_id in dissolved_ids:
                 involved = [rel.from_id, rel.to_id]
                 dissolved = rel.to_id if rel.to_id in dissolved_ids else rel.from_id
-                entity = next((e for e in graph.entities if e.entity_id == dissolved), None)
+                entity = next(
+                    (e for e in graph.entities if e.entity_id == dissolved), None
+                )
                 name = entity.name if entity else dissolved
 
-                signals.append(FraudSignal(
-                    signal_type="zombie_entity",
-                    severity="medium",
-                    description=f"Active relationship involving dissolved/struck-off entity '{name}'. "
-                                f"May indicate historical asset stripping or undisclosed liabilities.",
-                    entities_involved=involved,
-                    confidence=0.7,
-                ))
+                signals.append(
+                    FraudSignal(
+                        signal_type="zombie_entity",
+                        severity="medium",
+                        description=f"Active relationship involving dissolved/struck-off entity '{name}'. "
+                        f"May indicate historical asset stripping or undisclosed liabilities.",
+                        entities_involved=involved,
+                        confidence=0.7,
+                    )
+                )
 
         return signals
 
@@ -1204,23 +1338,27 @@ class EntityGraphBuilder:
         for address, entity_ids in address_companies.items():
             count = len(entity_ids)
             if count >= 5:
-                signals.append(FraudSignal(
-                    signal_type="address_clustering",
-                    severity="high",
-                    description=f"{count} companies share the same registered address: '{address[:80]}'. "
-                                f"This pattern is associated with mass-registered shell companies.",
-                    entities_involved=entity_ids,
-                    confidence=min(0.4 + count * 0.05, 0.9),
-                ))
+                signals.append(
+                    FraudSignal(
+                        signal_type="address_clustering",
+                        severity="high",
+                        description=f"{count} companies share the same registered address: '{address[:80]}'. "
+                        f"This pattern is associated with mass-registered shell companies.",
+                        entities_involved=entity_ids,
+                        confidence=min(0.4 + count * 0.05, 0.9),
+                    )
+                )
             elif count >= 3:
-                signals.append(FraudSignal(
-                    signal_type="address_clustering",
-                    severity="medium",
-                    description=f"{count} companies share the address '{address[:80]}'. "
-                                f"May warrant additional verification.",
-                    entities_involved=entity_ids,
-                    confidence=0.5,
-                ))
+                signals.append(
+                    FraudSignal(
+                        signal_type="address_clustering",
+                        severity="medium",
+                        description=f"{count} companies share the address '{address[:80]}'. "
+                        f"May warrant additional verification.",
+                        entities_involved=entity_ids,
+                        confidence=0.5,
+                    )
+                )
 
         return signals
 
@@ -1265,6 +1403,7 @@ class EntityGraphBuilder:
 # Public API
 # ---------------------------------------------------------------------------
 
+
 async def build_entity_graph(company_name: str, depth: int = 2) -> EntityGraph:
     """
     Build a full entity graph for a company.
@@ -1280,7 +1419,9 @@ async def build_entity_graph(company_name: str, depth: int = 2) -> EntityGraph:
     return await builder.build_graph(company_name, depth=depth)
 
 
-async def get_entity_graph(company_name: str) -> Optional[Tuple[List[dict], List[dict]]]:
+async def get_entity_graph(
+    company_name: str,
+) -> Optional[Tuple[List[dict], List[dict]]]:
     """
     Retrieve an existing entity graph from the graph database.
 
@@ -1291,17 +1432,67 @@ async def get_entity_graph(company_name: str) -> Optional[Tuple[List[dict], List
         (nodes, edges) or None if not found
     """
     gm = await get_graph_manager()
-    # Generate a likely root entity_id
+
+    # First try name-slug candidates (legacy/manual entries)
+    name_slug = company_name.lower().replace(" ", "_")[:40]
     root_candidates = [
-        f"ch_{company_name.lower().replace(' ', '_')[:40]}",
-        f"oc_gb_{company_name.lower().replace(' ', '_')[:40]}",
-        f"sec_{company_name.lower().replace(' ', '_')[:40]}",
-        f"manual_{company_name.lower().replace(' ', '_')[:40]}",
+        f"ch_{name_slug}",
+        f"oc_gb_{name_slug}",
+        f"sec_{name_slug}",
+        f"manual_{name_slug}",
     ]
     for root_id in root_candidates:
         nodes, edges = await gm.get_subgraph(root_id, depth=3)
         if nodes:
             return nodes, edges
+
+    # If not found by name slug, search all nodes for a matching company name
+    # This handles the case where entity_id uses registration number (e.g. ch_12345678)
+    nx_graph = gm.get_nx_graph()
+    if nx_graph is not None and len(nx_graph) > 0:
+        for node_id, data in nx_graph.nodes(data=True):
+            node_name = (data.get("name") or "").lower()
+            if node_name and (
+                node_name == company_name.lower() or company_name.lower() in node_name
+            ):
+                nodes, edges = await gm.get_subgraph(node_id, depth=3)
+                if nodes:
+                    return nodes, edges
+
+    # If still not found, build the graph on-the-fly via Companies House
+    try:
+        graph = await build_entity_graph(company_name, depth=2)
+        if graph and graph.entities:
+            nodes = [
+                {
+                    "id": e.entity_id,
+                    "name": e.name,
+                    "type": e.entity_type,
+                    "jurisdiction": e.jurisdiction,
+                    "registration_number": e.registration_number,
+                    "status": e.status,
+                    "source": e.source,
+                }
+                for e in graph.entities
+            ]
+            edges = [
+                {
+                    "from_id": r.from_id,
+                    "to_id": r.to_id,
+                    "type": r.relationship_type,
+                    "ownership_pct": r.ownership_pct,
+                    "source": r.source,
+                }
+                for r in graph.relationships
+            ]
+            return nodes, edges
+    except Exception as e:
+        import logging
+
+        logging.getLogger(__name__).warning(
+            f"Auto-build entity graph failed for {company_name}: {e}"
+        )
+
     return None
 
 

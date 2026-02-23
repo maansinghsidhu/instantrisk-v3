@@ -373,5 +373,20 @@
   "onboardingTitle3": "مساعد التأمين بالذكاء الاصطناعي 24/7",
   "onboardingDesc3": "احصل على إجابات فورية لأسئلة التأمين من الذكاء الاصطناعي المدرب على أكثر من 20 جيجابايت من معرفة Lloyd's",
   "skip": "تخطي",
-  "getStartedNow": "ابدأ الآن"
+  "getStartedNow": "ابدأ الآن",
+  "analysisCanContinueInBackground": "يمكنك إغلاق هذه النافذة. سيستمر التحليل في الخلفية وستتوفر النتائج في التقارير.",
+  "clickCalculatePricing": "انقر على \"حساب\" لتوليد قسط فني لهذه المخاطر.",
+  "discard": "تجاهل",
+  "discardChangesMessage": "لديك تغييرات غير محفوظة. هل تريد تجاهلها؟",
+  "discardChangesQuestion": "تجاهل التغييرات؟",
+  "expandLiveResults": "عرض النتائج المباشرة",
+  "failedToSaveLanguage": "فشل في حفظ تفضيل اللغة. يرجى المحاولة مرة أخرى.",
+  "languageChangedTo": "تم تغيير اللغة إلى {languageName}",
+  "minimizeLiveResults": "تصغير",
+  "noAiAnalysisYet": "لا يوجد تحليل ذكاء اصطناعي متاح بعد.\nانقر على \"تحليل\" لتوليد رؤى المخاطر.",
+  "pricingNotAvailableDeclined": "التسعير غير متاح للمخاطر المرفوضة.",
+  "rtlLabel": "RTL",
+  "saveLanguagePreference": "حفظ تفضيل اللغة",
+  "undo": "تراجع",
+  "unsavedChangesPressSave": "لديك تغييرات غير محفوظة. اضغط حفظ لتطبيق اللغة الجديدة."
 }

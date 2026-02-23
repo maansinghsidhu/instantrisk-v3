@@ -3,6 +3,7 @@ Seed test users with different subscription tiers.
 
 This runs at startup to ensure test users exist in the database.
 """
+
 from datetime import datetime, timezone, timedelta
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,7 +44,7 @@ TEST_USERS = [
         "email": "demo@instantrisk.com",
         "password": "Demo2026pass",
         "full_name": "Demo User",
-        "role": "underwriter",
+        "role": "admin",
         "tier": "premium",
         "expires_days": 365,
     },
@@ -63,7 +64,7 @@ async def seed_test_users(session: AsyncSession) -> int:
             # Check if user exists
             result = await session.execute(
                 text("SELECT id FROM users WHERE email = :email"),
-                {"email": user_data["email"]}
+                {"email": user_data["email"]},
             )
             existing = result.scalar_one_or_none()
 
@@ -80,9 +81,16 @@ async def seed_test_users(session: AsyncSession) -> int:
                             monthly_chat_messages_used = 0,
                             updated_at = NOW()
                     """),
-                    {"user_id": existing, "tier": user_data["tier"]}
+                    {"user_id": existing, "tier": user_data["tier"]},
                 )
-                logger.info(f"User {user_data['email']} already exists, updated subscription to {user_data['tier']}")
+                # Also ensure role is correct (e.g. promote demo user to admin)
+                await session.execute(
+                    text("UPDATE users SET role = :role WHERE id = :user_id"),
+                    {"user_id": existing, "role": user_data["role"]},
+                )
+                logger.info(
+                    f"User {user_data['email']} already exists, updated subscription to {user_data['tier']} and role to {user_data['role']}"
+                )
                 continue
 
             # Create new user
@@ -102,7 +110,7 @@ async def seed_test_users(session: AsyncSession) -> int:
                     "hashed_password": hashed_pw,
                     "full_name": user_data["full_name"],
                     "role": user_data["role"],
-                }
+                },
             )
 
             # Create subscription
@@ -111,10 +119,12 @@ async def seed_test_users(session: AsyncSession) -> int:
                     INSERT INTO subscriptions (user_id, tier, status, started_at, expires_at, created_at, updated_at)
                     VALUES (:user_id, :tier, 'active', NOW(), NOW() + INTERVAL '1 year', NOW(), NOW())
                 """),
-                {"user_id": user_id, "tier": user_data["tier"]}
+                {"user_id": user_id, "tier": user_data["tier"]},
             )
 
-            logger.info(f"Created user {user_data['email']} with {user_data['tier']} subscription")
+            logger.info(
+                f"Created user {user_data['email']} with {user_data['tier']} subscription"
+            )
             created += 1
 
         except Exception as e:

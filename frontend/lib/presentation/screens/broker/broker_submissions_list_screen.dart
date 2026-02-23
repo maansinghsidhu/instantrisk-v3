@@ -101,7 +101,7 @@ class _BrokerSubmissionsListScreenState extends State<BrokerSubmissionsListScree
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: FilterChip(
-                label: Text(f.replace('_', ' ').toUpperCase()),
+                label: Text(f.replaceAll('_', ' ').toUpperCase()),
                 selected: isSelected,
                 onSelected: (selected) {
                   setState(() => _statusFilter = f);

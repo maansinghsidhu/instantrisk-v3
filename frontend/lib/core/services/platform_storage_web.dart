@@ -34,9 +34,9 @@ String getPlatformBaseUrl() {
   final location = html.window.location;
   final host = location.host;
 
-  // If on CloudFront or S3 website, use the ALB for backend API
+  // If on CloudFront or S3 website, use same origin /api/v1 path (CloudFront routes /api/* to ALB)
   if (host.contains('cloudfront') || host.contains('s3-website')) {
-    return "http://instantrisk-alb-307384033.us-east-1.elb.amazonaws.com/api/v1";
+    return "${location.protocol}//$host/api/v1";
   }
 
   // Local dev: frontend on :3000, backend on :8000

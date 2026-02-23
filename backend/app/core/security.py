@@ -17,6 +17,23 @@ import uuid
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
+
+# Monkey-patch passlib to work with bcrypt >= 4.0 (detect_wrap_bug uses >72 byte test string)
+import passlib.handlers.bcrypt as _bcrypt_mod
+
+_bcrypt_mod._detect_pybcrypt = lambda: False
+_bcrypt_mod._detect_bcryptor = lambda: False
+_orig_finalize = getattr(_bcrypt_mod._BcryptBackend, "_finalize_backend_mixin", None)
+
+
+def _patched_finalize(cls, name, dryrun):
+    cls._lacks_wrap_bug = True
+    cls._has_2a_wraparound_bug = False
+    return True
+
+
+_bcrypt_mod._BcryptBackend._finalize_backend_mixin = classmethod(_patched_finalize)
+
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -88,17 +105,18 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=settings.access_token_expire_minutes
+        )
 
     # Add unique JWT ID for blacklist support
     jti = str(uuid.uuid4())
-    to_encode.update({
-        "exp": expire,
-        "type": "access",
-        "jti": jti,
-        "iat": datetime.now(timezone.utc)
-    })
-    encoded_jwt = jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+    to_encode.update(
+        {"exp": expire, "type": "access", "jti": jti, "iat": datetime.now(timezone.utc)}
+    )
+    encoded_jwt = jwt.encode(
+        to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm
+    )
     return encoded_jwt
 
 
@@ -113,15 +131,21 @@ def create_refresh_token(data: dict) -> str:
         str: The encoded JWT refresh token.
     """
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
+    expire = datetime.now(timezone.utc) + timedelta(
+        days=settings.refresh_token_expire_days
+    )
     jti = str(uuid.uuid4())
-    to_encode.update({
-        "exp": expire,
-        "type": "refresh",
-        "jti": jti,
-        "iat": datetime.now(timezone.utc)
-    })
-    encoded_jwt = jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+    to_encode.update(
+        {
+            "exp": expire,
+            "type": "refresh",
+            "jti": jti,
+            "iat": datetime.now(timezone.utc),
+        }
+    )
+    encoded_jwt = jwt.encode(
+        to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm
+    )
     return encoded_jwt
 
 
@@ -139,7 +163,9 @@ def decode_token(token: str) -> dict:
         HTTPException: If the token is invalid or expired.
     """
     try:
-        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+        payload = jwt.decode(
+            token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
+        )
         return payload
     except JWTError:
         raise HTTPException(
@@ -151,7 +177,7 @@ def decode_token(token: str) -> dict:
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ) -> User:
     """
     Dependency to get the current authenticated user.
@@ -210,14 +236,15 @@ async def get_current_user(
 
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is deactivated"
+            status_code=status.HTTP_403_FORBIDDEN, detail="User account is deactivated"
         )
 
     return user
 
 
-async def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
+async def get_current_admin_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
     """
     Dependency to ensure the current user is an admin.
 
@@ -232,13 +259,14 @@ async def get_current_admin_user(current_user: User = Depends(get_current_user))
     """
     if current_user.role.value != "admin":
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin privileges required"
+            status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required"
         )
     return current_user
 
 
-async def get_current_syndicate_user(current_user: User = Depends(get_current_user)) -> User:
+async def get_current_syndicate_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
     """
     Dependency to ensure the current user is a syndicate member or admin.
 
@@ -254,7 +282,7 @@ async def get_current_syndicate_user(current_user: User = Depends(get_current_us
     if current_user.role.value not in ["syndicate", "admin"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Syndicate privileges required"
+            detail="Syndicate privileges required",
         )
     return current_user
 

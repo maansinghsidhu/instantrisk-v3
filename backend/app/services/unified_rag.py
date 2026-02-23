@@ -31,6 +31,7 @@ class UnifiedRAG:
     def qdrant_service(self):
         if self._qdrant_service is None:
             from app.services.qdrant_service import qdrant_service
+
             self._qdrant_service = qdrant_service
         return self._qdrant_service
 
@@ -38,6 +39,7 @@ class UnifiedRAG:
     def rag_indexer(self):
         if self._rag_indexer is None:
             from app.services.rag_indexer import rag_indexer
+
             self._rag_indexer = rag_indexer
         return self._rag_indexer
 
@@ -51,7 +53,15 @@ class UnifiedRAG:
         source_tiers: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
         """
-        Search across all knowledge sources with priority ordering.
+        Search across all knowledge sources with guaranteed RAG dataset representation.
+
+        When source_tiers=None (search all), allocates slots to ensure RAG datasets
+        always contribute results, regardless of how many user-doc results are found:
+          - user tier: up to top_k//3 slots (capped at 2 for top_k<=5)
+          - RAG datasets: guaranteed top_k * 2 slots spread across all 11 tiers
+          - global fallback: remaining slots
+
+        When source_tiers is explicitly set, uses original slot-filling behaviour.
 
         Args:
             query: Search query text.
@@ -60,14 +70,10 @@ class UnifiedRAG:
             top_k: Total number of results to return.
             min_score: Minimum similarity score threshold.
             source_tiers: Optional list of tiers to search. If None, search all.
-                          Options: "user", "acord", "cuad", "jetech", "global"
 
         Returns:
-            List of results with source attribution, ordered by priority then score.
+            Deduplicated list of results with source attribution, best score first.
         """
-        all_results = []
-        remaining = top_k
-
         # Define search tiers in priority order
         tiers = [
             ("user", self._search_user_docs),
@@ -77,42 +83,105 @@ class UnifiedRAG:
             ("ledgar", self._search_ledgar),
             ("maud", self._search_maud),
             ("insurance_qa", self._search_insurance_qa),
+            ("contract_nli", self._search_contract_nli),
+            ("snorkel", self._search_snorkel),
+            ("bitext", self._search_bitext),
+            ("acord_forms", self._search_acord_forms),
+            ("mini_insurance", self._search_mini_insurance),
             ("global", self._search_global),
         ]
 
-        for tier_name, search_fn in tiers:
-            if remaining <= 0:
-                break
-
-            if source_tiers and tier_name not in source_tiers:
-                continue
-
-            try:
-                if tier_name == "user" and not user_id:
+        # When explicit tiers requested, use simple slot-filling (original behaviour)
+        if source_tiers:
+            all_results = []
+            remaining = top_k
+            for tier_name, search_fn in tiers:
+                if remaining <= 0:
+                    break
+                if tier_name not in source_tiers:
                     continue
+                try:
+                    if tier_name == "user" and not user_id:
+                        continue
+                    tier_results = await search_fn(
+                        query=query,
+                        user_id=user_id,
+                        category=category,
+                        limit=remaining,
+                    )
+                    for result in tier_results:
+                        if result.get("score", 0) >= min_score:
+                            result["source_tier"] = tier_name
+                            result["source_label"] = _TIER_LABELS.get(
+                                tier_name, tier_name
+                            )
+                            all_results.append(result)
+                            remaining -= 1
+                            if remaining <= 0:
+                                break
+                except Exception as e:
+                    logger.warning(f"Search tier '{tier_name}' failed: {e}")
+            return all_results
 
+        # source_tiers=None: guaranteed allocation so RAG datasets always contribute
+        # User docs: at most 1 result (so they add context without dominating)
+        # Each RAG tier: 1 result each (11 tiers = up to 11 RAG results)
+        # After collecting, re-rank by score and cap at top_k
+        RAG_TIERS = {
+            "acord",
+            "cuad",
+            "jetech",
+            "ledgar",
+            "maud",
+            "insurance_qa",
+            "contract_nli",
+            "snorkel",
+            "bitext",
+            "acord_forms",
+            "mini_insurance",
+        }
+
+        all_results = []
+
+        # Step 1: user docs — cap at 1 slot to avoid starving RAG
+        if user_id:
+            try:
+                user_results = await self._search_user_docs(
+                    query=query,
+                    user_id=user_id,
+                    category=category,
+                    limit=2,
+                )
+                for r in user_results[:2]:
+                    if r.get("score", 0) >= min_score:
+                        r["source_tier"] = "user"
+                        r["source_label"] = _TIER_LABELS.get("user", "user")
+                        all_results.append(r)
+            except Exception as e:
+                logger.warning(f"Search tier 'user' failed: {e}")
+
+        # Step 2: each RAG tier gets 1 slot — ensures all datasets can contribute
+        for tier_name, search_fn in tiers:
+            if tier_name not in RAG_TIERS:
+                continue
+            try:
                 tier_results = await search_fn(
                     query=query,
                     user_id=user_id,
                     category=category,
-                    limit=remaining,
+                    limit=2,
                 )
-
-                for result in tier_results:
-                    score = result.get("score", 0)
-                    if score >= min_score:
-                        result["source_tier"] = tier_name
-                        result["source_label"] = _TIER_LABELS.get(tier_name, tier_name)
-                        all_results.append(result)
-                        remaining -= 1
-                        if remaining <= 0:
-                            break
-
+                for r in tier_results[:1]:  # take best result per tier
+                    if r.get("score", 0) >= min_score:
+                        r["source_tier"] = tier_name
+                        r["source_label"] = _TIER_LABELS.get(tier_name, tier_name)
+                        all_results.append(r)
             except Exception as e:
                 logger.warning(f"Search tier '{tier_name}' failed: {e}")
-                continue
 
-        return all_results
+        # Step 3: re-rank all collected results by score descending, cap at top_k
+        all_results.sort(key=lambda x: x.get("score", 0), reverse=True)
+        return all_results[:top_k]
 
     async def _search_user_docs(
         self, query: str, user_id: str = None, category: str = None, limit: int = 5
@@ -222,7 +291,9 @@ class UnifiedRAG:
         self, query: str, user_id: str = None, category: str = None, limit: int = 5
     ) -> List[Dict]:
         """Tier 7: Search Insurance QA pairs (21K records)."""
-        results = self.rag_indexer.search(query=query, top_k=limit, doc_type="insurance_qa")
+        results = self.rag_indexer.search(
+            query=query, top_k=limit, doc_type="insurance_qa"
+        )
         return [
             {
                 "text": r.get("text", ""),
@@ -234,13 +305,115 @@ class UnifiedRAG:
             for r in results
         ]
 
+    async def _search_contract_nli(
+        self, query: str, user_id: str = None, category: str = None, limit: int = 5
+    ) -> List[Dict]:
+        """Tier 8: Search ContractNLI clause entailment dataset."""
+        results = self.rag_indexer.search(
+            query=query, top_k=limit, doc_type="contract_nli"
+        )
+        return [
+            {
+                "text": r.get("text", ""),
+                "source": "contract_nli",
+                "category": r.get("category", ""),
+                "name": r.get("name", ""),
+                "score": r.get("score", 0),
+            }
+            for r in results
+        ]
+
+    async def _search_snorkel(
+        self, query: str, user_id: str = None, category: str = None, limit: int = 5
+    ) -> List[Dict]:
+        """Tier 9: Search Snorkel underwriting conversations."""
+        results = self.rag_indexer.search(
+            query=query, top_k=limit, doc_type="snorkel_underwriting"
+        )
+        return [
+            {
+                "text": r.get("text", ""),
+                "source": "snorkel_underwriting",
+                "category": r.get("category", ""),
+                "name": r.get("name", ""),
+                "score": r.get("score", 0),
+            }
+            for r in results
+        ]
+
+    async def _search_bitext(
+        self, query: str, user_id: str = None, category: str = None, limit: int = 5
+    ) -> List[Dict]:
+        """Tier 10: Search Bitext insurance intent dataset."""
+        results = self.rag_indexer.search(
+            query=query, top_k=limit, doc_type="bitext_intents"
+        )
+        return [
+            {
+                "text": r.get("text", ""),
+                "source": "bitext_intents",
+                "category": r.get("category", ""),
+                "name": r.get("name", ""),
+                "score": r.get("score", 0),
+            }
+            for r in results
+        ]
+
+    async def _search_acord_forms(
+        self, query: str, user_id: str = None, category: str = None, limit: int = 5
+    ) -> List[Dict]:
+        """Tier 11: Search ACORD form specifications."""
+        results = self.rag_indexer.search(
+            query=query, top_k=limit, doc_type="acord_forms"
+        )
+        return [
+            {
+                "text": r.get("text", ""),
+                "source": "acord_forms",
+                "category": r.get("category", ""),
+                "name": r.get("name", ""),
+                "score": r.get("score", 0),
+            }
+            for r in results
+        ]
+
+    async def _search_mini_insurance(
+        self, query: str, user_id: str = None, category: str = None, limit: int = 5
+    ) -> List[Dict]:
+        """Tier 12: Search mini insurance dataset."""
+        results = self.rag_indexer.search(
+            query=query, top_k=limit, doc_type="mini_insurance"
+        )
+        return [
+            {
+                "text": r.get("text", ""),
+                "source": "mini_insurance",
+                "category": r.get("category", ""),
+                "name": r.get("name", ""),
+                "score": r.get("score", 0),
+            }
+            for r in results
+        ]
+
     async def _search_global(
         self, query: str, user_id: str = None, category: str = None, limit: int = 5
     ) -> List[Dict]:
-        """Tier 8: Search global knowledge base (all doc types, deduplicated)."""
+        """Tier 13: Search global knowledge base (all doc types, deduplicated)."""
         results = self.rag_indexer.search(query=query, top_k=limit, doc_type=None)
         # Filter out types already searched in earlier tiers
-        already_searched = {"acord", "cuad", "underwriting_block", "ledgar", "maud", "insurance_qa"}
+        already_searched = {
+            "acord",
+            "cuad",
+            "underwriting_block",
+            "ledgar",
+            "maud",
+            "insurance_qa",
+            "contract_nli",
+            "snorkel_underwriting",
+            "bitext_intents",
+            "acord_forms",
+            "mini_insurance",
+        }
         filtered = [
             {
                 "text": r.get("text", ""),
@@ -288,6 +461,11 @@ _TIER_LABELS = {
     "ledgar": "LEDGAR SEC Provisions",
     "maud": "MAUD Merger Agreements",
     "insurance_qa": "Insurance Q&A",
+    "contract_nli": "Contract NLI Clauses",
+    "snorkel": "Underwriting Conversations",
+    "bitext": "Insurance Intent Data",
+    "acord_forms": "ACORD Form Specifications",
+    "mini_insurance": "Mini Insurance Dataset",
     "global": "Insurance Knowledge Base",
 }
 

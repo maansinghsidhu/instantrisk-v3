@@ -7,7 +7,18 @@ risk assessments with GO/NO-GO decisions.
 
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, Text, JSON, ForeignKey, Enum
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    DateTime,
+    Float,
+    Text,
+    JSON,
+    ForeignKey,
+    Enum,
+)
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import relationship
 import enum
@@ -17,16 +28,24 @@ from app.core.database import Base
 
 class AssessmentStatus(str, enum.Enum):
     """Enumeration of assessment statuses."""
+
     DRAFT = "draft"
     PENDING_REVIEW = "pending_review"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
     FAILED = "failed"
+    # Broker portal statuses
+    SUBMITTED = "submitted"
+    UNDER_REVIEW = "under_review"
+    QUOTE_PENDING = "quote_pending"
+    BOUND = "bound"
+    DECLINED = "declined"
 
 
 class AssessmentDecision(str, enum.Enum):
     """Enumeration of assessment decisions."""
+
     GO = "go"
     NO_GO = "no_go"
     REFER = "refer"
@@ -35,6 +54,7 @@ class AssessmentDecision(str, enum.Enum):
 
 class RiskCategory(str, enum.Enum):
     """Enumeration of risk categories."""
+
     PROPERTY = "property"
     CASUALTY = "casualty"
     MARINE = "marine"
@@ -92,23 +112,35 @@ class Assessment(Base):
 
     # Classification
     risk_category = Column(
-        Enum(RiskCategory, values_callable=lambda obj: [e.value for e in obj], native_enum=False),
+        Enum(
+            RiskCategory,
+            values_callable=lambda obj: [e.value for e in obj],
+            native_enum=False,
+        ),
         default=RiskCategory.PROPERTY,
-        nullable=False
+        nullable=False,
     )
 
     # Status and decision
     status = Column(
-        Enum(AssessmentStatus, values_callable=lambda obj: [e.value for e in obj], native_enum=False),
+        Enum(
+            AssessmentStatus,
+            values_callable=lambda obj: [e.value for e in obj],
+            native_enum=False,
+        ),
         default=AssessmentStatus.DRAFT,
         nullable=False,
-        index=True
+        index=True,
     )
     decision = Column(
-        Enum(AssessmentDecision, values_callable=lambda obj: [e.value for e in obj], native_enum=False),
+        Enum(
+            AssessmentDecision,
+            values_callable=lambda obj: [e.value for e in obj],
+            native_enum=False,
+        ),
         default=AssessmentDecision.PENDING,
         nullable=False,
-        index=True
+        index=True,
     )
 
     # Relationships
@@ -131,29 +163,23 @@ class Assessment(Base):
     exposure_details = Column(JSON, default=dict)
 
     # AI analysis results
-    risk_score = Column(Integer, nullable=True, comment="Risk score 0-100 (higher = riskier)")
-    confidence_score = Column(Integer, nullable=True, comment="AI confidence 0-100")
-    ai_analysis = Column(
-        JSON,
-        default=dict,
-        comment="Detailed AI analysis results"
+    risk_score = Column(
+        Integer, nullable=True, comment="Risk score 0-100 (higher = riskier)"
     )
+    confidence_score = Column(Integer, nullable=True, comment="AI confidence 0-100")
+    ai_analysis = Column(JSON, default=dict, comment="Detailed AI analysis results")
     ai_recommendations = Column(
-        JSON,
-        default=list,
-        comment="AI-generated recommendations"
+        JSON, default=list, comment="AI-generated recommendations"
     )
 
     # Analysis mode tracking (for upgrade capability)
     analysis_mode = Column(
-        String(20),
-        nullable=True,
-        comment="Analysis depth: quick/go_no_go/deep"
+        String(20), nullable=True, comment="Analysis depth: quick/go_no_go/deep"
     )
     previous_analysis_json = Column(
         JSON,
         nullable=True,
-        comment="Prior analysis results if upgraded from lower mode"
+        comment="Prior analysis results if upgraded from lower mode",
     )
 
     # Manual inputs
@@ -161,43 +187,97 @@ class Assessment(Base):
     decision_rationale = Column(Text, nullable=True)
 
     # OCR extracted text
-    ocr_extracted_text = Column(Text, nullable=True, comment="Full OCR extracted text from documents")
+    ocr_extracted_text = Column(
+        Text, nullable=True, comment="Full OCR extracted text from documents"
+    )
 
     # RapidRate pricing results (auto-populated during analysis pipeline)
-    rapidrate_results = Column(JSON, nullable=True, comment="RapidRate ML pricing output")
+    rapidrate_results = Column(
+        JSON, nullable=True, comment="RapidRate ML pricing output"
+    )
 
     # Broker and commission
-    broker_name = Column(String(255), nullable=True, comment="Broker name (e.g., Marsh, Aon)")
-    commission_rate = Column(Float, nullable=True, comment="Agreed commission rate as percentage")
+    broker_name = Column(
+        String(255), nullable=True, comment="Broker name (e.g., Marsh, Aon)"
+    )
+    commission_rate = Column(
+        Float, nullable=True, comment="Agreed commission rate as percentage"
+    )
 
     # Insured entity details
-    insured_entity_name = Column(String(500), nullable=True, comment="Full legal entity name (highest point / totality of entity)")
-    companies_house_number = Column(String(50), nullable=True, comment="Companies House registration number for entity verification")
+    insured_entity_name = Column(
+        String(500),
+        nullable=True,
+        comment="Full legal entity name (highest point / totality of entity)",
+    )
+    companies_house_number = Column(
+        String(50),
+        nullable=True,
+        comment="Companies House registration number for entity verification",
+    )
 
     # Policy renewal
-    renewal_date = Column(DateTime(timezone=True), nullable=True, comment="Renewal date at next inception")
+    renewal_date = Column(
+        DateTime(timezone=True), nullable=True, comment="Renewal date at next inception"
+    )
 
     # Regulatory and reporting
-    loss_run_reporting_rules = Column(Text, nullable=True, comment="Loss run reporting rules and requirements")
-    regulatory_framework = Column(String(255), nullable=True, comment="Applicable regulatory framework (e.g., Solvency II, European regulation)")
+    loss_run_reporting_rules = Column(
+        Text, nullable=True, comment="Loss run reporting rules and requirements"
+    )
+    regulatory_framework = Column(
+        String(255),
+        nullable=True,
+        comment="Applicable regulatory framework (e.g., Solvency II, European regulation)",
+    )
 
     # Computer vision property inspection (v102)
-    property_analysis = Column(JSON, nullable=True, comment="Computer vision property inspection results")
+    property_analysis = Column(
+        JSON, nullable=True, comment="Computer vision property inspection results"
+    )
 
     # Autonomous investigation (v103)
-    investigation_report = Column(JSON, nullable=True, default=dict, comment="Autonomous investigation report (LangGraph multi-agent)")
-    investigation_status = Column(String(20), nullable=True, default="not_started", comment="Investigation status: not_started/in_progress/completed/failed")
+    investigation_report = Column(
+        JSON,
+        nullable=True,
+        default=dict,
+        comment="Autonomous investigation report (LangGraph multi-agent)",
+    )
+    investigation_status = Column(
+        String(20),
+        nullable=True,
+        default="not_started",
+        comment="Investigation status: not_started/in_progress/completed/failed",
+    )
+
+    # Broker submission fields
+    deadline = Column(
+        DateTime(timezone=True), nullable=True, comment="Quote deadline set by broker"
+    )
+    upload_session_token = Column(
+        String(100),
+        nullable=True,
+        comment="Upload session token for broker-submitted documents",
+    )
+    assigned_underwriter_id = Column(
+        PgUUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=True,
+        comment="Underwriter assigned to this broker submission",
+    )
 
     # Audit flags
     is_flagged = Column(Boolean, default=False, comment="Flagged for review")
     flag_reason = Column(String(255), nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
     updated_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc)
+        onupdate=lambda: datetime.now(timezone.utc),
     )
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
@@ -205,13 +285,29 @@ class Assessment(Base):
     created_by_user = relationship("User", back_populates="assessments")
     syndicate = relationship("Syndicate", back_populates="assessments")
     documents = relationship("Document", back_populates="assessment")
-    generated_documents = relationship("GeneratedDocument", back_populates="assessment", cascade="all, delete-orphan")
-    generation_jobs = relationship("DocumentGenerationJob", back_populates="assessment", cascade="all, delete-orphan")
-    upload_session = relationship("UploadSession", back_populates="assessment", uselist=False)
-    losses = relationship("ExposureLoss", back_populates="assessment", cascade="all, delete-orphan")
-    claims = relationship("ExposureClaim", back_populates="assessment", cascade="all, delete-orphan")
-    sanctions_screenings = relationship("SanctionsScreening", back_populates="assessment", cascade="all, delete-orphan")
-    loss_runs = relationship("InsuredLossRun", back_populates="assessment", cascade="all, delete-orphan")
+    generated_documents = relationship(
+        "GeneratedDocument", back_populates="assessment", cascade="all, delete-orphan"
+    )
+    generation_jobs = relationship(
+        "DocumentGenerationJob",
+        back_populates="assessment",
+        cascade="all, delete-orphan",
+    )
+    upload_session = relationship(
+        "UploadSession", back_populates="assessment", uselist=False
+    )
+    losses = relationship(
+        "ExposureLoss", back_populates="assessment", cascade="all, delete-orphan"
+    )
+    claims = relationship(
+        "ExposureClaim", back_populates="assessment", cascade="all, delete-orphan"
+    )
+    sanctions_screenings = relationship(
+        "SanctionsScreening", back_populates="assessment", cascade="all, delete-orphan"
+    )
+    loss_runs = relationship(
+        "InsuredLossRun", back_populates="assessment", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         """String representation of the Assessment."""
@@ -259,8 +355,10 @@ class Assessment(Base):
         """
         if self.syndicate is None:
             return True
-        return self.syndicate.is_in_risk_appetite({
-            "risk_score": self.risk_score,
-            "premium": self.premium,
-            "sum_insured": self.sum_insured
-        })
+        return self.syndicate.is_in_risk_appetite(
+            {
+                "risk_score": self.risk_score,
+                "premium": self.premium,
+                "sum_insured": self.sum_insured,
+            }
+        )

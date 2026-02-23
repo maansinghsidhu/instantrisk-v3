@@ -20,7 +20,9 @@ from datetime import datetime, timezone
 logger = logging.getLogger(__name__)
 
 # Data paths
-DATA_BASE = Path("/app/app/data") if Path("/app/app/data").exists() else Path("app/data")
+DATA_BASE = (
+    Path("/app/app/data") if Path("/app/app/data").exists() else Path("app/data")
+)
 TRAINING_DATA_DIR = DATA_BASE / "training_data"
 
 # Embedding settings
@@ -32,7 +34,7 @@ BATCH_SIZE = 100
 S3_TRAINING_BUCKET = "instantrisk-pipeline-artifacts-995306061991"
 S3_TRAINING_PREFIX = "training-data/"
 
-# All 6 real datasets
+# All 11 real datasets (6 original + 5 previously missing)
 RAG_SOURCES = [
     {
         "path": TRAINING_DATA_DIR / "embeddings/acord_clauses.jsonl",
@@ -64,6 +66,32 @@ RAG_SOURCES = [
         "type": "insurance_qa",
         "text_field": "text",
     },
+    # --- 5 previously missing datasets (pre-computed NPZ available) ---
+    {
+        "path": TRAINING_DATA_DIR / "embeddings/bitext_intents.jsonl",
+        "type": "bitext_intents",
+        "text_field": "text",
+    },
+    {
+        "path": TRAINING_DATA_DIR / "embeddings/contract_nli.jsonl",
+        "type": "contract_nli",
+        "text_field": "text",
+    },
+    {
+        "path": TRAINING_DATA_DIR / "embeddings/snorkel_underwriting.jsonl",
+        "type": "snorkel_underwriting",
+        "text_field": "text",
+    },
+    {
+        "path": TRAINING_DATA_DIR / "embeddings/acord_forms.jsonl",
+        "type": "acord_forms",
+        "text_field": "text",
+    },
+    {
+        "path": TRAINING_DATA_DIR / "embeddings/mini_insurance.jsonl",
+        "type": "mini_insurance",
+        "text_field": "text",
+    },
 ]
 
 
@@ -83,6 +111,7 @@ class RAGIndexer:
         try:
             import os
             from sentence_transformers import SentenceTransformer
+
             efs_path = "/mnt/efs/models/sentence-transformer-insurance"
             model_id = efs_path if os.path.isdir(efs_path) else EMBEDDING_MODEL
             self.embedding_model = SentenceTransformer(model_id)
@@ -97,11 +126,13 @@ class RAGIndexer:
         """Get a synchronous database engine for bulk operations."""
         if self._sync_engine is None:
             from app.config import settings
+
             # Use the sync URL which has correct sslmode param for psycopg2
             sync_url = settings.sync_database_url
             if "+psycopg2" not in sync_url:
                 sync_url = sync_url.replace("postgresql://", "postgresql+psycopg2://")
             from sqlalchemy import create_engine
+
             self._sync_engine = create_engine(sync_url, pool_pre_ping=True)
         return self._sync_engine
 
@@ -113,6 +144,7 @@ class RAGIndexer:
         results = {}
         try:
             import boto3
+
             s3 = boto3.client("s3", region_name="us-east-1")
             for source in RAG_SOURCES:
                 filename = source["path"].name
@@ -126,7 +158,9 @@ class RAGIndexer:
                     # S3 version with embeddings is ~16x larger than text-only
                     if s3_size > local_size * 2:
                         s3_mb = s3_size / 1024 / 1024
-                        logger.info(f"Downloading {filename} from S3 ({s3_mb:.0f} MB)...")
+                        logger.info(
+                            f"Downloading {filename} from S3 ({s3_mb:.0f} MB)..."
+                        )
                         s3.download_file(S3_TRAINING_BUCKET, s3_key, str(local_path))
                         logger.info(f"Downloaded {filename}")
                         results[filename] = True
@@ -146,7 +180,10 @@ class RAGIndexer:
     def _embed_texts(self, texts: List[str]) -> List[List[float]]:
         """Generate embeddings for a list of texts."""
         embeddings = self.embedding_model.encode(texts, show_progress_bar=False)
-        return [emb.tolist() if isinstance(emb, np.ndarray) else list(emb) for emb in embeddings]
+        return [
+            emb.tolist() if isinstance(emb, np.ndarray) else list(emb)
+            for emb in embeddings
+        ]
 
     def _embed_query(self, query: str) -> List[float]:
         """Generate embedding for a single query."""
@@ -162,6 +199,7 @@ class RAGIndexer:
         try:
             engine = self._get_sync_engine()
             from sqlalchemy import text
+
             with engine.connect() as conn:
                 result = conn.execute(text("SELECT COUNT(*) FROM rag_vectors"))
                 return result.scalar() or 0
@@ -192,7 +230,9 @@ class RAGIndexer:
 
         if not force and self.is_indexed():
             count = self.get_collection_count()
-            logger.info(f"Already indexed with {count} vectors. Use force=True to re-index.")
+            logger.info(
+                f"Already indexed with {count} vectors. Use force=True to re-index."
+            )
             return {"status": "already_indexed", "points": count}
 
         # Try to download pre-embedded files from S3
@@ -220,7 +260,9 @@ class RAGIndexer:
 
         if needs_model:
             if not self._load_model():
-                return {"error": "Failed to load embedding model and no pre-computed embeddings available"}
+                return {
+                    "error": "Failed to load embedding model and no pre-computed embeddings available"
+                }
 
         stats = {"total_indexed": 0, "errors": 0, "sources": {}}
 
@@ -256,7 +298,9 @@ class RAGIndexer:
                         batch_records = []
 
                         if source_count % 1000 == 0:
-                            logger.info(f"  ...indexed {source_count} {source_type} records")
+                            logger.info(
+                                f"  ...indexed {source_count} {source_type} records"
+                            )
 
             # Index remaining batch
             if batch_records:
@@ -268,7 +312,9 @@ class RAGIndexer:
             logger.info(f"Indexed {source_count} {source_type} records")
 
         stats["status"] = "completed"
-        logger.info(f"RAG indexing complete: {stats['total_indexed']} total, {stats['errors']} errors")
+        logger.info(
+            f"RAG indexing complete: {stats['total_indexed']} total, {stats['errors']} errors"
+        )
         return stats
 
     def _index_batch(self, engine, batch_records: List) -> int:
@@ -299,17 +345,19 @@ class RAGIndexer:
                 texts_to_embed.append(embed_text)
                 embed_indices.append(i)
 
-            records_to_insert.append({
-                "text_hash": text_hash,
-                "text_preview": embed_text,
-                "full_text": full_text,
-                "doc_type": source_type,
-                "category": category,
-                "source": source,
-                "name": name,
-                "embedding": embedding_str,
-                "created_at": datetime.now(timezone.utc),
-            })
+            records_to_insert.append(
+                {
+                    "text_hash": text_hash,
+                    "text_preview": embed_text,
+                    "full_text": full_text,
+                    "doc_type": source_type,
+                    "category": category,
+                    "source": source,
+                    "name": name,
+                    "embedding": embedding_str,
+                    "created_at": datetime.now(timezone.utc),
+                }
+            )
 
         try:
             # Only compute embeddings for records without pre-computed ones
@@ -323,13 +371,16 @@ class RAGIndexer:
             with engine.begin() as conn:
                 for rec in records_to_insert:
                     try:
-                        conn.execute(sql_text("""
+                        conn.execute(
+                            sql_text("""
                             INSERT INTO rag_vectors
                                 (text_hash, text_preview, full_text, doc_type, category, source, name, embedding, created_at)
                             VALUES
                                 (:text_hash, :text_preview, :full_text, :doc_type, :category, :source, :name, :embedding, :created_at)
                             ON CONFLICT (text_hash) DO NOTHING
-                        """), rec)
+                        """),
+                            rec,
+                        )
                     except Exception as e:
                         logger.debug(f"RAG vector insert skipped (duplicate): {e}")
 
@@ -338,7 +389,9 @@ class RAGIndexer:
             logger.error(f"Error indexing batch: {e}")
             return 0
 
-    def search(self, query: str, top_k: int = 5, doc_type: Optional[str] = None) -> List[Dict]:
+    def search(
+        self, query: str, top_k: int = 5, doc_type: Optional[str] = None
+    ) -> List[Dict]:
         """
         Semantic search over indexed insurance data using pgvector cosine similarity.
 
@@ -367,7 +420,11 @@ class RAGIndexer:
                     ORDER BY embedding <=> :query_vec
                     LIMIT :limit
                 """)
-                params = {"query_vec": str(query_vector), "doc_type": doc_type, "limit": top_k}
+                params = {
+                    "query_vec": str(query_vector),
+                    "doc_type": doc_type,
+                    "limit": top_k,
+                }
             else:
                 sql = sql_text("""
                     SELECT full_text, doc_type, category, source, name, question,
@@ -399,17 +456,21 @@ class RAGIndexer:
             logger.error(f"pgvector search error: {e}")
             return []
 
-    def add_documents(self, documents: List[Dict[str, Any]], doc_type: str = "claim") -> int:
+    def add_documents(
+        self, documents: List[Dict[str, Any]], doc_type: str = "claim"
+    ) -> int:
         """Add new documents to the index (e.g., claims data)."""
         if not self._load_model():
             return 0
 
         engine = self._get_sync_engine()
-        batch_records = [(doc, doc_type) for doc in documents if doc.get("text", "").strip()]
+        batch_records = [
+            (doc, doc_type) for doc in documents if doc.get("text", "").strip()
+        ]
 
         count = 0
         for i in range(0, len(batch_records), BATCH_SIZE):
-            batch = batch_records[i:i + BATCH_SIZE]
+            batch = batch_records[i : i + BATCH_SIZE]
             count += self._index_batch(engine, batch)
 
         logger.info(f"Added {count} {doc_type} documents to index")

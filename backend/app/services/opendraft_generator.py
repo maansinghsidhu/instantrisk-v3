@@ -62,6 +62,7 @@ class OpenDraftGenerator:
     def bedrock(self):
         if self._bedrock is None:
             from app.services.bedrock_client import BedrockClient
+
             self._bedrock = BedrockClient()
         return self._bedrock
 
@@ -69,6 +70,7 @@ class OpenDraftGenerator:
     def unified_rag(self):
         if self._unified_rag is None:
             from app.services.unified_rag import unified_rag
+
             self._unified_rag = unified_rag
         return self._unified_rag
 
@@ -88,6 +90,7 @@ class OpenDraftGenerator:
     def _resolve_model_id(self, model_alias: str) -> Optional[str]:
         """Resolve short model alias to full Bedrock model ID."""
         from app.config import settings
+
         if model_alias == "sonnet":
             return settings.BEDROCK_MODEL_ID
         elif model_alias == "haiku":
@@ -110,11 +113,20 @@ class OpenDraftGenerator:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_content},
             ]
-            response = await self.bedrock.chat(messages, temperature=temperature, max_tokens=max_tokens, model_id=model_id)
+            response = await self.bedrock.chat(
+                messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                model_id=model_id,
+            )
             if response:
-                logger.info(f"Agent {name} succeeded (response length: {len(response)})")
+                logger.info(
+                    f"Agent {name} succeeded (response length: {len(response)})"
+                )
             else:
-                logger.warning(f"Agent {name} returned empty response (Bedrock may be disabled)")
+                logger.warning(
+                    f"Agent {name} returned empty response (Bedrock may be disabled)"
+                )
             return response
         except Exception as e:
             logger.error(f"Agent {name} failed: {e}")
@@ -169,26 +181,44 @@ class OpenDraftGenerator:
         except Exception as e:
             logger.warning(f"RAG search failed: {e}")
 
-        assessment_summary = json.dumps({
-            "risk_category": risk_category,
-            "territory": territory,
-            "insured_name": assessment_data.get("insured_name", ""),
-            "insured_entity_name": assessment_data.get("insured_entity_name", ""),
-            "companies_house_number": assessment_data.get("companies_house_number", ""),
-            "broker_name": assessment_data.get("broker_name", ""),
-            "commission_rate": assessment_data.get("commission_rate"),
-            "premium": self._fmt_currency(assessment_data.get("premium"), assessment_data.get("currency", "GBP")),
-            "sum_insured": self._fmt_currency(assessment_data.get("sum_insured"), assessment_data.get("currency", "GBP")),
-            "deductible": self._fmt_currency(assessment_data.get("deductible"), assessment_data.get("currency", "GBP")),
-            "inception_date": assessment_data.get("inception_date", ""),
-            "expiry_date": assessment_data.get("expiry_date", ""),
-            "renewal_date": assessment_data.get("renewal_date", ""),
-            "decision": assessment_data.get("decision", ""),
-            "risk_score": assessment_data.get("risk_score"),
-            "regulatory_framework": assessment_data.get("regulatory_framework", ""),
-            "loss_run_reporting_rules": assessment_data.get("loss_run_reporting_rules", ""),
-            "ai_analysis_summary": str(assessment_data.get("ai_analysis", {}))[:2000],
-        }, indent=2)
+        assessment_summary = json.dumps(
+            {
+                "risk_category": risk_category,
+                "territory": territory,
+                "insured_name": assessment_data.get("insured_name", ""),
+                "insured_entity_name": assessment_data.get("insured_entity_name", ""),
+                "companies_house_number": assessment_data.get(
+                    "companies_house_number", ""
+                ),
+                "broker_name": assessment_data.get("broker_name", ""),
+                "commission_rate": assessment_data.get("commission_rate"),
+                "premium": self._fmt_currency(
+                    assessment_data.get("premium"),
+                    assessment_data.get("currency", "GBP"),
+                ),
+                "sum_insured": self._fmt_currency(
+                    assessment_data.get("sum_insured"),
+                    assessment_data.get("currency", "GBP"),
+                ),
+                "deductible": self._fmt_currency(
+                    assessment_data.get("deductible"),
+                    assessment_data.get("currency", "GBP"),
+                ),
+                "inception_date": assessment_data.get("inception_date", ""),
+                "expiry_date": assessment_data.get("expiry_date", ""),
+                "renewal_date": assessment_data.get("renewal_date", ""),
+                "decision": assessment_data.get("decision", ""),
+                "risk_score": assessment_data.get("risk_score"),
+                "regulatory_framework": assessment_data.get("regulatory_framework", ""),
+                "loss_run_reporting_rules": assessment_data.get(
+                    "loss_run_reporting_rules", ""
+                ),
+                "ai_analysis_summary": str(assessment_data.get("ai_analysis", {}))[
+                    :2000
+                ],
+            },
+            indent=2,
+        )
 
         # ML-powered insights
         ml_block = ""
@@ -198,9 +228,9 @@ class OpenDraftGenerator:
             ml_clauses = ml_context.get("clauses", [])
             ml_block = f"""
 INSTANTRISK ENGINE ANALYSIS:
-- Risk appetite: {appetite.get('decision', 'unknown')} (confidence: {appetite.get('confidence', 0):.0%})
-- Pricing band: {pricing.get('band', 'unknown')} (confidence: {pricing.get('confidence', 0):.0%})
-- ML-recommended clause categories: {', '.join(c['category'] for c in ml_clauses[:10])}
+- Risk appetite: {appetite.get("decision", "unknown")} (confidence: {appetite.get("confidence", 0):.0%})
+- Pricing band: {pricing.get("band", "unknown")} (confidence: {pricing.get("confidence", 0):.0%})
+- ML-recommended clause categories: {", ".join(c["category"] for c in ml_clauses[:10])}
 """
 
         result = await self._run_agent_json(
@@ -239,7 +269,7 @@ Return ONLY valid JSON:
             "priority": "mandatory|recommended|optional"
         }}
     ]
-}}"""
+}}""",
         )
         return result or self._fallback_research(assessment_data)
 
@@ -268,29 +298,37 @@ Return ONLY valid JSON:
                 )
                 candidates = []
                 for r in results:
-                    candidates.append({
-                        "text": r.get("text", "")[:1000],
-                        "source_tier": r.get("source_tier", "unknown"),
-                        "source_label": r.get("source_label", "Unknown"),
-                        "score": r.get("score", 0),
-                    })
+                    candidates.append(
+                        {
+                            "text": r.get("text", "")[:1000],
+                            "source_tier": r.get("source_tier", "unknown"),
+                            "source_label": r.get("source_label", "Unknown"),
+                            "score": r.get("score", 0),
+                        }
+                    )
 
-                clause_candidates.append({
-                    "clause_id": clause_id,
-                    "name": name,
-                    "priority": clause.get("priority", "recommended"),
-                    "candidates": candidates,
-                    "best_source": candidates[0]["source_tier"] if candidates else "ai_generated",
-                })
+                clause_candidates.append(
+                    {
+                        "clause_id": clause_id,
+                        "name": name,
+                        "priority": clause.get("priority", "recommended"),
+                        "candidates": candidates,
+                        "best_source": candidates[0]["source_tier"]
+                        if candidates
+                        else "ai_generated",
+                    }
+                )
             except Exception as e:
                 logger.warning(f"Clause extraction failed for {clause_id}: {e}")
-                clause_candidates.append({
-                    "clause_id": clause_id,
-                    "name": name,
-                    "priority": clause.get("priority", "recommended"),
-                    "candidates": [],
-                    "best_source": "ai_generated",
-                })
+                clause_candidates.append(
+                    {
+                        "clause_id": clause_id,
+                        "name": name,
+                        "priority": clause.get("priority", "recommended"),
+                        "candidates": [],
+                        "best_source": "ai_generated",
+                    }
+                )
 
         # Use ML-predicted clause categories to find additional relevant clauses
         if ml_context and ml_context.get("clauses"):
@@ -305,22 +343,29 @@ Return ONLY valid JSON:
                             min_score=0.4,
                         )
                         if results:
-                            candidates = [{
-                                "text": r.get("text", "")[:1000],
-                                "source_tier": r.get("source_tier", "unknown"),
-                                "source_label": r.get("source_label", "Unknown"),
-                                "score": r.get("score", 0),
-                            } for r in results]
-                            clause_candidates.append({
-                                "clause_id": f"ML_{category.upper().replace(' ', '_')}",
-                                "name": category,
-                                "priority": "recommended",
-                                "candidates": candidates,
-                                "best_source": candidates[0]["source_tier"],
-                                "ml_score": ml_clause.get("score", 0),
-                            })
+                            candidates = [
+                                {
+                                    "text": r.get("text", "")[:1000],
+                                    "source_tier": r.get("source_tier", "unknown"),
+                                    "source_label": r.get("source_label", "Unknown"),
+                                    "score": r.get("score", 0),
+                                }
+                                for r in results
+                            ]
+                            clause_candidates.append(
+                                {
+                                    "clause_id": f"ML_{category.upper().replace(' ', '_')}",
+                                    "name": category,
+                                    "priority": "recommended",
+                                    "candidates": candidates,
+                                    "best_source": candidates[0]["source_tier"],
+                                    "ml_score": ml_clause.get("score", 0),
+                                }
+                            )
                     except Exception as e:
-                        logger.warning(f"ML clause extraction failed for {category}: {e}")
+                        logger.warning(
+                            f"ML clause extraction failed for {category}: {e}"
+                        )
 
         return clause_candidates
 
@@ -332,19 +377,21 @@ Return ONLY valid JSON:
     ) -> Dict:
         """Agent 3: GapAnalyzer — compares found clauses against mandatory checklist."""
         found_ids = [c["clause_id"] for c in clause_candidates if c.get("candidates")]
-        missing_ids = [c["clause_id"] for c in clause_candidates if not c.get("candidates")]
+        missing_ids = [
+            c["clause_id"] for c in clause_candidates if not c.get("candidates")
+        ]
 
         result = await self._run_agent_json(
             "GapAnalyzer",
             "You are a Lloyd's gap analysis specialist. Identify missing coverage and mandatory clauses.",
             f"""Analyze coverage gaps for this insurance placement.
 
-Risk category: {assessment_data.get('risk_category', 'property')}
-Territory: {assessment_data.get('territory', '')}
-Insured: {assessment_data.get('insured_entity_name') or assessment_data.get('insured_name', '')}
-Regulatory framework: {assessment_data.get('regulatory_framework', '')}
-Clauses FOUND in knowledge base: {', '.join(found_ids[:30])}
-Clauses NOT FOUND: {', '.join(missing_ids[:20])}
+Risk category: {assessment_data.get("risk_category", "property")}
+Territory: {assessment_data.get("territory", "")}
+Insured: {assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", "")}
+Regulatory framework: {assessment_data.get("regulatory_framework", "")}
+Clauses FOUND in knowledge base: {", ".join(found_ids[:30])}
+Clauses NOT FOUND: {", ".join(missing_ids[:20])}
 
 Identify:
 1. Mandatory clauses missing from this placement
@@ -365,9 +412,14 @@ Return ONLY valid JSON:
     "mandatory_missing": ["List of absolutely required but missing clauses"],
     "overall_coverage_score": 0.0-1.0,
     "notes": "Summary of gap analysis"
-}}"""
+}}""",
         )
-        return result or {"coverage_gaps": [], "mandatory_missing": missing_ids, "overall_coverage_score": 0.7, "notes": ""}
+        return result or {
+            "coverage_gaps": [],
+            "mandatory_missing": missing_ids,
+            "overall_coverage_score": 0.7,
+            "notes": "",
+        }
 
     # ─── PHASE 2: STRUCTURE (Agents 4-6) ──────────────────────────────
 
@@ -382,42 +434,48 @@ Return ONLY valid JSON:
         for candidate in clause_candidates:
             if candidate.get("candidates"):
                 best = candidate["candidates"][0]
-                selections.append({
-                    "clause_id": candidate["clause_id"],
-                    "name": candidate["name"],
-                    "priority": candidate["priority"],
-                    "selected_text": best["text"],
-                    "source": best["source_tier"],
-                    "source_label": best["source_label"],
-                    "score": best["score"],
-                    "status": "found",
-                })
+                selections.append(
+                    {
+                        "clause_id": candidate["clause_id"],
+                        "name": candidate["name"],
+                        "priority": candidate["priority"],
+                        "selected_text": best["text"],
+                        "source": best["source_tier"],
+                        "source_label": best["source_label"],
+                        "score": best["score"],
+                        "status": "found",
+                    }
+                )
             else:
-                selections.append({
-                    "clause_id": candidate["clause_id"],
-                    "name": candidate["name"],
-                    "priority": candidate["priority"],
-                    "selected_text": "",
-                    "source": "ai_generated",
-                    "source_label": "AI Generated",
-                    "score": 0,
-                    "status": "generate",
-                })
+                selections.append(
+                    {
+                        "clause_id": candidate["clause_id"],
+                        "name": candidate["name"],
+                        "priority": candidate["priority"],
+                        "selected_text": "",
+                        "source": "ai_generated",
+                        "source_label": "AI Generated",
+                        "score": 0,
+                        "status": "generate",
+                    }
+                )
 
         # Add mandatory missing clauses from gap analysis
         existing_ids = {s["clause_id"] for s in selections}
         for missing_id in gap_analysis.get("mandatory_missing", []):
             if missing_id not in existing_ids:
-                selections.append({
-                    "clause_id": missing_id,
-                    "name": missing_id,
-                    "priority": "mandatory",
-                    "selected_text": "",
-                    "source": "ai_generated",
-                    "source_label": "AI Generated (Gap Fill)",
-                    "score": 0,
-                    "status": "generate",
-                })
+                selections.append(
+                    {
+                        "clause_id": missing_id,
+                        "name": missing_id,
+                        "priority": "mandatory",
+                        "selected_text": "",
+                        "source": "ai_generated",
+                        "source_label": "AI Generated (Gap Fill)",
+                        "score": 0,
+                        "status": "generate",
+                    }
+                )
 
         return selections
 
@@ -443,7 +501,13 @@ Return ONLY valid JSON:
                 "document_type": doc_type,
                 "template_id": template_id,
                 "sections": [
-                    {"section_number": str(i + 1), "title": c["name"], "content_type": "clause", "clause_ids": [c["clause_id"]], "notes": ""}
+                    {
+                        "section_number": str(i + 1),
+                        "title": c["name"],
+                        "content_type": "clause",
+                        "clause_ids": [c["clause_id"]],
+                        "notes": "",
+                    }
                     for i, c in enumerate(selected_clauses)
                 ],
                 "total_sections": len(selected_clauses),
@@ -458,16 +522,20 @@ Return ONLY valid JSON:
                 if self._clause_matches_section(clause, section_title):
                     matching_clause_ids.append(clause["clause_id"])
 
-            sections.append({
-                "section_number": str(i),
-                "title": section_title,
-                "content_type": "clause",
-                "clause_ids": matching_clause_ids,
-                "notes": "",
-            })
+            sections.append(
+                {
+                    "section_number": str(i),
+                    "title": section_title,
+                    "content_type": "clause",
+                    "clause_ids": matching_clause_ids,
+                    "notes": "",
+                }
+            )
 
-        logger.info(f"StructurePlanner: template={template_id}, {len(sections)} sections, "
-                     f"{sum(len(s['clause_ids']) for s in sections)} clause mappings")
+        logger.info(
+            f"StructurePlanner: template={template_id}, {len(sections)} sections, "
+            f"{sum(len(s['clause_ids']) for s in sections)} clause mappings"
+        )
 
         return {
             "document_type": doc_type,
@@ -530,10 +598,17 @@ Return ONLY valid JSON:
             "header_block": {
                 "type_of_insurance": assessment_data.get("risk_category", "Property"),
                 "unique_market_reference": f"B0000/IR/{datetime.utcnow().strftime('%Y')}",
-                "insured": assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", "TBA"),
+                "insured": assessment_data.get("insured_entity_name")
+                or assessment_data.get("insured_name", "TBA"),
                 "period": f"{assessment_data.get('inception_date', 'TBA')} to {assessment_data.get('expiry_date', 'TBA')}",
-                "premium": self._fmt_currency(assessment_data.get("premium"), assessment_data.get("currency", "GBP")),
-                "sum_insured": self._fmt_currency(assessment_data.get("sum_insured"), assessment_data.get("currency", "GBP")),
+                "premium": self._fmt_currency(
+                    assessment_data.get("premium"),
+                    assessment_data.get("currency", "GBP"),
+                ),
+                "sum_insured": self._fmt_currency(
+                    assessment_data.get("sum_insured"),
+                    assessment_data.get("currency", "GBP"),
+                ),
                 "broker": assessment_data.get("broker_name", "TBA"),
                 "brokerage": f"{assessment_data.get('commission_rate', 'TBA')}%",
                 "territory": assessment_data.get("territory", "TBA"),
@@ -551,11 +626,13 @@ Return ONLY valid JSON:
         """
         risk_score = assessment_data.get("risk_score") or 0
         risk_category = assessment_data.get("risk_category", "").lower()
-        insured_name = assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", "")
+        insured_name = assessment_data.get(
+            "insured_entity_name"
+        ) or assessment_data.get("insured_name", "")
 
         # Category-specific exclusions, subjectivities, warranties, conditions
-        exclusions, subjectivities, warranties, conditions = self._build_category_clauses(
-            risk_category, insured_name, assessment_data
+        exclusions, subjectivities, warranties, conditions = (
+            self._build_category_clauses(risk_category, insured_name, assessment_data)
         )
 
         # Risk-score-aware adjustments
@@ -633,7 +710,11 @@ Return ONLY valid JSON:
         # Helper to convert None/empty to TBA for template rendering
         def _tba(value, suffix=""):
             """Return value as string, or 'TBA' if empty/None."""
-            if value is None or str(value).strip() == "" or str(value).strip().lower() == "none":
+            if (
+                value is None
+                or str(value).strip() == ""
+                or str(value).strip().lower() == "none"
+            ):
                 return "TBA"
             return str(value) + suffix
 
@@ -682,8 +763,11 @@ Return ONLY valid JSON:
             "umr": f"B0000/IR/{datetime.utcnow().strftime('%Y')}",
             "broker_ref": f"IR/{datetime.utcnow().strftime('%Y')}/001",
             "type_of_business": assessment_data.get("type_of_business") or "New",
-            "class_of_business": (assessment_data.get("risk_category") or "General").replace("_", " ").title(),
-            "risk_code": assessment_data.get("risk_code") or self._derive_risk_code(risk_category),
+            "class_of_business": (assessment_data.get("risk_category") or "General")
+            .replace("_", " ")
+            .title(),
+            "risk_code": assessment_data.get("risk_code")
+            or self._derive_risk_code(risk_category),
             "placing_type": "Open Market",
             "insured_name": insured_name or "TBA",
             "named_insured": insured_name or "TBA",
@@ -704,7 +788,9 @@ Return ONLY valid JSON:
             "premium": _format_number(assessment_data.get("premium")),
             "premium_terms": "Net of brokerage at {commission}%".format(
                 commission=assessment_data.get("commission_rate", "TBA")
-            ) if assessment_data.get("commission_rate") else "Net premium as agreed",
+            )
+            if assessment_data.get("commission_rate")
+            else "Net premium as agreed",
             "subjectivities": subjectivities,
             "warranties": warranties,
             "exclusions": exclusions,
@@ -721,7 +807,10 @@ Return ONLY valid JSON:
             "broker_address": "TBA",
             "broker_pin": "TBA",
             "broker_reference": assessment_data.get("broker_reference") or "TBA",
-            "commission_rate": _tba(assessment_data.get("commission_rate"), suffix="%" if assessment_data.get("commission_rate") else ""),
+            "commission_rate": _tba(
+                assessment_data.get("commission_rate"),
+                suffix="%" if assessment_data.get("commission_rate") else "",
+            ),
             "additional_information": additional,
             "policy_number": "TBA",
             "cover_note_number": "TBA",
@@ -1106,7 +1195,9 @@ Return ONLY valid JSON:
     def _build_interest_description(self, data: dict) -> str:
         """Build a detailed INTEREST section based on risk category and description."""
         category = (data.get("risk_category") or "general").lower()
-        insured = data.get("insured_name") or data.get("insured_entity_name") or "the Insured"
+        insured = (
+            data.get("insured_name") or data.get("insured_entity_name") or "the Insured"
+        )
         desc = data.get("description") or ""
         exposure = data.get("exposure_details") or {}
 
@@ -1162,10 +1253,13 @@ Return ONLY valid JSON:
             ),
         }
 
-        return interest_map.get(category, (
-            f"{category.replace('_', ' ').title()} Insurance covering all risks as described "
-            f"in the policy terms and conditions, in respect of the business operations of {insured}."
-        ))
+        return interest_map.get(
+            category,
+            (
+                f"{category.replace('_', ' ').title()} Insurance covering all risks as described "
+                f"in the policy terms and conditions, in respect of the business operations of {insured}."
+            ),
+        )
 
     def _build_territorial_limits(self, data: dict) -> str:
         """Build a detailed TERRITORIAL LIMITS section."""
@@ -1200,12 +1294,13 @@ Return ONLY valid JSON:
         After splitting on ={10,}, parts alternate: [preamble, TITLE, content, TITLE, content, ...]
         """
         import re
+
         sections = {}
         if not rendered:
             return sections
 
         # Split on separator lines (10+ equal signs)
-        parts = re.split(r'={10,}', rendered)
+        parts = re.split(r"={10,}", rendered)
 
         # parts[0] = preamble, then alternating title/content pairs
         if parts:
@@ -1247,7 +1342,9 @@ Return ONLY valid JSON:
         rendered = render_template(template_id, template_data) if template_id else ""
         rendered_sections = self._split_rendered_template(rendered)
 
-        logger.info(f"SectionDrafter: template_id={template_id}, rendered_len={len(rendered)}, sections_found={list(rendered_sections.keys())}")
+        logger.info(
+            f"SectionDrafter: template_id={template_id}, rendered_len={len(rendered)}, sections_found={list(rendered_sections.keys())}"
+        )
 
         template_hits = 0
         clause_hits = 0
@@ -1272,26 +1369,37 @@ Return ONLY valid JSON:
             for cid in section.get("clause_ids", []):
                 if cid in clause_map and clause_map[cid].get("selected_text"):
                     clause_content_parts.append(clause_map[cid]["selected_text"])
-                    clause_sources.append({"id": cid, "source": clause_map[cid].get("source", "rag")})
+                    clause_sources.append(
+                        {"id": cid, "source": clause_map[cid].get("source", "rag")}
+                    )
 
             # Priority 3: Standard clauses from the embedded clause library (10 LMA clauses)
             std_clause_text = ""
             for std_key, std_clause in STANDARD_CLAUSES.items():
                 std_name = std_clause.get("name", "").lower()
                 std_id = std_clause.get("id", "").lower()
-                if (std_name and std_name in title.lower()) or (std_id and std_id in title.lower()):
+                if (std_name and std_name in title.lower()) or (
+                    std_id and std_id in title.lower()
+                ):
                     std_clause_text = std_clause["text"]
-                    clause_sources.append({"id": std_clause["id"], "source": "lma_clause"})
+                    clause_sources.append(
+                        {"id": std_clause["id"], "source": "lma_clause"}
+                    )
                     break
 
             # Priority 3.5: Full clause library search (30K+ LEDGAR/CUAD/ContractNLI clauses)
             full_lib_text = ""
             if not std_clause_text:
                 try:
-                    from app.services.clauses_library_service import ClausesLibraryService
+                    from app.services.clauses_library_service import (
+                        ClausesLibraryService,
+                    )
+
                     clause_lib = ClausesLibraryService()
                     # Search with risk category + section title for better relevance
-                    search_query = f"{title} {risk_category}" if risk_category else title
+                    search_query = (
+                        f"{title} {risk_category}" if risk_category else title
+                    )
                     lib_results, lib_total = clause_lib.search(
                         query=search_query,
                         line_of_business=risk_category,
@@ -1306,11 +1414,22 @@ Return ONLY valid JSON:
                             if not cand_text or len(cand_text) < 50:
                                 continue
                             # Skip generic contract clauses that aren't insurance-relevant
-                            non_insurance = ["employment", "real estate", "merger", "acquisition", "stock purchase"]
+                            non_insurance = [
+                                "employment",
+                                "real estate",
+                                "merger",
+                                "acquisition",
+                                "stock purchase",
+                            ]
                             if any(ni in cand_cat for ni in non_insurance):
                                 continue
                             full_lib_text = cand_text
-                            clause_sources.append({"id": candidate.get("id", "clause_library"), "source": "clause_library"})
+                            clause_sources.append(
+                                {
+                                    "id": candidate.get("id", "clause_library"),
+                                    "source": "clause_library",
+                                }
+                            )
                             break
                 except Exception as e:
                     logger.debug(f"Clause library search for '{title}': {e}")
@@ -1325,13 +1444,15 @@ Return ONLY valid JSON:
             if rendered_content and rendered_content.strip():
                 # Template content — already has data filled in
                 template_hits += 1
-                drafted_sections.append({
-                    "section_number": section["section_number"],
-                    "title": title,
-                    "content": rendered_content.strip(),
-                    "source_clauses": [{"id": "template", "source": "template"}],
-                    "source_type": "template",
-                })
+                drafted_sections.append(
+                    {
+                        "section_number": section["section_number"],
+                        "title": title,
+                        "content": rendered_content.strip(),
+                        "source_clauses": [{"id": "template", "source": "template"}],
+                        "source_type": "template",
+                    }
+                )
             elif clause_content and clause_content.strip():
                 # Real clause text from library/RAG
                 clause_hits += 1
@@ -1343,23 +1464,31 @@ Return ONLY valid JSON:
                         src_type = "clause_library"
                     elif first_src in ("rag", "standard_clause", "lma_clause"):
                         src_type = first_src
-                drafted_sections.append({
-                    "section_number": section["section_number"],
-                    "title": title,
-                    "content": clause_content.strip(),
-                    "source_clauses": clause_sources if clause_sources else [{"id": "clause_library", "source": "clause_library"}],
-                    "source_type": src_type,
-                })
+                drafted_sections.append(
+                    {
+                        "section_number": section["section_number"],
+                        "title": title,
+                        "content": clause_content.strip(),
+                        "source_clauses": clause_sources
+                        if clause_sources
+                        else [{"id": "clause_library", "source": "clause_library"}],
+                        "source_type": src_type,
+                    }
+                )
             else:
                 # No template or clause content — mark for gap filling
                 gap_count += 1
                 gap_sections.append(section)
 
-        logger.info(f"SectionDrafter: template={template_hits}, clause={clause_hits}, gaps={gap_count}")
+        logger.info(
+            f"SectionDrafter: template={template_hits}, clause={clause_hits}, gaps={gap_count}"
+        )
 
         # Step 2: Fill gaps — use section defaults first, then targeted RAG, then AI last resort
         # Section-specific default content for common Lloyd's MRC sections
-        insured_name = assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", "The Insured")
+        insured_name = assessment_data.get(
+            "insured_entity_name"
+        ) or assessment_data.get("insured_name", "The Insured")
         section_defaults = {
             "SUBJECTIVITIES": (
                 f"Prior to inception of the Policy, the following subjectivities must be satisfied:\n\n"
@@ -1420,13 +1549,17 @@ Return ONLY valid JSON:
             # Priority 1: Use section-specific defaults
             default_content = section_defaults.get(title_upper)
             if default_content:
-                drafted_sections.append({
-                    "section_number": section["section_number"],
-                    "title": section["title"],
-                    "content": default_content,
-                    "source_clauses": [{"id": "standard_default", "source": "standard_default"}],
-                    "source_type": "section_default",
-                })
+                drafted_sections.append(
+                    {
+                        "section_number": section["section_number"],
+                        "title": section["title"],
+                        "content": default_content,
+                        "source_clauses": [
+                            {"id": "standard_default", "source": "standard_default"}
+                        ],
+                        "source_type": "section_default",
+                    }
+                )
                 continue
 
             # Priority 2: Targeted RAG search (higher min_score to avoid irrelevant results)
@@ -1445,7 +1578,16 @@ Return ONLY valid JSON:
                 if results and risk_category:
                     cat_lower = risk_category.lower()
                     # Categories that shouldn't cross-pollinate
-                    exclusive_cats = {"marine", "cargo", "hull", "aviation", "cyber", "property", "motor", "liability"}
+                    exclusive_cats = {
+                        "marine",
+                        "cargo",
+                        "hull",
+                        "aviation",
+                        "cyber",
+                        "property",
+                        "motor",
+                        "liability",
+                    }
                     filtered = []
                     for r in results:
                         text_lower = (r.get("text", "") or "")[:500].lower()
@@ -1459,31 +1601,65 @@ Return ONLY valid JSON:
                             # Check content for strong category signals
                             if excl_cat != cat_lower and excl_cat not in cat_lower:
                                 cat_signals = {
-                                    "marine": ["vessel", "hull", "cargo", "maritime", "shipping", "charterer"],
-                                    "cargo": ["goods in transit", "cargo", "bill of lading", "consignment"],
-                                    "aviation": ["aircraft", "aviation", "flight", "airworthiness"],
-                                    "motor": ["vehicle", "motor car", "driving", "road traffic"],
+                                    "marine": [
+                                        "vessel",
+                                        "hull",
+                                        "cargo",
+                                        "maritime",
+                                        "shipping",
+                                        "charterer",
+                                    ],
+                                    "cargo": [
+                                        "goods in transit",
+                                        "cargo",
+                                        "bill of lading",
+                                        "consignment",
+                                    ],
+                                    "aviation": [
+                                        "aircraft",
+                                        "aviation",
+                                        "flight",
+                                        "airworthiness",
+                                    ],
+                                    "motor": [
+                                        "vehicle",
+                                        "motor car",
+                                        "driving",
+                                        "road traffic",
+                                    ],
                                 }
                                 if excl_cat in cat_signals:
-                                    signal_count = sum(1 for sig in cat_signals[excl_cat] if sig in text_lower)
+                                    signal_count = sum(
+                                        1
+                                        for sig in cat_signals[excl_cat]
+                                        if sig in text_lower
+                                    )
                                     if signal_count >= 2:
                                         is_wrong_cat = True
                                         break
                         if not is_wrong_cat:
                             filtered.append(r)
-                    results = filtered if filtered else results[:1]  # Keep at least 1 result
-                rag_content = self.unified_rag.format_as_context(results, max_chars=2000)
+                    results = (
+                        filtered if filtered else results[:1]
+                    )  # Keep at least 1 result
+                rag_content = self.unified_rag.format_as_context(
+                    results, max_chars=2000
+                )
             except Exception as e:
-                logger.warning(f"SectionDrafter RAG gap-fill failed for '{section['title']}': {e}")
+                logger.warning(
+                    f"SectionDrafter RAG gap-fill failed for '{section['title']}': {e}"
+                )
 
             if rag_content and rag_content.strip():
-                drafted_sections.append({
-                    "section_number": section["section_number"],
-                    "title": section["title"],
-                    "content": rag_content.strip(),
-                    "source_clauses": [{"id": "rag", "source": "rag"}],
-                    "source_type": "rag",
-                })
+                drafted_sections.append(
+                    {
+                        "section_number": section["section_number"],
+                        "title": section["title"],
+                        "content": rag_content.strip(),
+                        "source_clauses": [{"id": "rag", "source": "rag"}],
+                        "source_type": "rag",
+                    }
+                )
             else:
                 # Priority 3: Single AI call for this gap section
                 try:
@@ -1492,19 +1668,21 @@ Return ONLY valid JSON:
                     if ml_context:
                         appetite = ml_context.get("appetite", {})
                         pricing = ml_context.get("pricing", {})
-                        ml_cats = [c["category"] for c in ml_context.get("clauses", [])[:8]]
+                        ml_cats = [
+                            c["category"] for c in ml_context.get("clauses", [])[:8]
+                        ]
                         ml_gap_block = (
-                            f"\nInstantRisk Engine: appetite={appetite.get('decision','unknown')} "
-                            f"({appetite.get('confidence',0):.0%}), "
-                            f"pricing={pricing.get('band','unknown')}, "
+                            f"\nInstantRisk Engine: appetite={appetite.get('decision', 'unknown')} "
+                            f"({appetite.get('confidence', 0):.0%}), "
+                            f"pricing={pricing.get('band', 'unknown')}, "
                             f"clause categories={', '.join(ml_cats)}"
                         )
                     response = await asyncio.wait_for(
                         self._run_agent(
                             "SectionDrafter",
                             "You are a Lloyd's insurance document drafter. Write professional insurance wording.",
-                            f"""Draft the '{section['title']}' section for a {structure.get('document_type', 'policy')} document.
-Risk: {risk_category}, Insured: {insured_name}, Territory: {assessment_data.get('territory', '')}, Sum Insured: {self._fmt_currency(assessment_data.get('sum_insured'), assessment_data.get('currency', 'GBP'))}{ml_gap_block}
+                            f"""Draft the '{section["title"]}' section for a {structure.get("document_type", "policy")} document.
+Risk: {risk_category}, Insured: {insured_name}, Territory: {assessment_data.get("territory", "")}, Sum Insured: {self._fmt_currency(assessment_data.get("sum_insured"), assessment_data.get("currency", "GBP"))}{ml_gap_block}
 Write concise, professional Lloyd's market standard wording.""",
                             temperature=0.2,
                         ),
@@ -1513,20 +1691,33 @@ Write concise, professional Lloyd's market standard wording.""",
                 except asyncio.TimeoutError:
                     response = None
 
-                drafted_sections.append({
-                    "section_number": section["section_number"],
-                    "title": section["title"],
-                    "content": response or f"[{section['title']} - To be completed]",
-                    "source_clauses": [{"id": "ai_generated", "source": "ai_generated"}],
-                    "source_type": "ai_generated",
-                    "requires_review": True,
-                })
+                drafted_sections.append(
+                    {
+                        "section_number": section["section_number"],
+                        "title": section["title"],
+                        "content": response
+                        or f"[{section['title']} - To be completed]",
+                        "source_clauses": [
+                            {"id": "ai_generated", "source": "ai_generated"}
+                        ],
+                        "source_type": "ai_generated",
+                        "requires_review": True,
+                    }
+                )
 
         # Sort by section number
-        drafted_sections.sort(key=lambda s: int(str(s.get("section_number", 0)).split(".")[0]) if str(s.get("section_number", "0")).split(".")[0].isdigit() else 0)
+        drafted_sections.sort(
+            key=lambda s: (
+                int(str(s.get("section_number", 0)).split(".")[0])
+                if str(s.get("section_number", "0")).split(".")[0].isdigit()
+                else 0
+            )
+        )
 
-        logger.info(f"SectionDrafter: completed {len(drafted_sections)} sections "
-                     f"(template={template_hits}, clause={clause_hits}, gaps={gap_count})")
+        logger.info(
+            f"SectionDrafter: completed {len(drafted_sections)} sections "
+            f"(template={template_hits}, clause={clause_hits}, gaps={gap_count})"
+        )
         return drafted_sections
 
     async def agent_consistency_checker(
@@ -1546,15 +1737,15 @@ Write concise, professional Lloyd's market standard wording.""",
             f"""Check consistency across all sections of this insurance document.
 
 Assessment values:
-- Insured: {assessment_data.get('insured_entity_name') or assessment_data.get('insured_name', '')}
-- Broker: {assessment_data.get('broker_name', '')}
-- Commission: {assessment_data.get('commission_rate', '')}%
-- Premium: {self._fmt_currency(assessment_data.get('premium'), assessment_data.get('currency', 'GBP'))}
-- Sum insured: {self._fmt_currency(assessment_data.get('sum_insured'), assessment_data.get('currency', 'GBP'))}
-- Deductible: {self._fmt_currency(assessment_data.get('deductible'), assessment_data.get('currency', 'GBP'))}
-- Territory: {assessment_data.get('territory', '')}
-- Inception: {assessment_data.get('inception_date', '')}
-- Expiry: {assessment_data.get('expiry_date', '')}
+- Insured: {assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", "")}
+- Broker: {assessment_data.get("broker_name", "")}
+- Commission: {assessment_data.get("commission_rate", "")}%
+- Premium: {self._fmt_currency(assessment_data.get("premium"), assessment_data.get("currency", "GBP"))}
+- Sum insured: {self._fmt_currency(assessment_data.get("sum_insured"), assessment_data.get("currency", "GBP"))}
+- Deductible: {self._fmt_currency(assessment_data.get("deductible"), assessment_data.get("currency", "GBP"))}
+- Territory: {assessment_data.get("territory", "")}
+- Inception: {assessment_data.get("inception_date", "")}
+- Expiry: {assessment_data.get("expiry_date", "")}
 
 Sections:
 {section_summary}
@@ -1574,7 +1765,7 @@ Return ONLY valid JSON:
         }}
     ],
     "notes": "Summary"
-}}"""
+}}""",
         )
         return result or {"consistent": True, "issues": [], "notes": ""}
 
@@ -1602,7 +1793,7 @@ Return ONLY valid JSON:
             "suggestion": "How to fix"
         }}
     ]
-}}"""
+}}""",
         )
         # Return sections as-is (tone fixes applied in refinement phase)
         return drafted_sections
@@ -1617,8 +1808,8 @@ Return ONLY valid JSON:
         ml_context: Dict = None,
     ) -> Dict:
         """Agent 10: RiskChallenger — challenges coverage adequacy, finds exclusion gaps."""
-        risk_category = assessment_data.get('risk_category', '')
-        territory = assessment_data.get('territory', '')
+        risk_category = assessment_data.get("risk_category", "")
+        territory = assessment_data.get("territory", "")
 
         # Search RAG for similar risk precedents and coverage standards
         rag_context = ""
@@ -1633,7 +1824,11 @@ Return ONLY valid JSON:
         except Exception as e:
             logger.warning(f"RiskChallenger RAG search failed: {e}")
 
-        rag_block = f"\nMARKET PRECEDENTS AND STANDARDS:\n{rag_context}\n" if rag_context else ""
+        rag_block = (
+            f"\nMARKET PRECEDENTS AND STANDARDS:\n{rag_context}\n"
+            if rag_context
+            else ""
+        )
 
         ml_block = ""
         if ml_context:
@@ -1641,9 +1836,9 @@ Return ONLY valid JSON:
             pricing = ml_context.get("pricing", {})
             ml_block = f"""
 INSTANTRISK ENGINE ANALYSIS:
-- Risk appetite: {appetite.get('decision', 'unknown')} (confidence: {appetite.get('confidence', 0):.0%})
-  Scores: accept={appetite.get('scores', {}).get('accept', 0):.2f}, refer={appetite.get('scores', {}).get('refer', 0):.2f}, decline={appetite.get('scores', {}).get('decline', 0):.2f}
-- Pricing band: {pricing.get('band', 'unknown')} (confidence: {pricing.get('confidence', 0):.0%})
+- Risk appetite: {appetite.get("decision", "unknown")} (confidence: {appetite.get("confidence", 0):.0%})
+  Scores: accept={appetite.get("scores", {}).get("accept", 0):.2f}, refer={appetite.get("scores", {}).get("refer", 0):.2f}, decline={appetite.get("scores", {}).get("decline", 0):.2f}
+- Pricing band: {pricing.get("band", "unknown")} (confidence: {pricing.get("confidence", 0):.0%})
 Use these data-driven signals to inform your risk challenge.
 """
 
@@ -1653,11 +1848,11 @@ Use these data-driven signals to inform your risk challenge.
             f"""Challenge this insurance document's coverage adequacy.
 
 Risk: {risk_category} in {territory}
-Insured: {assessment_data.get('insured_entity_name') or assessment_data.get('insured_name', '')}
-Sum insured: {assessment_data.get('sum_insured', '')}
-Inception: {assessment_data.get('inception_date', '')}
-Broker: {assessment_data.get('broker_name', '')}
-Sections: {', '.join(s['title'] for s in drafted_sections[:20])}
+Insured: {assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", "")}
+Sum insured: {assessment_data.get("sum_insured", "")}
+Inception: {assessment_data.get("inception_date", "")}
+Broker: {assessment_data.get("broker_name", "")}
+Sections: {", ".join(s["title"] for s in drafted_sections[:20])}
 {rag_block}{ml_block}
 
 Key content:
@@ -1681,9 +1876,13 @@ Return ONLY valid JSON:
         }}
     ],
     "risk_appetite_notes": "Notes on risk appetite alignment"
-}}"""
+}}""",
         )
-        return result or {"coverage_adequate": True, "challenges": [], "risk_appetite_notes": ""}
+        return result or {
+            "coverage_adequate": True,
+            "challenges": [],
+            "risk_appetite_notes": "",
+        }
 
     async def agent_clause_verifier(
         self,
@@ -1714,7 +1913,7 @@ Return ONLY valid JSON:
             "correct_id": "Correct ID if wrong"
         }}
     ]
-}}"""
+}}""",
         )
         return result or {"all_verified": True, "verification": []}
 
@@ -1726,8 +1925,8 @@ Return ONLY valid JSON:
         ml_context: Dict = None,
     ) -> Dict:
         """Agent 12: ComplianceReviewer — simulates Lloyd's compliance review."""
-        risk_category = assessment_data.get('risk_category', '')
-        territory = assessment_data.get('territory', '')
+        risk_category = assessment_data.get("risk_category", "")
+        territory = assessment_data.get("territory", "")
 
         # Search RAG for regulatory requirements and compliance standards
         rag_context = ""
@@ -1742,7 +1941,9 @@ Return ONLY valid JSON:
         except Exception as e:
             logger.warning(f"ComplianceReviewer RAG search failed: {e}")
 
-        rag_block = f"\nREGULATORY REFERENCE MATERIAL:\n{rag_context}\n" if rag_context else ""
+        rag_block = (
+            f"\nREGULATORY REFERENCE MATERIAL:\n{rag_context}\n" if rag_context else ""
+        )
 
         ml_block = ""
         if ml_context:
@@ -1751,8 +1952,8 @@ Return ONLY valid JSON:
             clause_cats = [c["category"] for c in ml_clauses[:15]]
             ml_block = f"""
 INSTANTRISK ENGINE CLAUSE ANALYSIS:
-- ML-recommended clause categories: {', '.join(clause_cats)}
-- Risk appetite: {appetite.get('decision', 'unknown')} ({appetite.get('confidence', 0):.0%})
+- ML-recommended clause categories: {", ".join(clause_cats)}
+- Risk appetite: {appetite.get("decision", "unknown")} ({appetite.get("confidence", 0):.0%})
 Verify that mandatory clause categories from the ML model are present in the document.
 """
 
@@ -1761,12 +1962,12 @@ Verify that mandatory clause categories from the ML model are present in the doc
             "You are a Lloyd's compliance officer. Review this document for regulatory compliance including sanctions, PRA/FCA requirements, and market standards. Use reference material and InstantRisk Engine analysis to verify requirements.",
             f"""Review this insurance document for Lloyd's compliance.
 
-Document sections: {', '.join(s['title'] for s in drafted_sections[:20])}
+Document sections: {", ".join(s["title"] for s in drafted_sections[:20])}
 Risk category: {risk_category}
 Territory: {territory}
-Insured: {assessment_data.get('insured_entity_name') or assessment_data.get('insured_name', '')}
-Regulatory framework: {assessment_data.get('regulatory_framework', 'N/A')}
-Loss run reporting rules: {assessment_data.get('loss_run_reporting_rules', 'N/A')}
+Insured: {assessment_data.get("insured_entity_name") or assessment_data.get("insured_name", "")}
+Regulatory framework: {assessment_data.get("regulatory_framework", "N/A")}
+Loss run reporting rules: {assessment_data.get("loss_run_reporting_rules", "N/A")}
 {rag_block}{ml_block}
 
 Check for:
@@ -1784,9 +1985,15 @@ Return ONLY valid JSON:
     "recommendations": ["Compliance recommendations"],
     "sanctions_check": "pass|requires_screening|fail",
     "confidence": 0.0-1.0
-}}"""
+}}""",
         )
-        return result or {"compliant": True, "missing_mandatory": [], "regulatory_issues": [], "recommendations": [], "confidence": 0.5}
+        return result or {
+            "compliant": True,
+            "missing_mandatory": [],
+            "regulatory_issues": [],
+            "recommendations": [],
+            "confidence": 0.5,
+        }
 
     # ─── PHASE 5: REFINE (Agents 13-16) ───────────────────────────────
 
@@ -1801,6 +2008,7 @@ Return ONLY valid JSON:
         if user_id:
             try:
                 from app.services.qdrant_service import qdrant_service
+
                 style_docs = await qdrant_service.search_similar(
                     query="document style formatting language",
                     user_id=user_id,
@@ -1841,7 +2049,7 @@ Return ONLY valid JSON:
             "reason": "Why"
         }}
     ]
-}}"""
+}}""",
         )
         return drafted_sections
 
@@ -1891,7 +2099,7 @@ Return ONLY valid JSON:
             "fix": "Suggested fix"
         }}
     ]
-}}"""
+}}""",
         )
         return result or {"clean": True, "errors": []}
 
@@ -1913,7 +2121,7 @@ Return ONLY valid JSON:
                         if f"[{clause_id}]" in content:
                             content = content.replace(
                                 f"[{clause_id}]",
-                                f"{clause_id}: {clause['selected_text'][:500]}"
+                                f"{clause_id}: {clause['selected_text'][:500]}",
                             )
                     else:
                         # Search RAG for the full clause wording
@@ -1928,11 +2136,12 @@ Return ONLY valid JSON:
                                 full_text = results[0].get("text", "")[:500]
                                 if f"[{clause_id}]" in content:
                                     content = content.replace(
-                                        f"[{clause_id}]",
-                                        f"{clause_id}: {full_text}"
+                                        f"[{clause_id}]", f"{clause_id}: {full_text}"
                                     )
                         except Exception as e:
-                            logger.warning(f"ClauseCompiler RAG lookup failed for {clause_id}: {e}")
+                            logger.warning(
+                                f"ClauseCompiler RAG lookup failed for {clause_id}: {e}"
+                            )
             section["content"] = content
 
         return drafted_sections
@@ -1955,21 +2164,33 @@ Return ONLY valid JSON:
             f"- Deductible: {assessment_data.get('deductible', '')}",
         ]
         if assessment_data.get("insured_entity_name"):
-            schedule_fields.append(f"- Insured entity (full legal name): {assessment_data['insured_entity_name']}")
+            schedule_fields.append(
+                f"- Insured entity (full legal name): {assessment_data['insured_entity_name']}"
+            )
         if assessment_data.get("companies_house_number"):
-            schedule_fields.append(f"- Companies House number: {assessment_data['companies_house_number']}")
+            schedule_fields.append(
+                f"- Companies House number: {assessment_data['companies_house_number']}"
+            )
         if assessment_data.get("broker_name"):
             schedule_fields.append(f"- Broker: {assessment_data['broker_name']}")
         if assessment_data.get("commission_rate") is not None:
-            schedule_fields.append(f"- Commission rate: {assessment_data['commission_rate']}%")
+            schedule_fields.append(
+                f"- Commission rate: {assessment_data['commission_rate']}%"
+            )
         if assessment_data.get("inception_date"):
-            schedule_fields.append(f"- Inception date: {assessment_data['inception_date']}")
+            schedule_fields.append(
+                f"- Inception date: {assessment_data['inception_date']}"
+            )
         if assessment_data.get("renewal_date"):
             schedule_fields.append(f"- Renewal date: {assessment_data['renewal_date']}")
         if assessment_data.get("loss_run_reporting_rules"):
-            schedule_fields.append(f"- Loss run reporting rules: {assessment_data['loss_run_reporting_rules']}")
+            schedule_fields.append(
+                f"- Loss run reporting rules: {assessment_data['loss_run_reporting_rules']}"
+            )
         if assessment_data.get("regulatory_framework"):
-            schedule_fields.append(f"- Regulatory framework: {assessment_data['regulatory_framework']}")
+            schedule_fields.append(
+                f"- Regulatory framework: {assessment_data['regulatory_framework']}"
+            )
 
         result = await self._run_agent_json(
             "ScheduleBuilder",
@@ -1997,7 +2218,7 @@ Return ONLY valid JSON:
             "content": "Appendix content"
         }}
     ]
-}}"""
+}}""",
         )
         return result or {"schedules": [], "appendices": []}
 
@@ -2031,9 +2252,15 @@ Return ONLY valid JSON:
     "blocking_issues": ["List of issues that must be fixed before export"],
     "warnings": ["Non-blocking concerns"],
     "summary": "Overall quality assessment"
-}}"""
+}}""",
         )
-        return result or {"approved": True, "quality_score": 0.75, "blocking_issues": [], "warnings": [], "summary": ""}
+        return result or {
+            "approved": True,
+            "quality_score": 0.75,
+            "blocking_issues": [],
+            "warnings": [],
+            "summary": "",
+        }
 
     # ─── CONVENIENCE METHODS (used by document_generation router) ─────
 
@@ -2046,7 +2273,9 @@ Return ONLY valid JSON:
         try:
             research = await self.agent_risk_researcher(assessment_data, user_id)
             clause_candidates = await self.agent_clause_extractor(research, user_id)
-            gap_analysis = await self.agent_gap_analyzer(research, clause_candidates, assessment_data)
+            gap_analysis = await self.agent_gap_analyzer(
+                research, clause_candidates, assessment_data
+            )
             return {
                 "research": research,
                 "clause_candidates": clause_candidates,
@@ -2055,7 +2284,12 @@ Return ONLY valid JSON:
             }
         except Exception as e:
             logger.error(f"analyze_assessment error: {e}")
-            return {"research": {}, "clause_candidates": [], "gap_analysis": {}, "recommended_documents": []}
+            return {
+                "research": {},
+                "clause_candidates": [],
+                "gap_analysis": {},
+                "recommended_documents": [],
+            }
 
     async def search_clauses(
         self,
@@ -2064,9 +2298,14 @@ Return ONLY valid JSON:
     ) -> List[Dict[str, Any]]:
         """Search for relevant clauses by document type (agents 2+4)."""
         try:
-            research = {"risk_category": "general", "key_findings": document_types or []}
+            research = {
+                "risk_category": "general",
+                "key_findings": document_types or [],
+            }
             clause_candidates = await self.agent_clause_extractor(research, user_id)
-            selected = await self.agent_clause_manager(clause_candidates, {"coverage_gaps": [], "mandatory_missing": []})
+            selected = await self.agent_clause_manager(
+                clause_candidates, {"coverage_gaps": [], "mandatory_missing": []}
+            )
             return selected
         except Exception as e:
             logger.error(f"search_clauses error: {e}")
@@ -2080,6 +2319,8 @@ Return ONLY valid JSON:
         user_id: str = None,
         doc_types: List[str] = None,
         progress_callback=None,
+        clause_ids: List[str] = None,
+        language: str = None,
     ) -> Dict[str, Any]:
         """
         Full 19-agent pipeline to generate documents for an assessment.
@@ -2107,23 +2348,31 @@ Return ONLY valid JSON:
         ml_context = {}
         if insurance_model_service.is_available:
             try:
-                risk_text = insurance_model_service.build_risk_description(assessment_data)
-                ml_context = insurance_model_service.predict_all(risk_text, user_id=user_id)
-                logger.info(f"InstantRisk Engine predictions: appetite={ml_context.get('appetite', {}).get('decision')}, "
-                            f"pricing={ml_context.get('pricing', {}).get('band')}, "
-                            f"clauses={len(ml_context.get('clauses', []))}")
+                risk_text = insurance_model_service.build_risk_description(
+                    assessment_data
+                )
+                ml_context = insurance_model_service.predict_all(
+                    risk_text, user_id=user_id
+                )
+                logger.info(
+                    f"InstantRisk Engine predictions: appetite={ml_context.get('appetite', {}).get('decision')}, "
+                    f"pricing={ml_context.get('pricing', {}).get('band')}, "
+                    f"clauses={len(ml_context.get('clauses', []))}"
+                )
             except Exception as e:
                 logger.warning(f"InstantRisk Engine prediction failed: {e}")
 
         async def step(agent_num: int, name: str, status: str = "running"):
             if progress_callback:
-                await progress_callback({
-                    "step": agent_num,
-                    "total_steps": TOTAL_AGENTS,
-                    "agent": name,
-                    "status": status,
-                    "phase": self._get_phase(agent_num),
-                })
+                await progress_callback(
+                    {
+                        "step": agent_num,
+                        "total_steps": TOTAL_AGENTS,
+                        "agent": name,
+                        "status": status,
+                        "phase": self._get_phase(agent_num),
+                    }
+                )
 
         # Helper to track agent success/failure
         def _track_agent(results, name, output, fallback_check=None):
@@ -2133,45 +2382,109 @@ Return ONLY valid JSON:
                 used_fallback = fallback_check(output)
             if used_fallback:
                 results["agents_failed"] += 1
-                results["errors"].append(f"{name}: used fallback (Bedrock call failed or returned empty)")
+                results["errors"].append(
+                    f"{name}: used fallback (Bedrock call failed or returned empty)"
+                )
                 logger.warning(f"Agent {name} used fallback data")
             else:
                 results["agents_succeeded"] += 1
 
         # ── PHASE 1: RESEARCH ──
         await step(1, "RiskResearcher")
-        research = await self.agent_risk_researcher(assessment_data, user_id, ml_context=ml_context)
-        _track_agent(results, "RiskResearcher", research,
-                     lambda r: set(c.get("clause_id") for c in r.get("relevant_clauses", [])) == {"LMA5021", "LMA5173", "SUBROGATION", "ICC_A"})
-        results["pipeline_steps"].append({"agent": "RiskResearcher", "status": "completed"})
+        research = await self.agent_risk_researcher(
+            assessment_data, user_id, ml_context=ml_context
+        )
+        _track_agent(
+            results,
+            "RiskResearcher",
+            research,
+            lambda r: (
+                set(c.get("clause_id") for c in r.get("relevant_clauses", []))
+                == {"LMA5021", "LMA5173", "SUBROGATION", "ICC_A"}
+            ),
+        )
+        results["pipeline_steps"].append(
+            {"agent": "RiskResearcher", "status": "completed"}
+        )
         await step(1, "RiskResearcher", "completed")
 
         await step(2, "ClauseExtractor")
-        clause_candidates = await self.agent_clause_extractor(research, user_id, ml_context=ml_context)
-        results["pipeline_steps"].append({"agent": "ClauseExtractor", "status": "completed"})
+        clause_candidates = await self.agent_clause_extractor(
+            research, user_id, ml_context=ml_context
+        )
+        results["pipeline_steps"].append(
+            {"agent": "ClauseExtractor", "status": "completed"}
+        )
         await step(2, "ClauseExtractor", "completed")
 
         await step(3, "GapAnalyzer")
-        gap_analysis = await self.agent_gap_analyzer(research, clause_candidates, assessment_data)
-        results["pipeline_steps"].append({"agent": "GapAnalyzer", "status": "completed"})
+        gap_analysis = await self.agent_gap_analyzer(
+            research, clause_candidates, assessment_data
+        )
+        results["pipeline_steps"].append(
+            {"agent": "GapAnalyzer", "status": "completed"}
+        )
         await step(3, "GapAnalyzer", "completed")
 
         # ── PHASE 2: STRUCTURE ──
         await step(4, "ClauseManager")
-        selected_clauses = await self.agent_clause_manager(clause_candidates, gap_analysis)
-        results["pipeline_steps"].append({"agent": "ClauseManager", "status": "completed"})
+        selected_clauses = await self.agent_clause_manager(
+            clause_candidates, gap_analysis
+        )
+        results["pipeline_steps"].append(
+            {"agent": "ClauseManager", "status": "completed"}
+        )
         await step(4, "ClauseManager", "completed")
+
+        # Merge user-selected clause IDs (from frontend) into selected_clauses
+        if clause_ids:
+            existing_ids = {c.get("clause_id") for c in selected_clauses}
+            for cid in clause_ids:
+                if cid not in existing_ids:
+                    selected_clauses.append(
+                        {
+                            "clause_id": cid,
+                            "name": cid,
+                            "priority": "user_selected",
+                            "selected_text": "",
+                            "source": "user_selected",
+                            "source_label": "User Selected",
+                            "score": 1.0,
+                            "status": "generate",
+                        }
+                    )
+            logger.info(
+                f"Merged {len(clause_ids)} user-selected clause IDs into pipeline"
+            )
+
+        # Store user clause selections in results for traceability
+        results["clause_selections"] = [c.get("clause_id") for c in selected_clauses]
 
         # Determine which documents to generate
         recommended_docs = research.get("recommended_documents", [])
         if doc_types:
-            recommended_docs = [d for d in recommended_docs if d.get("type") in doc_types]
+            recommended_docs = [
+                d for d in recommended_docs if d.get("type") in doc_types
+            ]
         if not recommended_docs:
             # Build from requested doc_types if AI didn't return matching recommendations
             if doc_types:
-                recommended_docs = [{"type": dt, "name": dt.replace("_", " ").title(), "priority": "mandatory"} for dt in doc_types]
+                recommended_docs = [
+                    {
+                        "type": dt,
+                        "name": dt.replace("_", " ").title(),
+                        "priority": "mandatory",
+                    }
+                    for dt in doc_types
+                ]
             else:
-                recommended_docs = [{"type": "policy_wording", "name": "Policy Wording", "priority": "mandatory"}]
+                recommended_docs = [
+                    {
+                        "type": "policy_wording",
+                        "name": "Policy Wording",
+                        "priority": "mandatory",
+                    }
+                ]
         # Deduplicate by document type (keep first occurrence)
         seen_types = set()
         unique_docs = []
@@ -2181,97 +2494,185 @@ Return ONLY valid JSON:
                 seen_types.add(dt)
                 unique_docs.append(d)
         recommended_docs = unique_docs
-        logger.info(f"Document generation: requested={doc_types}, generating={[d.get('type') for d in recommended_docs]}")
+        logger.info(
+            f"Document generation: requested={doc_types}, generating={[d.get('type') for d in recommended_docs]}"
+        )
 
         # Generate each document type
         for doc_req in recommended_docs:
             doc_type = doc_req.get("type", "policy_wording")
 
             await step(5, "StructurePlanner")
-            structure = await self.agent_structure_planner(doc_type, selected_clauses, assessment_data)
-            results["pipeline_steps"].append({"agent": "StructurePlanner", "status": "completed", "doc_type": doc_type})
+            structure = await self.agent_structure_planner(
+                doc_type, selected_clauses, assessment_data
+            )
+            results["pipeline_steps"].append(
+                {
+                    "agent": "StructurePlanner",
+                    "status": "completed",
+                    "doc_type": doc_type,
+                }
+            )
             await step(5, "StructurePlanner", "completed")
 
             await step(6, "LloydFormatter")
             formatting = await self.agent_lloyd_formatter(structure, assessment_data)
-            results["pipeline_steps"].append({"agent": "LloydFormatter", "status": "completed", "doc_type": doc_type})
+            results["pipeline_steps"].append(
+                {"agent": "LloydFormatter", "status": "completed", "doc_type": doc_type}
+            )
             await step(6, "LloydFormatter", "completed")
 
             # ── PHASE 3: COMPOSE ──
             await step(7, "SectionDrafter")
-            drafted_sections = await self.agent_section_drafter(structure, selected_clauses, assessment_data, formatting, user_id=user_id, ml_context=ml_context)
-            results["pipeline_steps"].append({"agent": "SectionDrafter", "status": "completed", "doc_type": doc_type})
+            drafted_sections = await self.agent_section_drafter(
+                structure,
+                selected_clauses,
+                assessment_data,
+                formatting,
+                user_id=user_id,
+                ml_context=ml_context,
+            )
+            results["pipeline_steps"].append(
+                {"agent": "SectionDrafter", "status": "completed", "doc_type": doc_type}
+            )
             await step(7, "SectionDrafter", "completed")
 
             await step(8, "ConsistencyChecker")
-            consistency = await self.agent_consistency_checker(drafted_sections, assessment_data)
-            results["pipeline_steps"].append({"agent": "ConsistencyChecker", "status": "completed", "doc_type": doc_type})
+            consistency = await self.agent_consistency_checker(
+                drafted_sections, assessment_data
+            )
+            results["pipeline_steps"].append(
+                {
+                    "agent": "ConsistencyChecker",
+                    "status": "completed",
+                    "doc_type": doc_type,
+                }
+            )
             await step(8, "ConsistencyChecker", "completed")
 
             await step(9, "ToneUnifier")
             drafted_sections = await self.agent_tone_unifier(drafted_sections)
-            results["pipeline_steps"].append({"agent": "ToneUnifier", "status": "completed", "doc_type": doc_type})
+            results["pipeline_steps"].append(
+                {"agent": "ToneUnifier", "status": "completed", "doc_type": doc_type}
+            )
             await step(9, "ToneUnifier", "completed")
 
             # ── PHASE 4: VALIDATE ──
             await step(10, "RiskChallenger")
-            risk_challenge = await self.agent_risk_challenger(drafted_sections, assessment_data, user_id=user_id, ml_context=ml_context)
-            results["pipeline_steps"].append({"agent": "RiskChallenger", "status": "completed", "doc_type": doc_type})
+            risk_challenge = await self.agent_risk_challenger(
+                drafted_sections,
+                assessment_data,
+                user_id=user_id,
+                ml_context=ml_context,
+            )
+            results["pipeline_steps"].append(
+                {"agent": "RiskChallenger", "status": "completed", "doc_type": doc_type}
+            )
             await step(10, "RiskChallenger", "completed")
 
             await step(11, "ClauseVerifier")
             clause_verification = await self.agent_clause_verifier(selected_clauses)
-            results["pipeline_steps"].append({"agent": "ClauseVerifier", "status": "completed", "doc_type": doc_type})
+            results["pipeline_steps"].append(
+                {"agent": "ClauseVerifier", "status": "completed", "doc_type": doc_type}
+            )
             await step(11, "ClauseVerifier", "completed")
 
             await step(12, "ComplianceReviewer")
-            compliance = await self.agent_compliance_reviewer(drafted_sections, assessment_data, user_id=user_id, ml_context=ml_context)
-            results["pipeline_steps"].append({"agent": "ComplianceReviewer", "status": "completed", "doc_type": doc_type})
+            compliance = await self.agent_compliance_reviewer(
+                drafted_sections,
+                assessment_data,
+                user_id=user_id,
+                ml_context=ml_context,
+            )
+            results["pipeline_steps"].append(
+                {
+                    "agent": "ComplianceReviewer",
+                    "status": "completed",
+                    "doc_type": doc_type,
+                }
+            )
             await step(12, "ComplianceReviewer", "completed")
 
             # ── PHASE 5: REFINE ──
             await step(13, "HouseStyleAgent")
             drafted_sections = await self.agent_house_style(drafted_sections, user_id)
-            results["pipeline_steps"].append({"agent": "HouseStyleAgent", "status": "completed", "doc_type": doc_type})
+            results["pipeline_steps"].append(
+                {
+                    "agent": "HouseStyleAgent",
+                    "status": "completed",
+                    "doc_type": doc_type,
+                }
+            )
             await step(13, "HouseStyleAgent", "completed")
 
             await step(14, "LanguageVarier")
             drafted_sections = await self.agent_language_varier(drafted_sections)
-            results["pipeline_steps"].append({"agent": "LanguageVarier", "status": "completed", "doc_type": doc_type})
+            results["pipeline_steps"].append(
+                {"agent": "LanguageVarier", "status": "completed", "doc_type": doc_type}
+            )
             await step(14, "LanguageVarier", "completed")
 
             await step(15, "ProofReader")
             proofreading = await self.agent_proof_reader(drafted_sections)
-            results["pipeline_steps"].append({"agent": "ProofReader", "status": "completed", "doc_type": doc_type})
+            results["pipeline_steps"].append(
+                {"agent": "ProofReader", "status": "completed", "doc_type": doc_type}
+            )
             await step(15, "ProofReader", "completed")
 
             await step(16, "ClauseCompiler")
-            drafted_sections = await self.agent_clause_compiler(drafted_sections, selected_clauses, user_id=user_id)
-            results["pipeline_steps"].append({"agent": "ClauseCompiler", "status": "completed", "doc_type": doc_type})
+            drafted_sections = await self.agent_clause_compiler(
+                drafted_sections, selected_clauses, user_id=user_id
+            )
+            results["pipeline_steps"].append(
+                {"agent": "ClauseCompiler", "status": "completed", "doc_type": doc_type}
+            )
             await step(16, "ClauseCompiler", "completed")
 
             # ── PHASE 6: EXPORT ──
             await step(17, "ScheduleBuilder")
-            schedules = await self.agent_schedule_builder(drafted_sections, assessment_data)
-            results["pipeline_steps"].append({"agent": "ScheduleBuilder", "status": "completed", "doc_type": doc_type})
+            schedules = await self.agent_schedule_builder(
+                drafted_sections, assessment_data
+            )
+            results["pipeline_steps"].append(
+                {
+                    "agent": "ScheduleBuilder",
+                    "status": "completed",
+                    "doc_type": doc_type,
+                }
+            )
             await step(17, "ScheduleBuilder", "completed")
 
             # Agent 18: PDFExporter (code-only, no LLM call)
             await step(18, "PDFExporter")
             # PDF generation handled by existing WeasyPrint pipeline in document_generation router
-            results["pipeline_steps"].append({"agent": "PDFExporter", "status": "completed", "doc_type": doc_type})
+            results["pipeline_steps"].append(
+                {"agent": "PDFExporter", "status": "completed", "doc_type": doc_type}
+            )
             await step(18, "PDFExporter", "completed")
 
             await step(19, "QualityGate")
             quality = await self.agent_quality_gate(
-                drafted_sections, compliance, risk_challenge,
-                clause_verification, proofreading, assessment_data,
+                drafted_sections,
+                compliance,
+                risk_challenge,
+                clause_verification,
+                proofreading,
+                assessment_data,
             )
-            results["pipeline_steps"].append({"agent": "QualityGate", "status": "completed", "doc_type": doc_type})
+            results["pipeline_steps"].append(
+                {"agent": "QualityGate", "status": "completed", "doc_type": doc_type}
+            )
             await step(19, "QualityGate", "completed")
 
             # Build final document
-            source_attribution = {"template": 0, "lma_clause": 0, "clause_library": 0, "section_default": 0, "rag": 0, "ai_generated": 0}
+            source_attribution = {
+                "template": 0,
+                "lma_clause": 0,
+                "clause_library": 0,
+                "section_default": 0,
+                "rag": 0,
+                "ai_generated": 0,
+            }
             source_type_counts = {}
             doc_content = []
             for section in drafted_sections:
@@ -2290,9 +2691,11 @@ Return ONLY valid JSON:
                 if st in source_attribution:
                     source_attribution[st] += 1
 
-            logger.info(f"OpenDraft doc '{doc_type}': {len(doc_content)} sections, "
-                        f"source_types={source_type_counts}, "
-                        f"sample_keys={list(doc_content[0].keys()) if doc_content else []}")
+            logger.info(
+                f"OpenDraft doc '{doc_type}': {len(doc_content)} sections, "
+                f"source_types={source_type_counts}, "
+                f"sample_keys={list(doc_content[0].keys()) if doc_content else []}"
+            )
 
             formatted_doc = {
                 "document_type": doc_type,
@@ -2321,13 +2724,19 @@ Return ONLY valid JSON:
         total_tracked = results["agents_succeeded"] + results["agents_failed"]
         if total_tracked > 0 and results["agents_failed"] > total_tracked / 2:
             results["pipeline_status"] = "degraded"
-            logger.warning(f"Pipeline degraded: {results['agents_failed']}/{total_tracked} agents failed")
+            logger.warning(
+                f"Pipeline degraded: {results['agents_failed']}/{total_tracked} agents failed"
+            )
         elif results["agents_failed"] > 0:
             results["pipeline_status"] = "partial"
-            logger.info(f"Pipeline partial: {results['agents_failed']}/{total_tracked} agents used fallback")
+            logger.info(
+                f"Pipeline partial: {results['agents_failed']}/{total_tracked} agents used fallback"
+            )
         else:
             results["pipeline_status"] = "success"
-            logger.info("Pipeline completed successfully — all agents used real AI data")
+            logger.info(
+                "Pipeline completed successfully — all agents used real AI data"
+            )
 
         return results
 
@@ -2384,17 +2793,53 @@ Return ONLY valid JSON:
         risk_category = assessment_data.get("risk_category", "property").lower()
 
         clauses = [
-            {"clause_id": "LMA5021", "name": "Several Liability Notice", "relevance": "Standard Lloyd's requirement", "priority": "mandatory", "source": "standard"},
-            {"clause_id": "LMA5173", "name": "Sanctions Limitation", "relevance": "Compliance requirement", "priority": "mandatory", "source": "standard"},
-            {"clause_id": "SUBROGATION", "name": "Subrogation Clause", "relevance": "Standard condition", "priority": "mandatory", "source": "standard"},
+            {
+                "clause_id": "LMA5021",
+                "name": "Several Liability Notice",
+                "relevance": "Standard Lloyd's requirement",
+                "priority": "mandatory",
+                "source": "standard",
+            },
+            {
+                "clause_id": "LMA5173",
+                "name": "Sanctions Limitation",
+                "relevance": "Compliance requirement",
+                "priority": "mandatory",
+                "source": "standard",
+            },
+            {
+                "clause_id": "SUBROGATION",
+                "name": "Subrogation Clause",
+                "relevance": "Standard condition",
+                "priority": "mandatory",
+                "source": "standard",
+            },
         ]
 
         if risk_category in ("marine", "cargo"):
-            clauses.append({"clause_id": "ICC_A", "name": "Institute Cargo Clauses (A)", "relevance": "Standard marine cargo coverage", "priority": "mandatory", "source": "acord"})
+            clauses.append(
+                {
+                    "clause_id": "ICC_A",
+                    "name": "Institute Cargo Clauses (A)",
+                    "relevance": "Standard marine cargo coverage",
+                    "priority": "mandatory",
+                    "source": "acord",
+                }
+            )
 
         docs = [
-            {"type": "policy_wording", "name": "Policy Wording", "reason": "Standard policy document required", "priority": "mandatory"},
-            {"type": "mrc_slip", "name": "MRC Placing Slip", "reason": "Lloyd's market placement document", "priority": "mandatory"},
+            {
+                "type": "policy_wording",
+                "name": "Policy Wording",
+                "reason": "Standard policy document required",
+                "priority": "mandatory",
+            },
+            {
+                "type": "mrc_slip",
+                "name": "MRC Placing Slip",
+                "reason": "Lloyd's market placement document",
+                "priority": "mandatory",
+            },
         ]
 
         return {

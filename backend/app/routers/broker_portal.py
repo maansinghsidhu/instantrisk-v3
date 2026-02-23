@@ -32,13 +32,11 @@ from app.core.security import (
 from app.core.database import get_db
 from app.models.user import User, UserRole, ApprovalStatus
 from app.models.assessment import Assessment
-from app.models.document import Document
-from app.models.quote import Quote
-from app.services.qdrant_service import qdrant_service
+from app.models.pricing_models import Quote
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/broker-portal", tags=["Broker Portal"])
+router = APIRouter(tags=["Broker Portal"])
 
 # ============================================================
 # Pydantic Schemas
@@ -133,6 +131,7 @@ class BrokerDashboardStats(BaseModel):
     total_premium_quoted: Decimal
     total_premium_bound: Decimal
     win_rate: float
+    recent_submissions: list = Field(default_factory=list)
 
 
 # ============================================================
@@ -309,17 +308,8 @@ async def create_submission(
         inception_date=datetime.fromisoformat(request.inception_date),
         expiry_date=datetime.fromisoformat(request.expiry_date),
         status="submitted",
-        broker_id=current_user.id,
-        metadata={
-            "description": request.description,
-            "target_premium": str(request.target_premium)
-            if request.target_premium
-            else None,
-            "deadline": request.deadline,
-            "notes": request.notes,
-            "priority": request.priority,
-            "source": "broker_portal",
-        },
+        created_by=current_user.id,
+        underwriter_notes=f"Broker submission. Description: {request.description}. Notes: {request.notes or ''}. Priority: {request.priority}",
     )
 
     db.add(assessment)
@@ -360,7 +350,7 @@ async def list_submissions(
             detail="Only brokers can view submissions",
         )
 
-    query = select(Assessment).where(Assessment.broker_id == current_user.id)
+    query = select(Assessment).where(Assessment.created_by == current_user.id)
 
     if status_filter:
         query = query.where(Assessment.status == status_filter)
@@ -402,7 +392,7 @@ async def get_submission(
 
     result = await db.execute(
         select(Assessment).where(
-            Assessment.id == submission_id, Assessment.broker_id == current_user.id
+            Assessment.id == submission_id, Assessment.created_by == current_user.id
         )
     )
     assessment = result.scalar_one_or_none()
@@ -429,8 +419,8 @@ async def get_submission(
             "territory": assessment.territory,
             "inception_date": assessment.inception_date.isoformat(),
             "expiry_date": assessment.expiry_date.isoformat(),
-            "description": assessment.metadata.get("description", ""),
-            "notes": assessment.metadata.get("notes", ""),
+            "description": assessment.underwriter_notes or "",
+            "notes": "",
             "created_at": assessment.created_at.isoformat(),
         },
         "quote": quote.to_dict() if quote else None,
@@ -462,38 +452,86 @@ async def get_broker_dashboard(
         )
 
     # Count by status
-    total = await db.execute(
-        select(func.count(Assessment.id)).where(Assessment.broker_id == current_user.id)
-    )
-    pending = await db.execute(
+    total_result = await db.execute(
         select(func.count(Assessment.id)).where(
-            Assessment.broker_id == current_user.id,
+            Assessment.created_by == current_user.id
+        )
+    )
+    total_count = total_result.scalar() or 0
+
+    pending_result = await db.execute(
+        select(func.count(Assessment.id)).where(
+            Assessment.created_by == current_user.id,
             Assessment.status.in_(["submitted", "under_review", "quote_pending"]),
         )
     )
-    accepted = await db.execute(
+    pending_count = pending_result.scalar() or 0
+
+    accepted_result = await db.execute(
         select(func.count(Assessment.id)).where(
-            Assessment.broker_id == current_user.id, Assessment.status == "bound"
+            Assessment.created_by == current_user.id, Assessment.status == "bound"
         )
     )
-    declined = await db.execute(
+    accepted_count = accepted_result.scalar() or 0
+
+    declined_result = await db.execute(
         select(func.count(Assessment.id)).where(
-            Assessment.broker_id == current_user.id, Assessment.status == "declined"
+            Assessment.created_by == current_user.id, Assessment.status == "declined"
         )
     )
+    declined_count = declined_result.scalar() or 0
+
+    # Aggregate premium totals from quotes
+    quoted_premium_result = await db.execute(
+        select(func.coalesce(func.sum(Quote.quoted_premium), 0))
+        .join(Assessment, Quote.assessment_id == Assessment.id)
+        .where(Assessment.created_by == current_user.id)
+    )
+    total_premium_quoted = Decimal(str(quoted_premium_result.scalar() or 0))
+
+    bound_premium_result = await db.execute(
+        select(func.coalesce(func.sum(Quote.quoted_premium), 0))
+        .join(Assessment, Quote.assessment_id == Assessment.id)
+        .where(
+            Assessment.created_by == current_user.id,
+            Quote.status == "accepted",
+        )
+    )
+    total_premium_bound = Decimal(str(bound_premium_result.scalar() or 0))
+
+    # Win rate calculation
+    total_decided = accepted_count + declined_count
+    win_rate = (accepted_count / total_decided * 100) if total_decided > 0 else 0.0
+
+    # Recent submissions (last 5)
+    recent_result = await db.execute(
+        select(Assessment)
+        .where(Assessment.created_by == current_user.id)
+        .order_by(Assessment.created_at.desc())
+        .limit(5)
+    )
+    recent_assessments = recent_result.scalars().all()
+    recent_submissions = [
+        {
+            "submission_id": str(a.id),
+            "insured_name": a.insured_name,
+            "status": a.status,
+            "risk_category": a.risk_category,
+            "sum_insured": a.sum_insured,
+            "created_at": a.created_at.isoformat(),
+        }
+        for a in recent_assessments
+    ]
 
     return BrokerDashboardStats(
-        total_submissions=total.scalar() or 0,
-        pending_quotes=pending.scalar() or 0,
-        accepted_quotes=accepted.scalar() or 0,
-        declined_quotes=declined.scalar() or 0,
-        total_premium_quoted=Decimal("0.00"),
-        total_premium_bound=Decimal("0.00"),
-        win_rate=0.0
-        if (accepted.scalar() or 0) == 0
-        else (accepted.scalar() or 1)
-        / ((accepted.scalar() or 1) + (declined.scalar() or 0))
-        * 100,
+        total_submissions=total_count,
+        pending_quotes=pending_count,
+        accepted_quotes=accepted_count,
+        declined_quotes=declined_count,
+        total_premium_quoted=total_premium_quoted,
+        total_premium_bound=total_premium_bound,
+        win_rate=win_rate,
+        recent_submissions=recent_submissions,
     )
 
 
@@ -502,9 +540,67 @@ async def get_broker_dashboard(
 # ============================================================
 
 
+@router.get("/quotes/{quote_id}")
+async def get_quote(
+    quote_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get a single quote's details.
+    """
+    if current_user.role != UserRole.BROKER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only brokers can view quotes",
+        )
+
+    result = await db.execute(select(Quote).where(Quote.id == quote_id))
+    quote = result.scalar_one_or_none()
+
+    if not quote:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Quote not found"
+        )
+
+    # Verify the broker owns the linked assessment
+    assessment_result = await db.execute(
+        select(Assessment).where(
+            Assessment.id == quote.assessment_id,
+            Assessment.created_by == current_user.id,
+        )
+    )
+    assessment = assessment_result.scalar_one_or_none()
+    if not assessment:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have access to this quote",
+        )
+
+    return {
+        "quote_id": quote.id,
+        "submission_id": str(quote.assessment_id),
+        "quote_reference": quote.quote_reference,
+        "premium": float(quote.quoted_premium) if quote.quoted_premium else 0,
+        "currency": quote.currency or "GBP",
+        "deductible": quote.terms.get("deductible", 0) if quote.terms else 0,
+        "coverage": quote.terms.get("coverage", "") if quote.terms else "",
+        "terms": quote.terms or {},
+        "conditions": quote.conditions or [],
+        "subjectivities": quote.subjectivities or [],
+        "exclusions": quote.exclusions or [],
+        "valid_from": quote.valid_from.isoformat() if quote.valid_from else None,
+        "valid_until": quote.valid_until.isoformat() if quote.valid_until else None,
+        "expires_at": quote.valid_until.isoformat() if quote.valid_until else None,
+        "status": quote.status,
+        "created_at": quote.created_at.isoformat() if quote.created_at else None,
+        "accepted_at": quote.accepted_at.isoformat() if quote.accepted_at else None,
+    }
+
+
 @router.post("/quotes/{quote_id}/accept")
 async def accept_quote(
-    quote_id: str,
+    quote_id: int,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -561,7 +657,7 @@ async def accept_quote(
 
 @router.post("/quotes/{quote_id}/decline")
 async def decline_quote(
-    quote_id: str,
+    quote_id: int,
     reason: Optional[str] = None,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -586,6 +682,14 @@ async def decline_quote(
     quote.status = "declined"
     quote.declined_at = datetime.now()
     quote.decline_reason = reason
+
+    # Also update the assessment status to declined
+    assessment_result = await db.execute(
+        select(Assessment).where(Assessment.id == quote.assessment_id)
+    )
+    assessment = assessment_result.scalar_one_or_none()
+    if assessment:
+        assessment.status = "declined"
 
     await db.commit()
 
@@ -616,7 +720,7 @@ async def send_message_to_underwriter(
     # Verify submission belongs to broker
     result = await db.execute(
         select(Assessment).where(
-            Assessment.id == submission_id, Assessment.broker_id == current_user.id
+            Assessment.id == submission_id, Assessment.created_by == current_user.id
         )
     )
     assessment = result.scalar_one_or_none()
@@ -635,4 +739,452 @@ async def send_message_to_underwriter(
         "message": "Message sent to underwriter",
         "submission_id": submission_id,
         "sent_at": datetime.now().isoformat(),
+    }
+
+
+# ============================================================
+# Underwriter-facing endpoints (for broker submission workflow)
+# ============================================================
+
+
+@router.get("/all-submissions", response_model=list)
+async def list_all_broker_submissions(
+    status_filter: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 50,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    List all broker submissions for underwriters/admins.
+    Only accessible by underwriter or admin roles.
+    """
+    if current_user.role not in [UserRole.UNDERWRITER, UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only underwriters and admins can view all submissions",
+        )
+
+    # Only get assessments created by brokers (status in broker workflow statuses)
+    broker_statuses = [
+        "submitted",
+        "under_review",
+        "quote_pending",
+        "bound",
+        "declined",
+    ]
+    query = select(Assessment).where(Assessment.status.in_(broker_statuses))
+
+    if status_filter and status_filter != "all":
+        query = query.where(Assessment.status == status_filter)
+
+    query = (
+        query.order_by(Assessment.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+
+    result = await db.execute(query)
+    assessments = result.scalars().all()
+
+    # Get broker user info for each submission
+    submissions = []
+    for a in assessments:
+        # Get broker info
+        broker_result = await db.execute(select(User).where(User.id == a.created_by))
+        broker = broker_result.scalar_one_or_none()
+
+        # Check if quote exists
+        quote_result = await db.execute(
+            select(Quote).where(Quote.assessment_id == a.id)
+        )
+        quote = quote_result.scalar_one_or_none()
+
+        submissions.append(
+            {
+                "submission_id": str(a.id),
+                "reference": f"INST/{a.created_at.strftime('%Y%m%d')}/{str(a.id)[-4:]}",
+                "status": a.status,
+                "insured_name": a.insured_name,
+                "risk_category": a.risk_category,
+                "sum_insured": a.sum_insured,
+                "territory": a.territory,
+                "created_at": a.created_at.isoformat(),
+                "updated_at": a.updated_at.isoformat() if a.updated_at else None,
+                "deadline": a.deadline.isoformat() if a.deadline else None,
+                "has_analysis": a.ai_analysis is not None and bool(a.ai_analysis),
+                "risk_score": a.risk_score,
+                "decision": a.decision if a.decision else None,
+                "has_quote": quote is not None,
+                "broker": {
+                    "id": str(broker.id) if broker else None,
+                    "name": broker.full_name if broker else "Unknown",
+                    "email": broker.email if broker else None,
+                }
+                if broker
+                else None,
+                "assigned_underwriter_id": str(a.assigned_underwriter_id)
+                if a.assigned_underwriter_id
+                else None,
+                "upload_session_token": a.upload_session_token,
+            }
+        )
+
+    return submissions
+
+
+@router.get("/submissions/unread-count")
+async def get_unread_submission_count(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get count of broker submissions needing attention (for sidebar badge).
+    """
+    if current_user.role not in [UserRole.UNDERWRITER, UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only underwriters and admins can view submission counts",
+        )
+
+    # Count submissions that need attention: submitted (new) or quote_pending (broker responded)
+    result = await db.execute(
+        select(func.count(Assessment.id)).where(
+            Assessment.status.in_(["submitted", "quote_pending"])
+        )
+    )
+    count = result.scalar() or 0
+
+    return {"unread_count": count}
+
+
+@router.get("/brokers", response_model=list)
+async def list_brokers(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    List all registered brokers with stats.
+    Only accessible by underwriter or admin roles.
+    """
+    if current_user.role not in [UserRole.UNDERWRITER, UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only underwriters and admins can view brokers",
+        )
+
+    result = await db.execute(
+        select(User)
+        .where(User.role == UserRole.BROKER)
+        .order_by(User.created_at.desc())
+    )
+    brokers = result.scalars().all()
+
+    broker_list = []
+    for broker in brokers:
+        # Get submission count for this broker
+        count_result = await db.execute(
+            select(func.count(Assessment.id)).where(Assessment.created_by == broker.id)
+        )
+        submission_count = count_result.scalar() or 0
+
+        # Get bound count for win rate
+        bound_result = await db.execute(
+            select(func.count(Assessment.id)).where(
+                Assessment.created_by == broker.id,
+                Assessment.status == "bound",
+            )
+        )
+        bound_count = bound_result.scalar() or 0
+
+        broker_list.append(
+            {
+                "id": str(broker.id),
+                "email": broker.email,
+                "full_name": broker.full_name,
+                "approval_status": broker.approval_status.value
+                if broker.approval_status
+                else "pending",
+                "is_active": broker.is_active,
+                "created_at": broker.created_at.isoformat()
+                if broker.created_at
+                else None,
+                "last_login": broker.last_login.isoformat()
+                if broker.last_login
+                else None,
+                "submission_count": submission_count,
+                "bound_count": bound_count,
+            }
+        )
+
+    return broker_list
+
+
+@router.put("/brokers/{broker_id}/approve")
+async def approve_broker(
+    broker_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Approve a pending broker."""
+    if current_user.role not in [UserRole.UNDERWRITER, UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only underwriters and admins can approve brokers",
+        )
+
+    result = await db.execute(
+        select(User).where(User.id == broker_id, User.role == UserRole.BROKER)
+    )
+    broker = result.scalar_one_or_none()
+
+    if not broker:
+        raise HTTPException(status_code=404, detail="Broker not found")
+
+    broker.approval_status = ApprovalStatus.APPROVED
+    broker.is_active = True
+    broker.approved_by = current_user.id
+    broker.approved_at = datetime.now()
+
+    await db.commit()
+    return {"message": "Broker approved", "broker_id": broker_id}
+
+
+@router.put("/brokers/{broker_id}/reject")
+async def reject_broker(
+    broker_id: str,
+    reason: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Reject a pending broker."""
+    if current_user.role not in [UserRole.UNDERWRITER, UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only underwriters and admins can reject brokers",
+        )
+
+    result = await db.execute(
+        select(User).where(User.id == broker_id, User.role == UserRole.BROKER)
+    )
+    broker = result.scalar_one_or_none()
+
+    if not broker:
+        raise HTTPException(status_code=404, detail="Broker not found")
+
+    broker.approval_status = ApprovalStatus.REJECTED
+    broker.is_active = False
+    broker.rejection_reason = reason
+
+    await db.commit()
+    return {"message": "Broker rejected", "broker_id": broker_id}
+
+
+@router.post(
+    "/submissions/{submission_id}/push-to-analysis",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def push_submission_to_analysis(
+    submission_id: str,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Push a broker submission through the AI analysis pipeline.
+    Must be assigned to the current underwriter first (status: under_review).
+    Reuses the existing run_ai_analysis background task.
+    """
+    if current_user.role not in [UserRole.UNDERWRITER, UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only underwriters and admins can trigger analysis",
+        )
+
+    result = await db.execute(select(Assessment).where(Assessment.id == submission_id))
+    assessment = result.scalar_one_or_none()
+
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Submission not found")
+
+    if assessment.status not in ["submitted", "under_review"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot push to analysis: submission is in status '{assessment.status}'",
+        )
+
+    # Import the shared background task from assessments router
+    from app.routers.assessments import run_ai_analysis
+
+    background_tasks.add_task(
+        run_ai_analysis, assessment.id, user_id=str(current_user.id)
+    )
+
+    # Update status to under_review if still submitted
+    if assessment.status == "submitted":
+        assessment.status = "under_review"
+    await db.commit()
+
+    return {
+        "message": "AI analysis queued",
+        "submission_id": submission_id,
+        "status": assessment.status,
+    }
+
+
+@router.post("/submissions/{submission_id}/assign")
+async def assign_underwriter(
+    submission_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Assign current underwriter to a broker submission.
+    Changes status from 'submitted' to 'under_review'.
+    """
+    if current_user.role not in [UserRole.UNDERWRITER, UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only underwriters and admins can be assigned to submissions",
+        )
+
+    result = await db.execute(select(Assessment).where(Assessment.id == submission_id))
+    assessment = result.scalar_one_or_none()
+
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Submission not found")
+
+    assessment.assigned_underwriter_id = current_user.id
+    if assessment.status == "submitted":
+        assessment.status = "under_review"
+
+    await db.commit()
+
+    return {
+        "message": "Underwriter assigned",
+        "submission_id": submission_id,
+        "assigned_to": str(current_user.id),
+        "status": assessment.status,
+    }
+
+
+class CreateQuoteRequest(BaseModel):
+    """Request to create a quote for a broker submission."""
+
+    assessment_id: str
+    quoted_premium: Decimal = Field(..., gt=0)
+    currency: str = "GBP"
+    deductible: Optional[Decimal] = None
+    conditions: Optional[list] = None
+    subjectivities: Optional[list] = None
+    exclusions: Optional[list] = None
+    terms: Optional[dict] = None
+    validity_days: int = Field(default=30, gt=0)
+
+
+@router.post("/create-quote", status_code=status.HTTP_201_CREATED)
+async def create_quote_for_submission(
+    request: CreateQuoteRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Create a quote for a broker submission (underwriter action).
+    """
+    if current_user.role not in [UserRole.UNDERWRITER, UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only underwriters and admins can create quotes",
+        )
+
+    # Verify the assessment exists
+    result = await db.execute(
+        select(Assessment).where(Assessment.id == request.assessment_id)
+    )
+    assessment = result.scalar_one_or_none()
+
+    if not assessment:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    # Generate quote reference
+    import uuid as uuid_mod
+
+    ref_date = datetime.now().strftime("%Y%m%d")
+    ref_hex = uuid_mod.uuid4().hex[:6].upper()
+    quote_reference = f"QT-{ref_date}-{ref_hex}"
+
+    # Build terms dict
+    terms = request.terms or {}
+    if request.deductible is not None:
+        terms["deductible"] = float(request.deductible)
+
+    quote = Quote(
+        assessment_id=request.assessment_id,
+        quote_reference=quote_reference,
+        quoted_premium=request.quoted_premium,
+        currency=request.currency,
+        terms=terms,
+        conditions=request.conditions or [],
+        subjectivities=request.subjectivities or [],
+        exclusions=request.exclusions or [],
+        valid_from=datetime.now(),
+        valid_until=datetime.now() + timedelta(days=request.validity_days),
+        status="quoted",
+        issued_at=datetime.now(),
+    )
+
+    db.add(quote)
+
+    # Update assessment status to quote_pending
+    assessment.status = "quote_pending"
+
+    await db.commit()
+    await db.refresh(quote)
+
+    return {
+        "message": "Quote created successfully",
+        "quote_id": quote.id,
+        "quote_reference": quote_reference,
+        "status": "quoted",
+        "assessment_id": request.assessment_id,
+    }
+
+
+class UpdateCommissionRequest(BaseModel):
+    """Request to update a broker's default commission rate."""
+
+    commission_rate: float = Field(
+        ..., ge=0, le=100, description="Commission rate as percentage (0-100)"
+    )
+
+
+@router.put("/brokers/{broker_id}/commission")
+async def update_broker_commission(
+    broker_id: str,
+    request: UpdateCommissionRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update the default commission rate for a broker (underwriter/admin action)."""
+    if current_user.role not in [UserRole.UNDERWRITER, UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only underwriters and admins can update commission rates",
+        )
+
+    result = await db.execute(
+        select(User).where(User.id == broker_id, User.role == UserRole.BROKER)
+    )
+    broker = result.scalar_one_or_none()
+
+    if not broker:
+        raise HTTPException(status_code=404, detail="Broker not found")
+
+    broker.commission_rate = request.commission_rate
+    await db.commit()
+
+    return {
+        "message": "Commission rate updated",
+        "broker_id": broker_id,
+        "commission_rate": request.commission_rate,
     }

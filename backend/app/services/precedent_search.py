@@ -31,14 +31,16 @@ class PrecedentSearchService:
     def __init__(self):
         # Use same embedding model as RAG system
         efs_path = "/mnt/efs/models/sentence-transformer-insurance"
-        model_id = efs_path if os.path.isdir(efs_path) else 'llmware/industry-bert-insurance-v0.1'
+        model_id = (
+            efs_path
+            if os.path.isdir(efs_path)
+            else "llmware/industry-bert-insurance-v0.1"
+        )
         self.model = SentenceTransformer(model_id)
         logger.info("PrecedentSearchService initialized with insurance-BERT")
 
     async def embed_assessment(
-        self,
-        db: AsyncSession,
-        assessment: Assessment
+        self, db: AsyncSession, assessment: Assessment
     ) -> AssessmentVector:
         """
         Create vector embedding for an assessment.
@@ -73,7 +75,9 @@ class PrecedentSearchService:
             "decision": assessment.decision,
             "status": assessment.status,
             "premium": float(assessment.premium) if assessment.premium else None,
-            "sum_insured": float(assessment.sum_insured) if assessment.sum_insured else None,
+            "sum_insured": float(assessment.sum_insured)
+            if assessment.sum_insured
+            else None,
         }
 
         # Create or update vector
@@ -85,7 +89,7 @@ class PrecedentSearchService:
             vector = AssessmentVector(
                 assessment_id=assessment.id,
                 embedding=embedding.tolist(),
-                vector_metadata=metadata
+                vector_metadata=metadata,
             )
             db.add(vector)
 
@@ -101,7 +105,7 @@ class PrecedentSearchService:
         assessment_id: UUID,
         top_k: int = 5,
         min_similarity: float = 0.7,
-        filters: Optional[Dict[str, Any]] = None
+        filters: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
         """
         Find similar past assessments.
@@ -142,10 +146,16 @@ class PrecedentSearchService:
         """
 
         # Add metadata filters
+        # Convert embedding to string for pgvector via asyncpg
+        emb = query_vector.embedding
+        if hasattr(emb, "tolist"):
+            emb = emb.tolist()
+        emb_str = str(emb)
+
         params = {
-            "query_embedding": query_vector.embedding,
+            "query_embedding": emb_str,
             "exclude_id": assessment_id,
-            "min_similarity": min_similarity
+            "min_similarity": min_similarity,
         }
 
         if filters:
@@ -171,27 +181,29 @@ class PrecedentSearchService:
         # Format results
         similar_assessments = []
         for row in rows:
-            similar_assessments.append({
-                "assessment_id": str(row.assessment_id),
-                "reference_number": row.reference_number,
-                "risk_category": row.risk_category,
-                "territory": row.territory,
-                "insured_name": row.insured_name,
-                "decision": row.decision,
-                "premium": float(row.premium) if row.premium else None,
-                "sum_insured": float(row.sum_insured) if row.sum_insured else None,
-                "created_at": row.created_at.isoformat(),
-                "similarity": float(row.similarity),
-                "similarity_pct": f"{row.similarity * 100:.1f}%"
-            })
+            similar_assessments.append(
+                {
+                    "assessment_id": str(row.assessment_id),
+                    "reference_number": row.reference_number,
+                    "risk_category": row.risk_category,
+                    "territory": row.territory,
+                    "insured_name": row.insured_name,
+                    "decision": row.decision,
+                    "premium": float(row.premium) if row.premium else None,
+                    "sum_insured": float(row.sum_insured) if row.sum_insured else None,
+                    "created_at": row.created_at.isoformat(),
+                    "similarity": float(row.similarity),
+                    "similarity_pct": f"{row.similarity * 100:.1f}%",
+                }
+            )
 
-        logger.info(f"Found {len(similar_assessments)} similar assessments for {assessment_id}")
+        logger.info(
+            f"Found {len(similar_assessments)} similar assessments for {assessment_id}"
+        )
         return similar_assessments
 
     async def embed_all_assessments(
-        self,
-        db: AsyncSession,
-        batch_size: int = 100
+        self, db: AsyncSession, batch_size: int = 100
     ) -> int:
         """
         Batch embed all existing assessments.
@@ -200,10 +212,13 @@ class PrecedentSearchService:
         """
 
         # Get all assessments without vectors
-        query = select(Assessment).outerjoin(
-            AssessmentVector,
-            Assessment.id == AssessmentVector.assessment_id
-        ).where(AssessmentVector.assessment_id.is_(None))
+        query = (
+            select(Assessment)
+            .outerjoin(
+                AssessmentVector, Assessment.id == AssessmentVector.assessment_id
+            )
+            .where(AssessmentVector.assessment_id.is_(None))
+        )
 
         result = await db.execute(query)
         assessments = result.scalars().all()

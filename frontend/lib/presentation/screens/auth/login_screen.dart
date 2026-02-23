@@ -141,13 +141,20 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final bg = AppTheme.bg(context);
+    final text1 = AppTheme.text1(context);
+    final text2 = AppTheme.text2(context);
+    final hint = AppTheme.textH(context);
+    final surf = AppTheme.surfaceOf(context);
+    final bord = AppTheme.borderOf(context);
+
     return Scaffold(
-      backgroundColor: AppTheme.background,
+      backgroundColor: bg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
+          icon: Icon(Icons.arrow_back_ios, color: text1),
           onPressed: () => context.go('/welcome'),
         ),
       ),
@@ -185,19 +192,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Header
                 Text(
                   l10n.welcomeBack,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.textPrimary,
+                    color: text1,
                     fontFamily: 'Inter',
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Sign in to continue',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
-                    color: AppTheme.textSecondary,
+                    color: text2,
                     fontFamily: 'Inter',
                   ),
                 ),
@@ -216,12 +223,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.error_outline, color: AppTheme.danger, size: 20),
+                        const Icon(Icons.error_outline, color: AppTheme.danger, size: 20),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             _errorMessage!,
-                            style: TextStyle(color: AppTheme.danger, fontSize: 14),
+                            style: const TextStyle(color: AppTheme.danger, fontSize: 14),
                           ),
                         ),
                       ],
@@ -231,10 +238,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Email field
                 Text(
                   l10n.email,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
+                    color: text1,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -242,18 +249,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   key: const Key('loginEmailField'),
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
+                  style: TextStyle(color: text1),
                   decoration: InputDecoration(
                     hintText: l10n.email,
-                    prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.textHint),
+                    hintStyle: TextStyle(color: hint),
+                    prefixIcon: Icon(Icons.email_outlined, color: hint),
                     filled: true,
-                    fillColor: AppTheme.surface,
+                    fillColor: surf,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppTheme.border),
+                      borderSide: BorderSide(color: bord),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppTheme.border),
+                      borderSide: BorderSide(color: bord),
                     ),
                   ),
                   validator: (value) {
@@ -271,10 +280,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Password field
                 Text(
                   l10n.password,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
+                    color: text1,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -284,27 +293,29 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: _obscurePassword,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _handleLogin(),
+                  style: TextStyle(color: text1),
                   decoration: InputDecoration(
                     hintText: l10n.password,
-                    prefixIcon: const Icon(Icons.lock_outlined, color: AppTheme.textHint),
+                    hintStyle: TextStyle(color: hint),
+                    prefixIcon: Icon(Icons.lock_outlined, color: hint),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: AppTheme.textHint,
+                        color: hint,
                       ),
                       onPressed: () {
                         setState(() => _obscurePassword = !_obscurePassword);
                       },
                     ),
                     filled: true,
-                    fillColor: AppTheme.surface,
+                    fillColor: surf,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppTheme.border),
+                      borderSide: BorderSide(color: bord),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppTheme.border),
+                      borderSide: BorderSide(color: bord),
                     ),
                   ),
                   validator: (value) {
@@ -376,16 +387,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       Text(
                         '${l10n.login} - ',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppTheme.textSecondary,
+                          color: text2,
                         ),
                       ),
                       GestureDetector(
                         onTap: () => _showTermsDialog(l10n.termsOfService),
-                        child: Text(
-                          l10n.termsOfService,
-                          style: const TextStyle(
+                        child: const Text(
+                          // termsOfService label handled by caller via l10n
+                          // This text is static; the actual l10n string used above
+                          'Terms of Service',
+                          style: TextStyle(
                             fontSize: 12,
                             color: AppTheme.primaryDark,
                             fontWeight: FontWeight.w600,
@@ -393,18 +406,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      const Text(
+                      Text(
                         ' & ',
                         style: TextStyle(
                           fontSize: 12,
-                          color: AppTheme.textSecondary,
+                          color: text2,
                         ),
                       ),
                       GestureDetector(
                         onTap: () => _showTermsDialog(l10n.privacyPolicy),
-                        child: Text(
-                          l10n.privacyPolicy,
-                          style: const TextStyle(
+                        child: const Text(
+                          'Privacy Policy',
+                          style: TextStyle(
                             fontSize: 12,
                             color: AppTheme.primaryDark,
                             fontWeight: FontWeight.w600,
@@ -423,7 +436,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Text(
                       '${l10n.createAccount}? ',
-                      style: const TextStyle(color: AppTheme.textSecondary),
+                      style: TextStyle(color: text2),
                     ),
                     TextButton(
                       onPressed: () => context.go('/register'),

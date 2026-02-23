@@ -337,6 +337,18 @@ class AuthService {
     await _storage.delete(key: _refreshTokenKey);
   }
 
+  /// Set broker token after broker portal login
+  /// Uses the same token storage as regular login so all API calls work
+  Future<void> setBrokerToken(String accessToken, String refreshToken, Map<String, dynamic> user) async {
+    _token = accessToken;
+    _user = user;
+    await _storage.write(key: _tokenKey, value: _token);
+    await _storage.write(key: _userKey, value: jsonEncode(_user));
+    if (refreshToken.isNotEmpty) {
+      await _storeRefreshToken(refreshToken);
+    }
+  }
+
   /// Get authenticated headers for API requests
   Map<String, String> get authHeaders => {
     "Content-Type": "application/json",

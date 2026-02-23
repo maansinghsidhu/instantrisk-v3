@@ -4,7 +4,18 @@ Pricing and Quote Models
 Extracted from lloyds.py for global underwriter platform.
 """
 
-from sqlalchemy import Column, Integer, String, Float, DECIMAL, Boolean, DateTime, ForeignKey, ARRAY
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Float,
+    DECIMAL,
+    Boolean,
+    DateTime,
+    Text,
+    ForeignKey,
+    ARRAY,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PgUUID
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
@@ -16,6 +27,7 @@ class PricingModel(Base):
     """
     Stores pricing model configurations.
     """
+
     __tablename__ = "pricing_models"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -38,18 +50,25 @@ class PricingModel(Base):
     trained_at = Column(DateTime(timezone=True), nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime(timezone=True), onupdate=lambda: datetime.now(timezone.utc))
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at = Column(
+        DateTime(timezone=True), onupdate=lambda: datetime.now(timezone.utc)
+    )
 
 
 class PricingResult(Base):
     """
     Stores pricing calculation results.
     """
+
     __tablename__ = "pricing_results"
 
     id = Column(Integer, primary_key=True, index=True)
-    assessment_id = Column(PgUUID(as_uuid=True), ForeignKey("assessments.id"), nullable=False, index=True)
+    assessment_id = Column(
+        PgUUID(as_uuid=True), ForeignKey("assessments.id"), nullable=False, index=True
+    )
     model_id = Column(Integer, ForeignKey("pricing_models.id"), nullable=True)
 
     # Pricing output
@@ -73,7 +92,9 @@ class PricingResult(Base):
     key_drivers = Column(ARRAY(String), default=list)
 
     # Timestamp
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
 
     # Relationships
     assessment = relationship("Assessment", backref="pricing_results")
@@ -85,10 +106,13 @@ class Quote(Base):
     Formal quotes generated from pricing.
     Removed syndicate_id FK as platform now targets global underwriters.
     """
+
     __tablename__ = "quotes"
 
     id = Column(Integer, primary_key=True, index=True)
-    assessment_id = Column(PgUUID(as_uuid=True), ForeignKey("assessments.id"), nullable=False)
+    assessment_id = Column(
+        PgUUID(as_uuid=True), ForeignKey("assessments.id"), nullable=False
+    )
     pricing_result_id = Column(Integer, ForeignKey("pricing_results.id"), nullable=True)
 
     # Quote identification
@@ -106,7 +130,9 @@ class Quote(Base):
     exclusions = Column(ARRAY(String), default=list)
 
     # Validity
-    valid_from = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    valid_from = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
     valid_until = Column(DateTime(timezone=True), nullable=True)
 
     # Status
@@ -114,10 +140,35 @@ class Quote(Base):
     # draft, issued, accepted, declined, expired, superseded
 
     # Timestamps
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
     issued_at = Column(DateTime(timezone=True), nullable=True)
     accepted_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Broker portal fields
+    accepted_by = Column(PgUUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    declined_at = Column(DateTime(timezone=True), nullable=True)
+    decline_reason = Column(Text, nullable=True)
 
     # Relationships
     assessment = relationship("Assessment", backref="quotes")
     pricing_result = relationship("PricingResult", backref="quotes")
+
+    def to_dict(self):
+        return {
+            "quote_id": str(self.id),
+            "assessment_id": str(self.assessment_id) if self.assessment_id else None,
+            "quote_reference": self.quote_reference,
+            "status": self.status,
+            "quoted_premium": float(self.quoted_premium)
+            if self.quoted_premium
+            else None,
+            "currency": self.currency,
+            "terms": self.terms or {},
+            "conditions": self.conditions or [],
+            "valid_from": self.valid_from.isoformat() if self.valid_from else None,
+            "valid_until": self.valid_until.isoformat() if self.valid_until else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "accepted_at": self.accepted_at.isoformat() if self.accepted_at else None,
+        }
