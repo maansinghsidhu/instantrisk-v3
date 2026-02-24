@@ -1085,16 +1085,18 @@ async def prefill_template(
         if doc.extracted_data:
             extracted_data.update(doc.extracted_data)
 
-    # Get RAG context if requested
+    # Get RAG context (always fetch for better document quality)
     rag_context = None
-    if request and request.include_rag:
+    try:
         rag_context = await reference_document_service.get_rag_context(
             query=f"{assessment.title} {assessment.risk_category.value if assessment.risk_category else ''} policy wording",
             risk_category=assessment.risk_category.value
             if assessment.risk_category
             else None,
-            limit=3,
+            limit=5,  # Increased from 3 for better coverage
         )
+    except Exception as e:
+        logger.warning(f"RAG context fetch failed: {e}")
 
     # Get prefill data
     prefill = await document_generator.prefill_template(
@@ -1180,7 +1182,11 @@ async def finalize_document(
             parts.append(f'<h1 class="doc-title">{html_mod.escape(doc_title)}</h1>')
 
         for section in sections:
-            title = section.get("section_title", "") or section.get("heading", "")
+            title = (
+                section.get("section_title", "")
+                or section.get("heading", "")
+                or section.get("title", "")
+            )
             body = section.get("content", "")
 
             parts.append('<div class="section">')
@@ -1214,6 +1220,54 @@ async def finalize_document(
 
             parts.append("</div>")
 
+        # Render schedules
+        schedules = content_data.get("schedules", [])
+        if schedules:
+            parts.append('<div class="schedules">')
+            parts.append('<h2 class="section-title">Schedules</h2>')
+            for schedule in schedules:
+                sched_title = (
+                    schedule.get("title", "")
+                    or schedule.get("section_title", "")
+                    or "Schedule"
+                )
+                sched_content = schedule.get("content", "")
+                parts.append('<div class="schedule">')
+                if sched_title:
+                    parts.append(
+                        f'<h3 class="schedule-title">{html_mod.escape(sched_title)}</h3>'
+                    )
+                if sched_content:
+                    parts.append(
+                        f'<div class="schedule-content">{html_mod.escape(sched_content)}</div>'
+                    )
+                parts.append("</div>")
+            parts.append("</div>")
+
+        # Render appendices
+        appendices = content_data.get("appendices", [])
+        if appendices:
+            parts.append('<div class="appendices">')
+            parts.append('<h2 class="section-title">Appendices</h2>')
+            for appendix in appendices:
+                app_title = (
+                    appendix.get("title", "")
+                    or appendix.get("section_title", "")
+                    or "Appendix"
+                )
+                app_content = appendix.get("content", "")
+                parts.append('<div class="appendix">')
+                if app_title:
+                    parts.append(
+                        f'<h3 class="appendix-title">{html_mod.escape(app_title)}</h3>'
+                    )
+                if app_content:
+                    parts.append(
+                        f'<div class="appendix-content">{html_mod.escape(app_content)}</div>'
+                    )
+                parts.append("</div>")
+            parts.append("</div>")
+
         return "\n".join(parts)
 
     sections_html = _build_sections_html(raw_content)
@@ -1221,7 +1275,9 @@ async def finalize_document(
     # Get document title from content or fallback
     doc_title = ""
     if isinstance(raw_content, dict):
-        doc_title = raw_content.get("document_title", "")
+        doc_title = raw_content.get("document_title", "") or raw_content.get(
+            "title", ""
+        )
     if not doc_title:
         doc_title = doc.document_type.upper().replace("_", " ")
 

@@ -17,5 +17,5 @@ class PlatformStorage {
 
 /// Get the base URL for the current platform
 String getPlatformBaseUrl() {
-  return "https://instantrisk-alb-307384033.us-east-1.elb.amazonaws.com/api/v1";
+  return "https://d2ci3ptu2ygeo3.cloudfront.net/api/v1";
 }

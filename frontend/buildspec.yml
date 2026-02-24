@@ -1,0 +1,31 @@
+version: 0.2
+
+cache:
+  paths:
+    - '/flutter/**/*'
+    - '.dart_tool/**/*'
+
+phases:
+  install:
+    commands:
+      - echo "Installing Flutter SDK..."
+      - git clone https://github.com/flutter/flutter.git -b stable --depth 1 /flutter
+      - export PATH="$PATH:/flutter/bin"
+      - flutter --version
+      - flutter config --enable-web
+  pre_build:
+    commands:
+      - cd $CODEBUILD_SRC_DIR
+      - flutter pub get
+  build:
+    commands:
+      - echo "Building Flutter web..."
+      - flutter build web --release --no-tree-shake-icons
+      - echo "Build complete"
+  post_build:
+    commands:
+      - echo "Deploying to S3..."
+      - aws s3 sync build/web s3://${S3_BUCKET}/ --delete
+      - echo "Invalidating CloudFront cache..."
+      - aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_DIST_ID} --paths "/*" || true
+      - echo "Deployment complete!"

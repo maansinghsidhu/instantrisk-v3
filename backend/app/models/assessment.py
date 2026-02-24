@@ -282,7 +282,10 @@ class Assessment(Base):
     completed_at = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
-    created_by_user = relationship("User", back_populates="assessments")
+    created_by_user = relationship(
+        "User", foreign_keys=[created_by], back_populates="assessments"
+    )
+    assigned_underwriter = relationship("User", foreign_keys=[assigned_underwriter_id])
     syndicate = relationship("Syndicate", back_populates="assessments")
     documents = relationship("Document", back_populates="assessment")
     generated_documents = relationship(

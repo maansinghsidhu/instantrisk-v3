@@ -23,7 +23,7 @@ class PlatformStorage {
   }
 }
 
-/// On mobile/desktop, use the ALB URL since there is no browser location.
+/// On mobile/desktop, use the CloudFront HTTPS URL.
 String getPlatformBaseUrl() {
-  return "http://instantrisk-alb-307384033.us-east-1.elb.amazonaws.com/api/v1";
+  return "https://d2ci3ptu2ygeo3.cloudfront.net/api/v1";
 }

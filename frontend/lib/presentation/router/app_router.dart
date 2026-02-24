@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/auth_service.dart';
 
-// Auth Screens
 import '../screens/auth/splash_screen.dart';
 import '../screens/auth/onboarding_screen.dart';
 import '../screens/auth/welcome_screen.dart';
@@ -13,7 +12,6 @@ import '../screens/auth/pending_approval_screen.dart';
 import '../screens/auth/two_factor_verify_screen.dart';
 import '../screens/admin/user_approvals_screen.dart';
 
-// Main Screens
 import '../screens/home/dashboard_screen.dart';
 import '../screens/home/document_intake_screen.dart';
 import '../screens/home/processing_screen.dart';
@@ -25,12 +23,6 @@ import '../screens/reports/contract_screen.dart';
 import '../screens/reports/share_view_screen.dart';
 
 import '../screens/chat/unified_chat_screen.dart';
-
-// Broker Workflow Screens (Underwriter-facing)
-import '../screens/broker_workflow/broker_submissions_screen.dart';
-import '../screens/broker_workflow/broker_submission_view_screen.dart';
-import '../screens/broker_workflow/create_quote_screen.dart';
-import '../screens/broker_workflow/broker_management_screen.dart';
 
 import '../screens/settings/settings_screen.dart';
 import '../screens/settings/profile_screen.dart';
@@ -59,37 +51,25 @@ import '../screens/documents/ai_document_advisor_screen.dart';
 import '../screens/documents/clause_review_screen.dart';
 import '../screens/documents/generation_progress_screen.dart';
 
-// Analysis Screens
 import '../screens/analysis/analysis_mode_screen.dart';
 import '../screens/analysis/analysis_progress_screen.dart';
 
-// Sanctions Screens
 import '../screens/sanctions/sanctions_detail_screen.dart';
 import '../screens/sanctions/sanctions_screening_progress_screen.dart';
 
-// God Mode Screens
 import '../screens/entities/entity_graph_screen.dart';
 
-// Broker Portal Screens
-import '../screens/broker/broker_login_screen.dart';
-import '../screens/broker/broker_register_screen.dart';
-import '../screens/broker/broker_dashboard_screen.dart';
-import '../screens/broker/broker_submissions_list_screen.dart';
-import '../screens/broker/broker_create_submission_screen.dart';
-import '../screens/broker/broker_submission_detail_screen.dart';
-import '../screens/broker/broker_quote_detail_screen.dart';
+import '../screens/underwriter/share_submission_screen.dart';
+import '../screens/underwriter/shared_with_me_screen.dart';
 
-// Shell for bottom navigation
 import '../widgets/common/main_shell.dart';
 
-/// App Router Configuration
 class AppRouter {
   static final GlobalKey<NavigatorState> _rootNavigatorKey =
       GlobalKey<NavigatorState>(debugLabel: 'root');
   static final GlobalKey<NavigatorState> _shellNavigatorKey =
       GlobalKey<NavigatorState>(debugLabel: 'shell');
 
-  /// Public routes that don't require authentication
   static const List<String> _publicRoutes = [
     '/',
     '/welcome',
@@ -99,28 +79,18 @@ class AppRouter {
     '/onboarding',
     '/pending-approval',
     '/2fa-verify',
-    '/broker/login',
-    '/broker/register',
   ];
 
-  /// Initialize the router and set up auth service callback
   static void init() {
-    // Set up the 401 handler to redirect to login
     AuthService.onUnauthorized = () {
       router.go('/login');
     };
   }
 
-  /// Check if a route is public (no auth required)
   static bool _isPublicRoute(String location) {
-    // Check exact matches
     if (_publicRoutes.contains(location)) return true;
-    // Check if it's a deep link upload route (public for mobile uploads)
     if (location.startsWith('/upload/')) return true;
-    // Share links are public (no auth required)
     if (location.startsWith('/share/')) return true;
-    // Broker portal routes with /broker/ prefix bypass main app auth
-    if (location.startsWith('/broker/')) return true;
     return false;
   }
 
@@ -129,14 +99,11 @@ class AppRouter {
     initialLocation: '/',
     debugLogDiagnostics: true,
 
-    // Authentication redirect guard
     redirect: (BuildContext context, GoRouterState state) {
       final isLoggedIn = authService.isLoggedIn;
       final location = state.uri.toString();
       final path = state.uri.path;
 
-      // Deep link routes bypass auth entirely (QR upload flow)
-      // Check both location and path to handle different URL formats
       if (location.startsWith('/upload/') ||
           path.startsWith('/upload/') ||
           location.contains('/upload/') ||
@@ -146,22 +113,18 @@ class AppRouter {
 
       final isPublicRoute = _isPublicRoute(location) || _isPublicRoute(path);
 
-      // If not logged in and trying to access protected route, redirect to welcome
       if (!isLoggedIn && !isPublicRoute) {
         return '/welcome';
       }
 
-      // If logged in and on auth pages (welcome, login, register), redirect to main app
       if (isLoggedIn && (location == '/welcome' || location == '/login' || location == '/register')) {
         return '/home';
       }
 
-      // No redirect needed
       return null;
     },
 
     routes: [
-      // ==================== AUTH ROUTES ====================
       GoRoute(
         path: '/',
         name: 'splash',
@@ -209,7 +172,6 @@ class AppRouter {
         },
       ),
 
-      // ==================== QR UPLOAD (Deep Link) ====================
       GoRoute(
         path: '/upload/:token',
         name: 'qrUpload',
@@ -218,7 +180,6 @@ class AppRouter {
         ),
       ),
 
-      // ==================== SHARED ASSESSMENT (Public) ====================
       GoRoute(
         path: '/share/:token',
         name: 'sharedAssessment',
@@ -227,7 +188,6 @@ class AppRouter {
         ),
       ),
 
-      // ==================== DOCUMENT EDITOR ====================
       GoRoute(
         path: '/documents/edit/:documentId',
         name: 'documentEditor',
@@ -240,16 +200,14 @@ class AppRouter {
         },
       ),
 
-      // ==================== MAIN APP (with bottom nav) ====================
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) => MainShell(child: child),
         routes: [
-          // HOME TAB
           GoRoute(
             path: '/home',
             name: 'home',
-            pageBuilder: (context, state) => const NoTransitionPage(
+            pageBuilder: (context, state) => NoTransitionPage(
               child: DashboardScreen(),
             ),
             routes: [
@@ -265,14 +223,20 @@ class AppRouter {
                   documentId: state.pathParameters['documentId']!,
                 ),
               ),
+              GoRoute(
+                path: 'share/:assessmentId',
+                name: 'shareSubmission',
+                builder: (context, state) => ShareSubmissionScreen(
+                  assessmentId: state.pathParameters['assessmentId']!,
+                ),
+              ),
             ],
           ),
 
-          // REPORTS TAB
           GoRoute(
             path: '/reports',
             name: 'reports',
-            pageBuilder: (context, state) => const NoTransitionPage(
+            pageBuilder: (context, state) => NoTransitionPage(
               child: HistoryScreen(),
             ),
             routes: [
@@ -322,7 +286,6 @@ class AppRouter {
             ],
           ),
 
-          // ANALYSIS ROUTES (inside ShellRoute for nav bar)
           GoRoute(
             path: '/analysis/mode/:assessmentId',
             name: 'analysisMode',
@@ -358,15 +321,12 @@ class AppRouter {
                 analysisData: extra['analysisData'] as Map<String, dynamic>?,
                 isProcessing: extra['isProcessing'] as bool? ?? false,
                 sessionId: extra['sessionId'] as String?,
-                    sessionToken: extra['sessionToken'] as String?,
+                sessionToken: extra['sessionToken'] as String?,
                 documentCount: extra['documentCount'] as int? ?? 1,
               );
             },
           ),
 
-          // ─── GOD MODE ROUTES ───
-
-          // Entity Graph - per assessment
           GoRoute(
             path: '/assessments/:assessmentId/entities',
             name: 'entityGraph',
@@ -375,7 +335,6 @@ class AppRouter {
             ),
           ),
 
-          // ─── SANCTIONS SCREENING (inside shell for nav bar) ───
           GoRoute(
             path: '/assessments/:assessmentId/sanctions',
             name: 'sanctionsDetail',
@@ -395,11 +354,10 @@ class AppRouter {
             },
           ),
 
-          // CHAT TAB - Unified AI Chat (Claude/ChatGPT style)
           GoRoute(
             path: '/chat',
             name: 'chat',
-            pageBuilder: (context, state) => const NoTransitionPage(
+            pageBuilder: (context, state) => NoTransitionPage(
               child: UnifiedChatScreen(),
             ),
             routes: [
@@ -413,24 +371,21 @@ class AppRouter {
             ],
           ),
 
-          // TRAINING TAB - Upload documents to improve AI
           GoRoute(
             path: '/training',
             name: 'training',
-            pageBuilder: (context, state) => const NoTransitionPage(
+            pageBuilder: (context, state) => NoTransitionPage(
               child: TrainingScreen(),
             ),
           ),
 
-          // DOCUMENTS TAB (Reference + Assessment Documents)
           GoRoute(
             path: '/documents',
             name: 'documents',
-            pageBuilder: (context, state) => const NoTransitionPage(
+            pageBuilder: (context, state) => NoTransitionPage(
               child: DocumentsHubScreen(),
             ),
             routes: [
-              // V3 Document Generator - Create Flow
               GoRoute(
                 path: 'create',
                 name: 'documentCreate',
@@ -460,7 +415,6 @@ class AppRouter {
                   );
                 },
               ),
-              // Document Preview
               GoRoute(
                 path: 'preview/:documentId',
                 name: 'documentPreview',
@@ -472,13 +426,11 @@ class AppRouter {
                   );
                 },
               ),
-              // Reference Documents
               GoRoute(
                 path: 'reference',
                 name: 'referenceDocuments',
                 builder: (context, state) => const ReferenceDocumentsScreen(),
               ),
-              // AI Document Advisor (replaces static type selection)
               GoRoute(
                 path: 'ai-advisor/:assessmentId',
                 name: 'aiDocumentAdvisor',
@@ -486,7 +438,6 @@ class AppRouter {
                   assessmentId: state.pathParameters['assessmentId']!,
                 ),
               ),
-              // Clause Review
               GoRoute(
                 path: 'clause-review',
                 name: 'clauseReview',
@@ -500,7 +451,6 @@ class AppRouter {
                   );
                 },
               ),
-              // Generation Progress + Preview
               GoRoute(
                 path: 'generation-progress',
                 name: 'generationProgress',
@@ -523,11 +473,10 @@ class AppRouter {
             ],
           ),
 
-          // SETTINGS TAB
           GoRoute(
             path: '/settings',
             name: 'settings',
-            pageBuilder: (context, state) => const NoTransitionPage(
+            pageBuilder: (context, state) => NoTransitionPage(
               child: SettingsScreen(),
             ),
             routes: [
@@ -598,56 +547,18 @@ class AppRouter {
         ],
       ),
 
-      // ═══════════════════════════════════════════════════════════════
-      // BROKER PORTAL ROUTES (br.instantrisk.io)
-      // ═══════════════════════════════════════════════════════════════
-
       GoRoute(
-        path: '/broker/login',
-        name: 'brokerLogin',
-        builder: (context, state) => const BrokerLoginScreen(),
-      ),
-      GoRoute(
-        path: '/broker/register',
-        name: 'brokerRegister',
-        builder: (context, state) => const BrokerRegisterScreen(),
-      ),
-      GoRoute(
-        path: '/broker/dashboard',
-        name: 'brokerDashboard',
-        builder: (context, state) => const BrokerDashboardScreen(),
-      ),
-      GoRoute(
-        path: '/broker/submissions',
-        name: 'brokerSubmissions',
-        builder: (context, state) => const BrokerSubmissionsListScreen(),
-      ),
-      GoRoute(
-        path: '/broker/submissions/create',
-        name: 'brokerCreateSubmission',
-        builder: (context, state) => const BrokerCreateSubmissionScreen(),
-      ),
-      GoRoute(
-        path: '/broker/submissions/:submissionId',
-        name: 'brokerSubmissionDetail',
-        builder: (context, state) => BrokerSubmissionDetailScreen(
-          submissionId: state.pathParameters['submissionId']!,
+        path: '/shared',
+        name: 'sharedWithMe',
+        pageBuilder: (context, state) => NoTransitionPage(
+          child: SharedWithMeScreen(),
         ),
       ),
-      GoRoute(
-        path: '/broker/quotes/:quoteId',
-        name: 'brokerQuoteDetail',
-        builder: (context, state) => BrokerQuoteDetailScreen(
-          quoteId: state.pathParameters['quoteId']!,
+
+      errorBuilder: (context, state) => Scaffold(
+        body: Center(
+          child: Text('Page not found: ${state.uri}'),
         ),
       ),
-    ],
-
-    // Error handling
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Text('Page not found: ${state.uri}'),
-      ),
-    ),
   );
 }

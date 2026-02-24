@@ -2,11 +2,11 @@
 OpenDraft Document Generator — 19-Agent Insurance Pipeline
 
 Adapted from OpenDraft's multi-agent architecture (scailetech/opendraft)
-for Lloyd's insurance document generation with ACORD/CUAD/JeTech RAG.
+for universal insurance document generation with ACORD/CUAD/JeTech RAG.
 
 6 Phases, 19 Agents:
   PHASE 1 - RESEARCH (1-3):   RiskResearcher, ClauseExtractor, GapAnalyzer
-  PHASE 2 - STRUCTURE (4-6):  ClauseManager, StructurePlanner, LloydFormatter
+  PHASE 2 - STRUCTURE (4-6):  ClauseManager, StructurePlanner, DocumentFormatter
   PHASE 3 - COMPOSE (7-9):    SectionDrafter, ConsistencyChecker, ToneUnifier
   PHASE 4 - VALIDATE (10-12): RiskChallenger, ClauseVerifier, ComplianceReviewer
   PHASE 5 - REFINE (13-16):   HouseStyleAgent, LanguageVarier, ProofReader, ClauseCompiler
@@ -32,7 +32,7 @@ AGENT_MODELS = {
     "GapAnalyzer": "sonnet",
     "ClauseManager": "haiku",
     "StructurePlanner": "sonnet",
-    "LloydFormatter": "haiku",
+    "DocumentFormatter": "haiku",
     "SectionDrafter": "sonnet",
     "ConsistencyChecker": "haiku",
     "ToneUnifier": "haiku",
@@ -105,32 +105,49 @@ class OpenDraftGenerator:
         temperature: float = 0.1,
         max_tokens: int = 8000,
     ) -> Optional[str]:
-        """Run a single agent via Bedrock."""
+        """Run a single agent via Bedrock with retry logic."""
         model_alias = AGENT_MODELS.get(name, "haiku")
         model_id = self._resolve_model_id(model_alias)
-        try:
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content},
-            ]
-            response = await self.bedrock.chat(
-                messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                model_id=model_id,
-            )
-            if response:
-                logger.info(
-                    f"Agent {name} succeeded (response length: {len(response)})"
+        max_retries = 2
+        retry_delay = 2
+
+        for attempt in range(max_retries + 1):
+            try:
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content},
+                ]
+                response = await self.bedrock.chat(
+                    messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    model_id=model_id,
                 )
-            else:
+                if response:
+                    logger.info(
+                        f"Agent {name} succeeded (response length: {len(response)}, attempt {attempt + 1})"
+                    )
+                    return response
+                else:
+                    logger.warning(
+                        f"Agent {name} returned empty response (attempt {attempt + 1}/{max_retries + 1})"
+                    )
+                    if attempt < max_retries:
+                        await asyncio.sleep(retry_delay)
+                        continue
+                    return None
+            except Exception as e:
                 logger.warning(
-                    f"Agent {name} returned empty response (Bedrock may be disabled)"
+                    f"Agent {name} failed (attempt {attempt + 1}/{max_retries + 1}): {e}"
                 )
-            return response
-        except Exception as e:
-            logger.error(f"Agent {name} failed: {e}")
-            return None
+                if attempt < max_retries:
+                    await asyncio.sleep(retry_delay)
+                    continue
+                logger.error(
+                    f"Agent {name} failed after {max_retries + 1} attempts: {e}"
+                )
+                return None
+        return None
 
     @staticmethod
     def _fmt_currency(value, currency="GBP"):
@@ -144,6 +161,137 @@ class OpenDraftGenerator:
             return f"{currency} {amount:,.2f}"
         except (ValueError, TypeError):
             return str(value)
+
+    @staticmethod
+    def _extract_ai_analysis_summary(ai_analysis: Dict, max_chars: int = 6000) -> str:
+        """Extract structured summary from AI analysis, targeting ~6000 chars for document quality."""
+        if not ai_analysis:
+            return "No AI analysis available."
+
+        parts = []
+        parts.append("=== RISK ANALYSIS SUMMARY ===")
+
+        # Extract key fields if present
+        if isinstance(ai_analysis, dict):
+            # Key decision fields
+            for key in ["decision", "risk_score", "confidence", "recommendation"]:
+                if key in ai_analysis and ai_analysis[key] is not None:
+                    parts.append(f"{key.upper()}: {ai_analysis[key]}")
+
+            # Risk factors
+            risk_factors = ai_analysis.get("risk_factors", [])
+            if risk_factors:
+                parts.append("\n--- KEY RISK FACTORS ---")
+                for i, rf in enumerate(risk_factors[:20], 1):
+                    if isinstance(rf, dict):
+                        factor = rf.get("factor", rf.get("description", str(rf)))
+                        severity = rf.get("severity", rf.get("impact", ""))
+                        parts.append(f"{i}. {factor} [{severity}]")
+                    else:
+                        parts.append(f"{i}. {rf}")
+
+            # Perils covered / exclusions
+            perils = ai_analysis.get("perils_covered", ai_analysis.get("perils", []))
+            if perils:
+                parts.append("\n--- PERILS COVERED ---")
+                parts.append(", ".join(str(p) for p in perils[:30]))
+
+            # Exclusions
+            exclusions = ai_analysis.get(
+                "exclusions", ai_analysis.get("excluded_perils", [])
+            )
+            if exclusions:
+                parts.append("\n--- KEY EXCLUSIONS ---")
+                for exc in exclusions[:15]:
+                    parts.append(f"- {exc}")
+
+            # Conditions
+            conditions = ai_analysis.get(
+                "conditions", ai_analysis.get("policy_conditions", [])
+            )
+            if conditions:
+                parts.append("\n--- POLICY CONDITIONS ---")
+                for cond in conditions[:15]:
+                    parts.append(f"- {cond}")
+
+            # Entities mentioned (could be useful for RAG context)
+            entities = ai_analysis.get("entities", ai_analysis.get("key_entities", []))
+            if entities:
+                parts.append("\n--- KEY ENTITIES ---")
+                for ent in entities[:10]:
+                    parts.append(f"- {ent}")
+
+            # Financial data
+            for fin_key in [
+                "suggested_premium",
+                "indicative_premium",
+                "estimated_loss",
+                "exposure",
+            ]:
+                if fin_key in ai_analysis and ai_analysis[fin_key] is not None:
+                    parts.append(f"{fin_key.upper()}: {ai_analysis[fin_key]}")
+
+            # Regulatory/territory info
+            for reg_key in [
+                "regulatory_framework",
+                "territory",
+                "jurisdiction",
+                "line_of_business",
+            ]:
+                if reg_key in ai_analysis and ai_analysis[reg_key]:
+                    parts.append(f"{reg_key.upper()}: {ai_analysis[reg_key]}")
+
+            # Additional analysis text (truncate appropriately)
+            analysis_text = ai_analysis.get(
+                "analysis", ai_analysis.get("summary", ai_analysis.get("findings", ""))
+            )
+            if analysis_text and isinstance(analysis_text, str):
+                parts.append(
+                    f"\n--- ANALYSIS TEXT (truncated) ---\n{analysis_text[:3000]}"
+                )
+
+            # Cover any remaining top-level keys that might have useful data
+            remaining_keys = set(ai_analysis.keys()) - {
+                "decision",
+                "risk_score",
+                "confidence",
+                "recommendation",
+                "risk_factors",
+                "perils_covered",
+                "perils",
+                "exclusions",
+                "excluded_perils",
+                "conditions",
+                "policy_conditions",
+                "entities",
+                "key_entities",
+                "suggested_premium",
+                "indicative_premium",
+                "estimated_loss",
+                "exposure",
+                "regulatory_framework",
+                "territory",
+                "jurisdiction",
+                "line_of_business",
+                "analysis",
+                "summary",
+                "findings",
+            }
+            if remaining_keys:
+                parts.append("\n--- ADDITIONAL DATA ---")
+                for k in remaining_keys:
+                    v = ai_analysis[k]
+                    if v and str(v) not in ["None", "null", ""]:
+                        parts.append(f"{k}: {str(v)[:500]}")
+        else:
+            # Fallback for non-dict
+            parts.append(str(ai_analysis)[:max_chars])
+
+        result = "\n".join(parts)
+        # Ensure we don't exceed max_chars
+        if len(result) > max_chars:
+            result = result[:max_chars] + "\n...[truncated]"
+        return result
 
     async def _run_agent_json(
         self,
@@ -173,11 +321,11 @@ class OpenDraftGenerator:
         rag_context = ""
         try:
             results = await self.unified_rag.search(
-                query=f"{risk_category} insurance clauses {territory} Lloyd's placement coverage",
+                query=f"{risk_category} insurance clauses {territory} placement coverage",
                 user_id=user_id,
-                top_k=8,
+                top_k=15,
             )
-            rag_context = self.unified_rag.format_as_context(results, max_chars=4000)
+            rag_context = self.unified_rag.format_as_context(results, max_chars=12000)
         except Exception as e:
             logger.warning(f"RAG search failed: {e}")
 
@@ -213,9 +361,9 @@ class OpenDraftGenerator:
                 "loss_run_reporting_rules": assessment_data.get(
                     "loss_run_reporting_rules", ""
                 ),
-                "ai_analysis_summary": str(assessment_data.get("ai_analysis", {}))[
-                    :2000
-                ],
+                "ai_analysis_summary": self._extract_ai_analysis_summary(
+                    assessment_data.get("ai_analysis", {})
+                ),
             },
             indent=2,
         )
@@ -235,13 +383,13 @@ INSTANTRISK ENGINE ANALYSIS:
 
         result = await self._run_agent_json(
             "RiskResearcher",
-            "You are a Lloyd's insurance research specialist. Search and identify all relevant clauses, precedents, and market wordings for the given risk.",
-            f"""Research this insurance risk and identify relevant clauses.
+            "You are a specialist insurance research analyst. Search and identify all relevant clauses, precedents, and market wordings for the given risk. Your output must be suitable for any insurance market — not specific to any one carrier or platform.",
+            f"""Research this insurance risk and identify relevant clauses and document requirements.
 
 ASSESSMENT DATA:
 {assessment_summary}
 
-KNOWLEDGE BASE (ACORD/CUAD/JeTech results):
+KNOWLEDGE BASE (dataset results from ACORD/CUAD/JeTech and other sources):
 {rag_context}
 {ml_block}
 Return ONLY valid JSON:
@@ -293,14 +441,14 @@ Return ONLY valid JSON:
                 results = await self.unified_rag.search(
                     query=query,
                     user_id=user_id,
-                    top_k=3,
-                    min_score=0.3,
+                    top_k=6,
+                    min_score=0.25,
                 )
                 candidates = []
                 for r in results:
                     candidates.append(
                         {
-                            "text": r.get("text", "")[:1000],
+                            "text": r.get("text", "")[:2000],
                             "source_tier": r.get("source_tier", "unknown"),
                             "source_label": r.get("source_label", "Unknown"),
                             "score": r.get("score", 0),
@@ -383,7 +531,7 @@ Return ONLY valid JSON:
 
         result = await self._run_agent_json(
             "GapAnalyzer",
-            "You are a Lloyd's gap analysis specialist. Identify missing coverage and mandatory clauses.",
+            "You are an insurance coverage gap analysis specialist. Identify missing coverage areas and important clauses for any insurance market.",
             f"""Analyze coverage gaps for this insurance placement.
 
 Risk category: {assessment_data.get("risk_category", "property")}
@@ -582,12 +730,12 @@ Return ONLY valid JSON:
 
         return False
 
-    async def agent_lloyd_formatter(
+    async def agent_document_formatter(
         self,
         structure: Dict,
         assessment_data: Dict,
     ) -> Dict:
-        """Agent 6: LloydFormatter — extract formatting from template (code-only, no AI call)."""
+        """Agent 6: DocumentFormatter — extract formatting from template (code-only, no AI call)."""
         return {
             "format_rules": {
                 "header_style": "MRC Standard",
@@ -818,7 +966,7 @@ Return ONLY valid JSON:
 
     @staticmethod
     def _derive_risk_code(risk_category: str) -> str:
-        """Map risk_category to Lloyd's standard risk code."""
+        """Map risk_category to standard risk code."""
         risk_code_map = {
             "property": "1681",
             "fire": "1681",
@@ -844,7 +992,7 @@ Return ONLY valid JSON:
         """Build category-specific exclusions, subjectivities, warranties, conditions."""
 
         # ── COMMON BASE ──
-        base_exclusions = "War, invasion, hostilities (NMA 464)\nNuclear risks (NMA 1975)\nSanctions limitation and exclusion (LMA3100)"
+        base_exclusions = "War, invasion, acts of foreign enemies, hostilities\nNuclear, radioactive contamination\nSanctions — coverage restricted where prohibited by applicable law"
         base_conditions = (
             "Claims Cooperation Clause: The Insured shall cooperate fully with Underwriters in the "
             "investigation, defence and settlement of any claim.\n\n"
@@ -1403,7 +1551,7 @@ Return ONLY valid JSON:
                     lib_results, lib_total = clause_lib.search(
                         query=search_query,
                         line_of_business=risk_category,
-                        page_size=5,
+                        page_size=10,
                     )
                     if lib_results:
                         # Pick best result that has substantial content
@@ -1484,11 +1632,14 @@ Return ONLY valid JSON:
             f"SectionDrafter: template={template_hits}, clause={clause_hits}, gaps={gap_count}"
         )
 
-        # Step 2: Fill gaps — use section defaults first, then targeted RAG, then AI last resort
-        # Section-specific default content for common Lloyd's MRC sections
+        # Step 2: Fill gaps — datasets FIRST (149K+ vectors), AI only for true gaps
+        # With 15 indexed datasets, we should pull most content from RAG, not AI
+        # Section-specific default content for common insurance document sections
         insured_name = assessment_data.get(
             "insured_entity_name"
         ) or assessment_data.get("insured_name", "The Insured")
+        # Section-specific default content for common insurance document sections
+        # Universal wording — not specific to any market, carrier, or jurisdiction
         section_defaults = {
             "SUBJECTIVITIES": (
                 f"Prior to inception of the Policy, the following subjectivities must be satisfied:\n\n"
@@ -1514,8 +1665,8 @@ Return ONLY valid JSON:
                 "In addition to the standard exclusions incorporated herein, this insurance "
                 "does not cover:\n\n"
                 "1. War, invasion, act of foreign enemies, hostilities or warlike operations\n"
-                "2. Nuclear reaction, radiation or radioactive contamination (NMA1191)\n"
-                "3. Loss arising from sanctions (LMA3100)\n"
+                "2. Nuclear reaction, radiation or radioactive contamination\n"
+                "3. Loss arising from applicable sanctions or trade restrictions\n"
                 "4. Loss arising from fraud, dishonesty or criminal acts of the Insured\n"
                 "5. Contractual liability unless such liability would have existed in the absence of the contract\n"
                 "6. Fines, penalties, punitive or exemplary damages"
@@ -1534,12 +1685,238 @@ Return ONLY valid JSON:
             ),
             "ADDITIONAL CLAUSES": (
                 "The following standard market clauses are incorporated herein:\n\n"
-                "- LMA5096 Several Liability Clause\n"
-                "- LMA5121 Law and Jurisdiction (England and Wales)\n"
-                "- LMA3100 Sanctions Limitation and Exclusion\n"
-                "- NMA1191 Radioactive Contamination Exclusion\n"
-                "- LMA5235 Premium Payment Clause\n"
-                "- NMA358 Claims Notification Clause"
+                "- Several Liability Clause — each insurer liable only for their own proportion\n"
+                "- Sanctions Limitation and Exclusion Clause\n"
+                "- Radioactive Contamination Exclusion\n"
+                "- Premium Payment Clause\n"
+                "- Claims Notification Clause\n"
+                "- Subrogation Clause"
+            ),
+            "PREMIUM": (
+                f"The premium for this insurance is as stated in the Schedule.\n\n"
+                f"Premium is due and payable within 30 days of inception of the Policy.\n\n"
+                f"In the event of cancellation of this Policy, the return premium shall be calculated "
+                f"on a pro-rata basis from the date of cancellation, subject to a minimum earned "
+                f"premium of 25% of the annual premium.\n\n"
+                f"All premiums are exclusive of applicable taxes, levies and duties which shall be "
+                f"payable by the Insured in addition."
+            ),
+            "PREMIUM PAYMENT": (
+                f"Premium is due and payable in full within 30 days of the inception date of this Policy.\n\n"
+                f"If the premium is not paid by the due date, Underwriters reserve the right to cancel "
+                f"this Policy by giving 15 days' written notice to the Insured.\n\n"
+                f"Where premium is paid by instalments, failure to pay any instalment by its due date "
+                f"shall render the full outstanding premium immediately due and payable."
+            ),
+            "DEDUCTIBLE": (
+                f"The deductible applicable to this Policy is as stated in the Schedule.\n\n"
+                f"The deductible applies per occurrence/claim and shall be borne by the Insured "
+                f"as the first portion of any loss, damage or liability.\n\n"
+                f"Underwriters shall not be liable for any amount below the deductible. "
+                f"Where a loss exceeds the deductible, Underwriters shall only be liable for "
+                f"the excess over the deductible up to the applicable limit of indemnity."
+            ),
+            "EXCESS": (
+                f"The excess applicable to this Policy is as stated in the Schedule.\n\n"
+                f"The excess applies to each and every claim and shall be borne by the Insured. "
+                f"Underwriters shall not be liable for any amount within the excess."
+            ),
+            "LIMIT OF LIABILITY": (
+                f"The maximum aggregate liability of Underwriters under this Policy shall not exceed "
+                f"the Limit of Indemnity as stated in the Schedule in respect of any one occurrence "
+                f"and in the aggregate during the Period of Insurance.\n\n"
+                f"Sub-limits apply as stated in the Schedule. Where sub-limits are specified, payment "
+                f"of the sub-limit shall reduce but not exhaust the overall aggregate limit.\n\n"
+                f"All costs and expenses incurred in the investigation, defence or settlement of claims "
+                f"are included within and not in addition to the Limit of Indemnity, unless otherwise "
+                f"stated in the Schedule."
+            ),
+            "LIMIT OF INDEMNITY": (
+                f"The maximum liability of the Insurer under this Policy shall not exceed the Limit of "
+                f"Indemnity stated in the Schedule, in aggregate for all claims during the Period of Insurance."
+            ),
+            "SUM INSURED": (
+                f"The Sum Insured under this Policy is as stated in the Schedule.\n\n"
+                f"The Sum Insured represents the maximum amount payable by Underwriters in respect of "
+                f"any one loss or series of losses arising from one event during the Period of Insurance.\n\n"
+                f"The Insured is responsible for ensuring that the Sum Insured is adequate and reflects "
+                f"the full replacement value of the insured property/interest. In the event of "
+                f"underinsurance, the principle of average may apply."
+            ),
+            "PERIOD OF INSURANCE": (
+                f"This insurance attaches from the inception date and continues in force until the "
+                f"expiry date as stated in the Schedule, both dates inclusive.\n\n"
+                f"Coverage is on a losses-occurring basis unless otherwise stated. Claims arising from "
+                f"occurrences during the Period of Insurance shall be covered irrespective of when "
+                f"reported, subject to the notification requirements herein."
+            ),
+            "PERIOD": (
+                f"This Policy is effective from the inception date to the expiry date as shown in the Schedule."
+            ),
+            "TERRITORIAL LIMITS": (
+                f"This Policy covers losses arising within the territorial limits as stated in the Schedule.\n\n"
+                f"Losses arising from operations in sanctioned territories are excluded in accordance "
+                f"with the Sanctions Limitation and Exclusion Clause."
+            ),
+            "TERRITORY": (
+                f"Coverage under this Policy applies to the territory stated in the Schedule. "
+                f"No coverage is provided for losses arising in territories subject to applicable sanctions."
+            ),
+            "CLAIMS": (
+                f"NOTIFICATION: The Insured shall give immediate written notice to Underwriters, "
+                f"and in any event within 30 days of becoming aware, of any occurrence or circumstance "
+                f"which may give rise to a claim under this Policy.\n\n"
+                f"CLAIMS PROCEDURE: On notification of a claim, the Insured shall:\n"
+                f"1. Take all reasonable steps to minimise further loss, damage or liability;\n"
+                f"2. Preserve all evidence relating to the loss;\n"
+                f"3. Not admit liability or make any settlement offer without Underwriters' prior consent;\n"
+                f"4. Provide all documentation and information requested by Underwriters or their appointed loss adjusters.\n\n"
+                f"CLAIMS PAYMENT: Subject to the terms and conditions of this Policy, Underwriters "
+                f"shall pay valid claims within 30 days of receipt of all required documentation and "
+                f"agreement of quantum."
+            ),
+            "NOTIFICATION OF CLAIMS": (
+                f"The Insured shall notify Underwriters as soon as reasonably practicable, "
+                f"and in any event no later than 30 days after the Insured first becomes aware of:\n\n"
+                f"(a) any loss, damage, destruction or liability which may give rise to a claim;\n"
+                f"(b) any circumstances which may give rise to a claim; or\n"
+                f"(c) any demand, writ, summons or legal proceedings issued against the Insured.\n\n"
+                f"Failure to notify within the required timeframe may prejudice the Insured's right "
+                f"to indemnity under this Policy."
+            ),
+            "CLAIM NOTIFICATION": (
+                f"The Insured must notify Underwriters of any loss, occurrence or circumstance likely "
+                f"to give rise to a claim as soon as practicable after discovery."
+            ),
+            "CANCELLATION": (
+                f"This Policy may be cancelled:\n\n"
+                f"(a) By the Insured at any time by written notice to Underwriters, in which case "
+                f"return premium shall be calculated pro-rata from the date of cancellation;\n\n"
+                f"(b) By Underwriters giving 30 days' written notice to the Insured at their last "
+                f"known address, in which case return premium shall be calculated pro-rata;\n\n"
+                f"(c) Immediately by Underwriters in the event of non-payment of premium, fraud, "
+                f"or material misrepresentation.\n\n"
+                f"Minimum earned premium of 25% applies unless otherwise agreed."
+            ),
+            "LAW AND JURISDICTION": (
+                f"This Policy shall be governed by and construed in accordance with the laws of "
+                f"the jurisdiction stated in the Schedule, or if none stated, the laws of England and Wales.\n\n"
+                f"Any dispute arising under or in connection with this Policy shall be subject to "
+                f"the jurisdiction of the courts of the applicable territory."
+            ),
+            "GOVERNING LAW": (
+                f"This Policy is governed by the law of the jurisdiction stated in the Schedule. "
+                f"Disputes shall be submitted to the courts of that jurisdiction."
+            ),
+            "SANCTIONS": (
+                f"Underwriters shall not be deemed to provide cover, and shall not make any payment "
+                f"or provide any service or benefit to any Insured or any other party to the extent "
+                f"that such cover, payment, service or benefit would expose Underwriters to any "
+                f"sanction, prohibition or restriction under United Nations resolutions or the trade "
+                f"or economic sanctions, laws or regulations of the European Union, United Kingdom "
+                f"or United States of America, or any other applicable sanctions regime."
+            ),
+            "SANCTIONS EXCLUSION": (
+                f"This Policy excludes any loss, damage, liability or expense directly or indirectly "
+                f"caused by, contributed to, or arising from operations in or with any sanctioned "
+                f"territory, entity or individual under applicable law."
+            ),
+            "SEVERAL LIABILITY": (
+                f"The liability of each subscribing Underwriter under this Policy is several and not joint. "
+                f"Each Underwriter is liable only for their individual proportion as subscribed. "
+                f"The failure of any Underwriter to pay their proportion does not increase the "
+                f"liability of any other Underwriter."
+            ),
+            "INSURED": (
+                f"The Insured under this Policy is {insured_name} as stated in the Schedule, "
+                f"including all subsidiary and associated companies as may be declared and agreed "
+                f"by Underwriters.\n\n"
+                f"The interest of any mortgagee, lessor or other party having a financial interest "
+                f"in the subject matter of this insurance is noted herein subject to the applicable "
+                f"terms and conditions of this Policy."
+            ),
+            "NAMED INSURED": (
+                f"The Named Insured is {insured_name} as stated in the Schedule."
+            ),
+            "INTEREST INSURED": (
+                f"This Policy insures the interest of {insured_name} in the subject matter "
+                f"described in the Schedule.\n\n"
+                f"Coverage attaches only to those interests specifically described and valued in "
+                f"the Schedule. No coverage is afforded for interests not declared at inception."
+            ),
+            "DEFINITIONS": (
+                f"For the purposes of this Policy:\n\n"
+                f"'Insured' means {insured_name} as named in the Schedule and any subsidiary "
+                f"or associated company declared to and accepted by Underwriters.\n\n"
+                f"'Occurrence' means any one accident, event or series of accidents or events "
+                f"arising from one originating cause.\n\n"
+                f"'Period of Insurance' means the period stated in the Schedule.\n\n"
+                f"'Schedule' means the schedule attached to and forming part of this Policy.\n\n"
+                f"'Underwriters' means the insurer(s) subscribing to this Policy as identified in "
+                f"the signing provisions.\n\n"
+                f"'Written notice' means notice in writing delivered by hand, post, email or fax "
+                f"to the address of the relevant party as stated in the Schedule."
+            ),
+            "INTERPRETATION": (
+                f"In this Policy:\n\n"
+                f"(a) headings are for convenience only and shall not affect interpretation;\n"
+                f"(b) references to legislation include any amendment or re-enactment;\n"
+                f"(c) words in the singular include the plural and vice versa;\n"
+                f"(d) 'including' means 'including without limitation';\n"
+                f"(e) where a word or phrase is defined, other grammatical forms have corresponding meanings."
+            ),
+            "NOTICES": (
+                f"All notices and communications under this Policy shall be in writing and delivered "
+                f"by hand, recorded post, email or fax to the addresses set out in the Schedule.\n\n"
+                f"A notice is deemed received: (a) if delivered by hand, at the time of delivery; "
+                f"(b) if sent by post, 2 business days after posting; (c) if sent by email or fax, "
+                f"on the next business day after transmission."
+            ),
+            "SUBROGATION": (
+                f"In the event of any payment under this Policy, Underwriters shall be subrogated "
+                f"to all of the Insured's rights of recovery against any third party.\n\n"
+                f"The Insured shall execute and deliver to Underwriters all instruments and papers "
+                f"and shall do whatever else is necessary to secure such rights.\n\n"
+                f"The Insured shall take no action to prejudice Underwriters' subrogation rights."
+            ),
+            "CONTRIBUTION": (
+                f"If at the time of any loss or damage covered under this Policy there is any other "
+                f"insurance covering the same loss or damage, Underwriters shall not be liable for "
+                f"more than their rateable proportion of such loss or damage."
+            ),
+            "BASIS OF SETTLEMENT": (
+                f"In the event of a covered loss, settlement shall be made on the following basis:\n\n"
+                f"1. REINSTATEMENT: The cost of reinstating damaged property to its condition "
+                f"immediately before the loss, using materials of like kind and quality.\n\n"
+                f"2. REPLACEMENT VALUE: The cost of replacing lost or destroyed items with items "
+                f"of equivalent specification.\n\n"
+                f"3. INDEMNITY: Where reinstatement or replacement is not applicable, the actual "
+                f"cash value of the subject matter at the time of the loss.\n\n"
+                f"Settlement is subject to the applicable deductible, limit of indemnity and any "
+                f"other policy conditions."
+            ),
+            "VALUATION": (
+                f"The value of the insured property/interest for the purposes of this Policy is "
+                f"as stated in the Schedule.\n\n"
+                f"In the event of a total loss, Underwriters shall pay the agreed value stated in "
+                f"the Schedule. In the event of a partial loss, settlement shall be on an indemnity "
+                f"basis unless otherwise agreed."
+            ),
+            "REASONABLE PRECAUTIONS": (
+                f"The Insured shall take all reasonable precautions to prevent or minimise any loss, "
+                f"damage, liability or expense covered under this Policy.\n\n"
+                f"Underwriters shall not be liable for any loss, damage, liability or expense "
+                f"proximately caused by the Insured's failure to take such precautions."
+            ),
+            "DUE DILIGENCE": (
+                f"The Insured shall at all times exercise due diligence in the management of the "
+                f"insured risk and shall comply with all applicable laws, regulations and industry "
+                f"standards relevant to the conduct of their business."
+            ),
+            "FRAUD": (
+                f"If any claim under this Policy is in any respect fraudulent, or if any fraudulent "
+                f"means or devices are used by the Insured or anyone acting on their behalf to obtain "
+                f"any benefit under this Policy, all benefit under this Policy shall be forfeited."
             ),
         }
 
@@ -1562,18 +1939,41 @@ Return ONLY valid JSON:
                 )
                 continue
 
-            # Priority 2: Targeted RAG search (higher min_score to avoid irrelevant results)
+            # Priority 2: Targeted RAG search across 15 indexed datasets (149K+ vectors)
+            # This should be the PRIMARY source for most sections — datasets are gold
             rag_content = ""
             try:
+                # Pass 1: Insurance-specific tiers with moderate threshold
+                preferred_tiers = [
+                    "acord",
+                    "cuad",
+                    "insurance_qa",
+                    "jetech",
+                    "maud",
+                    "acord_forms",
+                    "mini_insurance",
+                ]
                 results = await asyncio.wait_for(
                     self.unified_rag.search(
                         query=f"{section['title']} {risk_category} insurance policy clause wording",
                         user_id=user_id,
-                        top_k=5,
-                        min_score=0.6,  # Higher threshold to avoid garbage
+                        top_k=12,
+                        min_score=0.4,  # Lower threshold to capture more dataset content
+                        source_tiers=preferred_tiers,
                     ),
                     timeout=30,
                 )
+                # Pass 2: If insurance tiers didn't return enough, widen to ALL tiers
+                if not results or len(results) < 3:
+                    results = await asyncio.wait_for(
+                        self.unified_rag.search(
+                            query=f"{section['title']} {risk_category} insurance policy clause wording",
+                            user_id=user_id,
+                            top_k=12,
+                            min_score=0.35,  # Even lower threshold for broad search
+                        ),
+                        timeout=30,
+                    )
                 # Filter out cross-category results (e.g. marine cargo in cyber policy)
                 if results and risk_category:
                     cat_lower = risk_category.lower()
@@ -1643,7 +2043,7 @@ Return ONLY valid JSON:
                         filtered if filtered else results[:1]
                     )  # Keep at least 1 result
                 rag_content = self.unified_rag.format_as_context(
-                    results, max_chars=2000
+                    results, max_chars=10000
                 )
             except Exception as e:
                 logger.warning(
@@ -1661,7 +2061,12 @@ Return ONLY valid JSON:
                     }
                 )
             else:
-                # Priority 3: Single AI call for this gap section
+                # Priority 3: AI gap-fill — LAST RESORT only when datasets have no content
+                # With 149K+ vectors, hitting this means the section is highly specialized
+                logger.warning(
+                    f"SectionDrafter: No dataset content for '{section['title']}' "
+                    f"(risk={risk_category}) — falling back to AI generation"
+                )
                 try:
                     # Build ML insight block for AI gap-fill
                     ml_gap_block = ""
@@ -1677,13 +2082,53 @@ Return ONLY valid JSON:
                             f"pricing={pricing.get('band', 'unknown')}, "
                             f"clause categories={', '.join(ml_cats)}"
                         )
+
+                    # Build adjacent sections context
+                    adj_sections_ctx = ""
+                    current_idx = None
+                    for i, s in enumerate(drafted_sections):
+                        if s.get("title") == section.get("title"):
+                            current_idx = i
+                            break
+                    if current_idx is not None:
+                        adjacent = []
+                        if current_idx > 0:
+                            prev_s = drafted_sections[current_idx - 1]
+                            adjacent.append(
+                                f"PREVIOUS SECTION: {prev_s.get('title', '')}\n{prev_s.get('content', '')[:500]}"
+                            )
+                        if current_idx < len(drafted_sections) - 1:
+                            next_s = drafted_sections[current_idx + 1]
+                            adjacent.append(
+                                f"NEXT SECTION: {next_s.get('title', '')}\n{next_s.get('content', '')[:500]}"
+                            )
+                        if adjacent:
+                            adj_sections_ctx = (
+                                "\n\n--- ADJACENT SECTIONS FOR CONSISTENCY ---\n"
+                                + "\n\n".join(adjacent)
+                            )
+
+                    # Include key assessment data for context
+                    assessment_ctx = f"""
+INSURED: {insured_name}
+RISK CATEGORY: {risk_category}
+TERRITORY: {assessment_data.get("territory", "Not specified")}
+SUM INSURED: {self._fmt_currency(assessment_data.get("sum_insured"), assessment_data.get("currency", "GBP"))}
+DEDUCTIBLE: {self._fmt_currency(assessment_data.get("deductible"), assessment_data.get("currency", "GBP"))}
+INCEPTION: {assessment_data.get("inception_date", "TBA")}
+EXPIRY: {assessment_data.get("expiry_date", "TBA")}
+"""
+
                     response = await asyncio.wait_for(
                         self._run_agent(
                             "SectionDrafter",
-                            "You are a Lloyd's insurance document drafter. Write professional insurance wording.",
+                            "You are a professional insurance document drafter. Write clear, precise wording that is consistent with the overall document structure and adjacent sections. Your output must be suitable for any insurance carrier or market.",
                             f"""Draft the '{section["title"]}' section for a {structure.get("document_type", "policy")} document.
-Risk: {risk_category}, Insured: {insured_name}, Territory: {assessment_data.get("territory", "")}, Sum Insured: {self._fmt_currency(assessment_data.get("sum_insured"), assessment_data.get("currency", "GBP"))}{ml_gap_block}
-Write concise, professional Lloyd's market standard wording.""",
+
+{assessment_ctx}{ml_gap_block}
+{adj_sections_ctx}
+
+Write professional insurance document wording appropriate for the risk category and territory. Follow standard insurance document conventions.""",
                             temperature=0.2,
                         ),
                         timeout=90,
@@ -1778,7 +2223,7 @@ Return ONLY valid JSON:
         result = await self._run_agent_json(
             "ToneUnifier",
             "You are an insurance language specialist. Ensure consistent professional tone across all document sections.",
-            f"""Review these section openings for tone consistency. Flag any that don't match professional Lloyd's market language.
+            f"""Review these section openings for tone consistency. Flag any that don't match professional insurance document language.
 
 Sections:
 {chr(10).join(f"[{s['title']}]: {s.get('content', '')[:300]}" for s in drafted_sections[:15])}
@@ -1815,12 +2260,12 @@ Return ONLY valid JSON:
         rag_context = ""
         try:
             results = await self.unified_rag.search(
-                query=f"{risk_category} insurance coverage gaps exclusions {territory} Lloyd's underwriting",
+                query=f"{risk_category} insurance coverage gaps exclusions {territory} underwriting",
                 user_id=user_id,
                 top_k=5,
                 min_score=0.3,
             )
-            rag_context = self.unified_rag.format_as_context(results, max_chars=2000)
+            rag_context = self.unified_rag.format_as_context(results, max_chars=6000)
         except Exception as e:
             logger.warning(f"RiskChallenger RAG search failed: {e}")
 
@@ -1844,7 +2289,7 @@ Use these data-driven signals to inform your risk challenge.
 
         result = await self._run_agent_json(
             "RiskChallenger",
-            "You are a senior Lloyd's underwriter reviewing a placement. Challenge the coverage adequacy and identify potential gaps or weaknesses. Use market precedents and InstantRisk Engine analysis to inform your review.",
+            "You are a senior insurance underwriter reviewing a placement. Challenge the coverage adequacy and identify potential gaps or weaknesses. Your review must be market-neutral and applicable to any underwriter or carrier.",
             f"""Challenge this insurance document's coverage adequacy.
 
 Risk: {risk_category} in {territory}
@@ -1891,7 +2336,7 @@ Return ONLY valid JSON:
         """Agent 11: ClauseVerifier — verifies clause IDs exist and wording matches standards."""
         result = await self._run_agent_json(
             "ClauseVerifier",
-            "You are a Lloyd's clause verification specialist. Verify that all referenced clause IDs are valid ACORD/LMA/ICC standard clauses.",
+            "You are an insurance clause verification specialist. Verify that all referenced clause IDs are valid ACORD/LMA/ICC standard clauses.",
             f"""Verify these clause references are valid standard clauses.
 
 Clauses used:
@@ -1924,7 +2369,7 @@ Return ONLY valid JSON:
         user_id: str = None,
         ml_context: Dict = None,
     ) -> Dict:
-        """Agent 12: ComplianceReviewer — simulates Lloyd's compliance review."""
+        """Agent 12: ComplianceReviewer — simulates insurance regulatory compliance review."""
         risk_category = assessment_data.get("risk_category", "")
         territory = assessment_data.get("territory", "")
 
@@ -1932,12 +2377,12 @@ Return ONLY valid JSON:
         rag_context = ""
         try:
             results = await self.unified_rag.search(
-                query=f"Lloyd's compliance mandatory clauses sanctions PRA FCA regulatory {territory} {risk_category}",
+                query=f"insurance compliance mandatory clauses sanctions regulatory requirements {territory} {risk_category}",
                 user_id=user_id,
                 top_k=5,
                 min_score=0.3,
             )
-            rag_context = self.unified_rag.format_as_context(results, max_chars=2000)
+            rag_context = self.unified_rag.format_as_context(results, max_chars=6000)
         except Exception as e:
             logger.warning(f"ComplianceReviewer RAG search failed: {e}")
 
@@ -1959,8 +2404,8 @@ Verify that mandatory clause categories from the ML model are present in the doc
 
         result = await self._run_agent_json(
             "ComplianceReviewer",
-            "You are a Lloyd's compliance officer. Review this document for regulatory compliance including sanctions, PRA/FCA requirements, and market standards. Use reference material and InstantRisk Engine analysis to verify requirements.",
-            f"""Review this insurance document for Lloyd's compliance.
+            "You are an insurance compliance officer. Review this document for regulatory compliance requirements applicable to the territory and risk type. Your review must be market-neutral and applicable to any insurer or carrier.",
+            f"""Review this insurance document for compliance with applicable regulations and market standards.
 
 Document sections: {", ".join(s["title"] for s in drafted_sections[:20])}
 Risk category: {risk_category}
@@ -1971,11 +2416,11 @@ Loss run reporting rules: {assessment_data.get("loss_run_reporting_rules", "N/A"
 {rag_block}{ml_block}
 
 Check for:
-1. Missing mandatory Lloyd's clauses (Several Liability, Sanctions, etc.)
-2. PRA/FCA regulatory requirements
+1. Missing mandatory clauses (several liability, sanctions, subrogation, etc.)
+2. Applicable regulatory requirements for the territory
 3. Territory-specific regulations
 4. Sanctions screening requirements
-5. Data protection / GDPR if applicable
+5. Data protection requirements if applicable
 
 Return ONLY valid JSON:
 {{
@@ -2194,7 +2639,7 @@ Return ONLY valid JSON:
 
         result = await self._run_agent_json(
             "ScheduleBuilder",
-            "You are a Lloyd's schedule and appendix specialist. Build document schedules based on the assessment data.",
+            "You are an insurance schedule and appendix specialist. Build document schedules based on the assessment data.",
             f"""Build schedules and appendices for this insurance document.
 
 Assessment:
@@ -2234,7 +2679,7 @@ Return ONLY valid JSON:
         """Agent 19: QualityGate — final checklist before export."""
         result = await self._run_agent_json(
             "QualityGate",
-            "You are the final quality gate for Lloyd's document generation. Determine if this document is ready for export.",
+            "You are the final quality gate for insurance document generation. Determine if this document is ready for export.",
             f"""Final quality check for this insurance document.
 
 Compliance: {json.dumps(compliance, default=str)[:500]}
@@ -2515,12 +2960,16 @@ Return ONLY valid JSON:
             )
             await step(5, "StructurePlanner", "completed")
 
-            await step(6, "LloydFormatter")
-            formatting = await self.agent_lloyd_formatter(structure, assessment_data)
+            await step(6, "DocumentFormatter")
+            formatting = await self.agent_document_formatter(structure, assessment_data)
             results["pipeline_steps"].append(
-                {"agent": "LloydFormatter", "status": "completed", "doc_type": doc_type}
+                {
+                    "agent": "DocumentFormatter",
+                    "status": "completed",
+                    "doc_type": doc_type,
+                }
             )
-            await step(6, "LloydFormatter", "completed")
+            await step(6, "DocumentFormatter", "completed")
 
             # ── PHASE 3: COMPOSE ──
             await step(7, "SectionDrafter")
@@ -2794,23 +3243,23 @@ Return ONLY valid JSON:
 
         clauses = [
             {
-                "clause_id": "LMA5021",
-                "name": "Several Liability Notice",
-                "relevance": "Standard Lloyd's requirement",
+                "clause_id": "SEVERAL_LIABILITY",
+                "name": "Several Liability",
+                "relevance": "Standard insurance requirement — each insurer liable for their own share only",
                 "priority": "mandatory",
                 "source": "standard",
             },
             {
-                "clause_id": "LMA5173",
-                "name": "Sanctions Limitation",
-                "relevance": "Compliance requirement",
+                "clause_id": "SANCTIONS",
+                "name": "Sanctions Limitation and Exclusion",
+                "relevance": "Compliance requirement — restricts coverage in sanctioned territories",
                 "priority": "mandatory",
                 "source": "standard",
             },
             {
                 "clause_id": "SUBROGATION",
                 "name": "Subrogation Clause",
-                "relevance": "Standard condition",
+                "relevance": "Standard condition — insurer's right to recover from third parties",
                 "priority": "mandatory",
                 "source": "standard",
             },
@@ -2821,7 +3270,7 @@ Return ONLY valid JSON:
                 {
                     "clause_id": "ICC_A",
                     "name": "Institute Cargo Clauses (A)",
-                    "relevance": "Standard marine cargo coverage",
+                    "relevance": "Standard marine cargo coverage clause",
                     "priority": "mandatory",
                     "source": "acord",
                 }
@@ -2831,13 +3280,13 @@ Return ONLY valid JSON:
             {
                 "type": "policy_wording",
                 "name": "Policy Wording",
-                "reason": "Standard policy document required",
+                "reason": "Core insurance document setting out full terms and conditions",
                 "priority": "mandatory",
             },
             {
-                "type": "mrc_slip",
-                "name": "MRC Placing Slip",
-                "reason": "Lloyd's market placement document",
+                "type": "schedule",
+                "name": "Policy Schedule",
+                "reason": "Provides specific insured details, limits, premium and key data",
                 "priority": "mandatory",
             },
         ]

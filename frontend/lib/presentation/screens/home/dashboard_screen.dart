@@ -31,6 +31,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<Map<String, dynamic>> _recentAssessments = [];
   bool _isLoadingStats = true;
 
+  // Shared With Me
+  List<Map<String, dynamic>> _sharedWithMe = [];
+  bool _isLoadingShared = true;
+
   // Subscription service for tier-based UI
   final SubscriptionService _subscriptionService = SubscriptionService();
 
@@ -55,6 +59,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return;
     }
     _fetchStats();
+    _fetchSharedWithMe();
   }
 
   Future<void> _fetchStats() async {
@@ -90,6 +95,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingStats = false);
+      }
+    }
+  }
+
+  Future<void> _fetchSharedWithMe() async {
+    try {
+      final response = await authService.get('/api/v1/shares/received');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as List? ?? [];
+        if (mounted) {
+          setState(() {
+            _sharedWithMe = data.take(5).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+            _isLoadingShared = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingShared = false);
       }
     }
   }
@@ -752,6 +776,98 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
             ),
 
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+            // Shared With Me Section
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.share_outlined, color: AppTheme.primaryDark, size: 22),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Shared With Me',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.text1(context),
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      ],
+                    ),
+                    TextButton(
+                      onPressed: () => context.go('/shared'),
+                      child: const Text(
+                        'View All',
+                        style: TextStyle(
+                          color: AppTheme.primaryDark,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Shared With Me List
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              sliver: _sharedWithMe.isEmpty && !_isLoadingShared
+                  ? SliverToBoxAdapter(
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceOf(context),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.borderOf(context)),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.share_outlined, size: 48, color: AppTheme.textH(context)),
+                            const SizedBox(height: 12),
+                            Text('No shared submissions', style: TextStyle(color: AppTheme.text2(context))),
+                            const SizedBox(height: 4),
+                            Text('Submissions shared with you will appear here', 
+                                style: TextStyle(color: AppTheme.textH(context), fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    )
+                  : SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          if (_isLoadingShared) {
+                            return const Center(
+                                child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator(),
+                            ));
+                          }
+                          final item = _sharedWithMe[index];
+                          final share = item['share'] as Map<String, dynamic>;
+                          final assessment = item['assessment'] as Map<String, dynamic>;
+                          final createdAt = DateTime.tryParse(share['created_at'] ?? '') ?? DateTime.now();
+                          return _buildSharedItem(
+                            context,
+                            title: assessment['reference_number'] ?? 'Assessment #${assessment['id']}',
+                            company: assessment['insured_name'] ?? 'Unknown',
+                            sharedBy: share['shared_by_name'] ?? 'Unknown',
+                            shareType: share['share_type'] ?? 'analysis',
+                            date: '${createdAt.day} ${_monthName(createdAt.month)} ${createdAt.year}',
+                            assessmentId: '${assessment['id']}',
+                          );
+                        },
+                        childCount: _isLoadingShared ? 1 : _sharedWithMe.length,
+                      ),
+                    ),
+            ),
+
             const SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         ),
@@ -935,6 +1051,141 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: statusColor,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSharedItem(
+    BuildContext context, {
+    required String title,
+    required String company,
+    required String sharedBy,
+    required String shareType,
+    required String date,
+    required String assessmentId,
+  }) {
+    final shareIcon = shareType == 'analysis' 
+        ? Icons.analytics_outlined 
+        : Icons.description_outlined;
+    final shareColor = shareType == 'analysis' 
+        ? AppTheme.primaryDark 
+        : AppTheme.success;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceOf(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.borderOf(context)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.go('/reports/results/$assessmentId'),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: shareColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(shareIcon, color: shareColor, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        company,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.text1(context),
+                          fontFamily: 'Inter',
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Icon(Icons.tag_rounded, size: 13, color: AppTheme.textH(context)),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              title,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.text2(context),
+                                fontFamily: 'Inter',
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Icon(Icons.person_outline_rounded, size: 11, color: AppTheme.textH(context)),
+                          const SizedBox(width: 3),
+                          Text(
+                            'Shared by $sharedBy',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textH(context),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(Icons.calendar_today_rounded, size: 11, color: AppTheme.textH(context)),
+                          const SizedBox(width: 3),
+                          Text(
+                            date,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textH(context),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: shareColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    shareType.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: shareColor,
                       letterSpacing: 0.5,
                     ),
                   ),

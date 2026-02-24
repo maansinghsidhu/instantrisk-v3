@@ -145,7 +145,11 @@ class User(Base):
 
     # Relationships
     syndicate = relationship("Syndicate", back_populates="users")
-    assessments = relationship("Assessment", back_populates="created_by_user")
+    assessments = relationship(
+        "Assessment",
+        foreign_keys="Assessment.created_by",
+        back_populates="created_by_user",
+    )
     documents = relationship("Document", back_populates="uploaded_by_user")
     upload_sessions = relationship("UploadSession", back_populates="user")
     templates = relationship("Template", back_populates="created_by_user")

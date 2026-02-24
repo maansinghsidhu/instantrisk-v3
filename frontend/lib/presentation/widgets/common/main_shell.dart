@@ -8,10 +8,6 @@ import '../../../core/services/documents_prefetch_service.dart';
 import '../../../core/services/subscription_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
-/// MainShell - Responsive navigation shell
-/// - Desktop (>1000px): Permanent sidebar on left
-/// - Tablet (600-1000px): Bottom nav with hamburger menu for overlay drawer
-/// - Mobile (<600px): Bottom navigation bar only
 class MainShell extends StatefulWidget {
   final Widget child;
 
@@ -26,15 +22,14 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  int _brokerUnreadCount = 0;
   Timer? _pollTimer;
+  int _sharedWithMeCount = 0;
 
   @override
   void initState() {
     super.initState();
-    _pollBrokerUnread();
-    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) => _pollBrokerUnread());
+    _pollSharedWithMe();
+    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) => _pollSharedWithMe());
   }
 
   @override
@@ -43,36 +38,28 @@ class _MainShellState extends State<MainShell> {
     super.dispose();
   }
 
-  Future<void> _pollBrokerUnread() async {
-    // Only fetch for underwriters/admins
-    final role = authService.user?['role'] as String?;
-    if (role != 'underwriter' && role != 'admin') return;
-
+  Future<void> _pollSharedWithMe() async {
     try {
-      final response = await authService.get('/api/v1/broker-portal/submissions/unread-count');
+      final response = await authService.get('/api/v1/shares/received/count');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final count = (data['unread_count'] as num?)?.toInt() ?? 0;
-        if (mounted && count != _brokerUnreadCount) {
-          setState(() => _brokerUnreadCount = count);
+        final count = (data['count'] as num?)?.toInt() ?? 0;
+        if (mounted && count != _sharedWithMeCount) {
+          setState(() => _sharedWithMeCount = count);
         }
       }
-    } catch (_) {
-      // Silently fail — badge will just stay at 0
-    }
+    } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
-    // Desktop: Permanent sidebar (>1000px)
     if (screenWidth > 1000) {
       return Scaffold(
         body: Row(
           children: [
-            _Sidebar(onNavigate: null, brokerUnreadCount: _brokerUnreadCount),
-            // Subtle divider between sidebar and content
+            _Sidebar(onNavigate: null, sharedWithMeCount: _sharedWithMeCount),
             Container(width: 0.5, color: AppTheme.borderOf(context).withOpacity(0.3)),
             Expanded(child: widget.child),
           ],
@@ -80,7 +67,6 @@ class _MainShellState extends State<MainShell> {
       );
     }
 
-    // Tablet/Medium: Bottom nav with hamburger menu for drawer (600-1000px)
     if (screenWidth > 600) {
       return Scaffold(
         key: _scaffoldKey,
@@ -113,7 +99,7 @@ class _MainShellState extends State<MainShell> {
         drawer: Drawer(
           child: _Sidebar(
             onNavigate: () => Navigator.of(context).pop(),
-            brokerUnreadCount: _brokerUnreadCount,
+            sharedWithMeCount: _sharedWithMeCount,
           ),
         ),
         body: widget.child,
@@ -121,7 +107,6 @@ class _MainShellState extends State<MainShell> {
       );
     }
 
-    // Mobile: Bottom navigation only (<600px)
     return Scaffold(
       body: widget.child,
       bottomNavigationBar: const _BottomNavBar(),
@@ -129,12 +114,11 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-/// Sidebar for Web/Desktop — Clean, modern, ChatGPT-inspired
 class _Sidebar extends StatelessWidget {
   final VoidCallback? onNavigate;
-  final int brokerUnreadCount;
+  final int sharedWithMeCount;
 
-  const _Sidebar({this.onNavigate, this.brokerUnreadCount = 0});
+  const _Sidebar({this.onNavigate, this.sharedWithMeCount = 0});
 
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
@@ -144,8 +128,7 @@ class _Sidebar extends StatelessWidget {
     if (location.startsWith('/training')) return 3;
     if (location.startsWith('/documents')) return 4;
     if (location.startsWith('/settings')) return 5;
-    if (location.startsWith('/underwriter/broker-submissions')) return 6;
-    if (location.startsWith('/underwriter/broker-management')) return 7;
+    if (location.startsWith('/shared')) return 6;
     return 0;
   }
 
@@ -158,13 +141,13 @@ class _Sidebar extends StatelessWidget {
       case 3: context.go('/training'); break;
       case 4: context.go('/documents'); break;
       case 5: context.go('/settings'); break;
-      case 6: context.go('/underwriter/broker-submissions'); break;
-      case 7: context.go('/underwriter/broker-management'); break;
+      case 6: context.go('/shared'); break;
     }
   }
 
   void _showSidebarUpgradeDialog(BuildContext context, String featureName) {
     onNavigate?.call();
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -172,23 +155,23 @@ class _Sidebar extends StatelessWidget {
           children: [
             Icon(Icons.lock_outline_rounded, color: Colors.amber.shade600, size: 20),
             SizedBox(width: 8),
-            Text('Premium Feature'),
+            Text(l10n.premiumFeature),
           ],
         ),
         content: Text(
-          '$featureName is available for Premium users. Upgrade your subscription to access this feature.',
+          l10n.premiumFeatureMessage(featureName),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.go('/settings/subscription');
             },
-            child: Text('Upgrade'),
+            child: Text(l10n.upgradeButton),
           ),
         ],
       ),
@@ -210,7 +193,6 @@ class _Sidebar extends StatelessWidget {
       color: sidebarBg,
       child: Column(
         children: [
-          // Logo Header
           Container(
             padding: EdgeInsets.fromLTRB(20, onNavigate != null ? 48 : 20, 20, 16),
             child: Row(
@@ -242,7 +224,6 @@ class _Sidebar extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Navigation Items
           Expanded(
             child: Builder(
               builder: (context) {
@@ -263,7 +244,7 @@ class _Sidebar extends StatelessWidget {
                       onTap: () => _onItemTapped(context, 1),
                     ),
 
-                    const _SectionLabel(label: 'ANALYTICS'),
+                    _SectionLabel(label: l10n.analyticsSection),
 
                     _SidebarItem(
                       icon: Icons.auto_awesome_outlined,
@@ -272,47 +253,36 @@ class _Sidebar extends StatelessWidget {
                       onTap: () => _onItemTapped(context, 2),
                     ),
 
-                    const _SectionLabel(label: 'DOCUMENTS'),
+                    _SectionLabel(label: l10n.documentsSection),
 
                     _SidebarItem(
                       icon: Icons.school_outlined,
-                      label: 'Training',
+                      label: l10n.trainingNav,
                       isSelected: selectedIndex == 3,
                       onTap: subscriptionService.isPremium
                           ? () => _onItemTapped(context, 3)
-                          : () => _showSidebarUpgradeDialog(context, 'Training'),
+                          : () => _showSidebarUpgradeDialog(context, l10n.trainingNav),
                       isPremium: !subscriptionService.isPremium,
                     ),
                     _SidebarItem(
                       icon: Icons.folder_outlined,
-                      label: l10n.documents,
+                      label: l10n.docsNav,
                       isSelected: selectedIndex == 4,
                       onTap: subscriptionService.isPremium
                           ? () => _onItemTapped(context, 4)
-                          : () => _showSidebarUpgradeDialog(context, 'Documents'),
+                          : () => _showSidebarUpgradeDialog(context, l10n.documents),
                       isPremium: !subscriptionService.isPremium,
                     ),
 
-                    // BROKERS section — visible only to underwriters/admins
-                    if (authService.user?['role'] == 'underwriter' ||
-                        authService.user?['role'] == 'admin') ...[
-                      const _SectionLabel(label: 'BROKERS'),
-                      _SidebarItem(
-                        icon: Icons.inbox_outlined,
-                        label: 'Submissions',
-                        isSelected: selectedIndex == 6,
-                        onTap: () => _onItemTapped(context, 6),
-                        showBadge: brokerUnreadCount > 0,
-                      ),
-                      _SidebarItem(
-                        icon: Icons.people_outline_rounded,
-                        label: 'Broker Management',
-                        isSelected: selectedIndex == 7,
-                        onTap: () => _onItemTapped(context, 7),
-                      ),
-                    ],
+                    _SidebarItem(
+                      icon: Icons.share_outlined,
+                      label: 'Shared With Me',
+                      isSelected: selectedIndex == 6,
+                      onTap: () => _onItemTapped(context, 6),
+                      showBadge: sharedWithMeCount > 0,
+                    ),
 
-                    const _SectionLabel(label: 'PREFERENCES'),
+                    _SectionLabel(label: l10n.preferencesSection),
 
                     _SidebarItem(
                       icon: Icons.tune_rounded,
@@ -326,7 +296,6 @@ class _Sidebar extends StatelessWidget {
             ),
           ),
 
-          // User Profile at bottom
           _UserProfileMenu(onNavigate: onNavigate),
         ],
       ),
@@ -464,7 +433,6 @@ class _SidebarItemState extends State<_SidebarItem> {
   }
 }
 
-/// Bottom Navigation Bar — Clean, minimal
 class _BottomNavBar extends StatelessWidget {
   const _BottomNavBar();
 
@@ -475,6 +443,7 @@ class _BottomNavBar extends StatelessWidget {
     if (location.startsWith('/training') || location.startsWith('/documents')) return 2;
     if (location.startsWith('/chat')) return 3;
     if (location.startsWith('/settings')) return 4;
+    if (location.startsWith('/shared')) return 5;
     return 0;
   }
 
@@ -485,10 +454,12 @@ class _BottomNavBar extends StatelessWidget {
       case 2: context.go('/documents'); break;
       case 3: context.go('/chat'); break;
       case 4: context.go('/settings'); break;
+      case 5: context.go('/shared'); break;
     }
   }
 
   void _showUpgradeDialog(BuildContext context, String featureName) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -496,23 +467,23 @@ class _BottomNavBar extends StatelessWidget {
           children: [
             Icon(Icons.lock_outline_rounded, color: Colors.amber.shade600, size: 20),
             const SizedBox(width: 8),
-            const Text('Premium Feature'),
+            Text(l10n?.premiumFeature ?? 'Premium Feature'),
           ],
         ),
         content: Text(
-          '$featureName is available for Premium users. Upgrade your subscription to access this feature.',
+          l10n?.premiumFeatureMessage(featureName) ?? '$featureName is available for Premium users. Upgrade your subscription to access this feature.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n?.cancel ?? 'Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.go('/settings/subscription');
             },
-            child: const Text('Upgrade'),
+            child: Text(l10n?.upgradeButton ?? 'Upgrade'),
           ),
         ],
       ),
@@ -522,6 +493,7 @@ class _BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = _calculateSelectedIndex(context);
+    final l10n = AppLocalizations.of(context);
 
     return Container(
       decoration: BoxDecoration(
@@ -558,7 +530,7 @@ class _BottomNavBar extends StatelessWidget {
                 isSelected: selectedIndex == 2,
                 onTap: subscriptionService.isPremium
                     ? () => _onItemTapped(context, 2)
-                    : () => _showUpgradeDialog(context, 'Documents'),
+                    : () => _showUpgradeDialog(context, l10n?.documents ?? 'Documents'),
                 isPremium: !subscriptionService.isPremium,
               ),
               _NavItem(
@@ -570,6 +542,13 @@ class _BottomNavBar extends StatelessWidget {
               ),
               _NavItem(
                 key: const Key('navTab_4'),
+                icon: Icons.share_outlined,
+                label: 'Shared',
+                isSelected: selectedIndex == 5,
+                onTap: () => _onItemTapped(context, 5),
+              ),
+              _NavItem(
+                key: const Key('navTab_5'),
                 icon: Icons.tune_rounded,
                 label: AppLocalizations.of(context)?.settings ?? 'Settings',
                 isSelected: selectedIndex == 4,
@@ -666,7 +645,6 @@ class _NavItem extends StatelessWidget {
   }
 }
 
-/// User Profile Menu — Clean minimal design
 class _UserProfileMenu extends StatelessWidget {
   final VoidCallback? onNavigate;
 

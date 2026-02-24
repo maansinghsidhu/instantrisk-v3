@@ -50,8 +50,8 @@ from app.routers import copilot  # Feature: Underwriter Copilot (LangChain AI gu
 from app.routers import (
     broker_comms,
 )  # Feature: Broker Communication AI (IMAP email bot)
-from app.routers import broker_portal  # Feature: Broker Portal (broker-facing portal)
 from app.routers import email_negotiation  # Feature: Email Negotiation AI
+from app.routers import submission_share  # Internal submission sharing
 from app.routers import (
     scenario_simulation,
 )  # Feature: Scenario Simulation (Monte Carlo)
@@ -419,6 +419,21 @@ async def lifespan(app: FastAPI):
             "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS accepted_by UUID REFERENCES users(id)",
             "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS declined_at TIMESTAMP WITH TIME ZONE",
             "ALTER TABLE quotes ADD COLUMN IF NOT EXISTS decline_reason TEXT",
+            # Submission Shares table (internal sharing)
+            """CREATE TABLE IF NOT EXISTS submission_shares (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    assessment_id UUID NOT NULL REFERENCES assessments(id),
+                    shared_by UUID NOT NULL REFERENCES users(id),
+                    shared_with UUID NOT NULL REFERENCES users(id),
+                    share_type VARCHAR(20) NOT NULL DEFAULT 'analysis',
+                    include_documents BOOLEAN DEFAULT TRUE NOT NULL,
+                    message VARCHAR(500),
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+                    is_revoked BOOLEAN DEFAULT FALSE NOT NULL
+                )""",
+            "CREATE INDEX IF NOT EXISTS idx_submission_shares_assessment ON submission_shares(assessment_id)",
+            "CREATE INDEX IF NOT EXISTS idx_submission_shares_shared_by ON submission_shares(shared_by)",
+            "CREATE INDEX IF NOT EXISTS idx_submission_shares_shared_with ON submission_shares(shared_with)",
         ]
         # Run each migration in its own transaction
         for sql in migrations:
@@ -823,8 +838,8 @@ ALLOWED_ORIGINS = [
 ]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TEMPORARY: Allow all origins for demo
-    allow_credentials=False,  # Must be False when using wildcard
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
@@ -1035,13 +1050,6 @@ app.include_router(
     voice.router, prefix=f"{settings.api_prefix}/voice", tags=["Voice Commands"]
 )
 
-# Broker Portal (broker-facing portal)
-app.include_router(
-    broker_portal.router,
-    prefix=f"{settings.api_prefix}/broker-portal",
-    tags=["Broker Portal"],
-)
-
 # Email Negotiation AI
 app.include_router(
     email_negotiation.router,
@@ -1061,6 +1069,13 @@ app.include_router(
     predictive_underwriting.router,
     prefix=f"{settings.api_prefix}/predictive-underwriting",
     tags=["Predictive Underwriting"],
+)
+
+# Submission Sharing (Internal)
+app.include_router(
+    submission_share.router,
+    prefix=f"{settings.api_prefix}",
+    tags=["Submission Sharing"],
 )
 
 

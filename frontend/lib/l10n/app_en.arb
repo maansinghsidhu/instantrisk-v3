@@ -2034,5 +2034,38 @@
   "getStartedNow": "Get Started",
   "@getStartedNow": {
     "description": "Get started button on onboarding"
-  }
+  },
+
+  "analyticsSection": "ANALYTICS",
+  "@analyticsSection": { "description": "Sidebar section header for analytics" },
+
+  "documentsSection": "DOCUMENTS",
+  "@documentsSection": { "description": "Sidebar section header for documents" },
+
+  "brokersSection": "BROKERS",
+  "@brokersSection": { "description": "Sidebar section header for brokers" },
+
+  "preferencesSection": "PREFERENCES",
+  "@preferencesSection": { "description": "Sidebar section header for preferences" },
+
+  "trainingNav": "Training",
+  "@trainingNav": { "description": "Navigation label for training" },
+
+  "docsNav": "Docs",
+  "@docsNav": { "description": "Navigation label for documents (short)" },
+
+  "submissionsNav": "Submissions",
+  "@submissionsNav": { "description": "Navigation label for broker submissions" },
+
+  "brokerManagementNav": "Broker Management",
+  "@brokerManagementNav": { "description": "Navigation label for broker management" },
+
+  "premiumFeature": "Premium Feature",
+  "@premiumFeature": { "description": "Dialog title for premium feature" },
+
+  "premiumFeatureMessage": "{feature} is available for Premium users. Upgrade your subscription to access this feature.",
+  "@premiumFeatureMessage": { "description": "Dialog message for premium feature" },
+
+  "upgradeButton": "Upgrade",
+  "@upgradeButton": { "description": "Upgrade button label" }
 }
