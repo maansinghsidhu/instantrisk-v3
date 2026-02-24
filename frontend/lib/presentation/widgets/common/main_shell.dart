@@ -40,7 +40,7 @@ class _MainShellState extends State<MainShell> {
 
   Future<void> _pollSharedWithMe() async {
     try {
-      final response = await authService.get('/api/v1/shares/received/count');
+      final response = await authService.get('/shares/received/count');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         final count = (data['count'] as num?)?.toInt() ?? 0;
@@ -542,17 +542,17 @@ class _BottomNavBar extends StatelessWidget {
               ),
               _NavItem(
                 key: const Key('navTab_4'),
-                icon: Icons.share_outlined,
-                label: 'Shared',
-                isSelected: selectedIndex == 5,
-                onTap: () => _onItemTapped(context, 5),
-              ),
-              _NavItem(
-                key: const Key('navTab_5'),
                 icon: Icons.tune_rounded,
                 label: AppLocalizations.of(context)?.settings ?? 'Settings',
                 isSelected: selectedIndex == 4,
                 onTap: () => _onItemTapped(context, 4),
+              ),
+              _NavItem(
+                key: const Key('navTab_5'),
+                icon: Icons.share_outlined,
+                label: 'Shared',
+                isSelected: selectedIndex == 5,
+                onTap: () => _onItemTapped(context, 5),
               ),
             ],
           ),

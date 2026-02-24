@@ -81,11 +81,9 @@ class UnifiedRAG:
             ("cuad", self._search_cuad),
             ("jetech", self._search_jetech),
             ("ledgar", self._search_ledgar),
-            ("maud", self._search_maud),
             ("insurance_qa", self._search_insurance_qa),
             ("contract_nli", self._search_contract_nli),
             ("snorkel", self._search_snorkel),
-            ("bitext", self._search_bitext),
             ("acord_forms", self._search_acord_forms),
             ("mini_insurance", self._search_mini_insurance),
             ("global", self._search_global),
@@ -123,20 +121,15 @@ class UnifiedRAG:
                     logger.warning(f"Search tier '{tier_name}' failed: {e}")
             return all_results
 
-        # source_tiers=None: guaranteed allocation so RAG datasets always contribute
-        # User docs: at most 1 result (so they add context without dominating)
-        # Each RAG tier: 1 result each (11 tiers = up to 11 RAG results)
-        # After collecting, re-rank by score and cap at top_k
+        # 9 curated insurance datasets (maud and bitext removed)
         RAG_TIERS = {
             "acord",
             "cuad",
             "jetech",
             "ledgar",
-            "maud",
             "insurance_qa",
             "contract_nli",
             "snorkel",
-            "bitext",
             "acord_forms",
             "mini_insurance",
         }
@@ -272,21 +265,6 @@ class UnifiedRAG:
             for r in results
         ]
 
-    async def _search_maud(
-        self, query: str, user_id: str = None, category: str = None, limit: int = 5
-    ) -> List[Dict]:
-        """Tier 6: Search MAUD merger agreement clauses (25K records)."""
-        results = self.rag_indexer.search(query=query, top_k=limit, doc_type="maud")
-        return [
-            {
-                "text": r.get("text", ""),
-                "source": "maud",
-                "category": r.get("category", ""),
-                "score": r.get("score", 0),
-            }
-            for r in results
-        ]
-
     async def _search_insurance_qa(
         self, query: str, user_id: str = None, category: str = None, limit: int = 5
     ) -> List[Dict]:
@@ -341,24 +319,6 @@ class UnifiedRAG:
             for r in results
         ]
 
-    async def _search_bitext(
-        self, query: str, user_id: str = None, category: str = None, limit: int = 5
-    ) -> List[Dict]:
-        """Tier 10: Search Bitext insurance intent dataset."""
-        results = self.rag_indexer.search(
-            query=query, top_k=limit, doc_type="bitext_intents"
-        )
-        return [
-            {
-                "text": r.get("text", ""),
-                "source": "bitext_intents",
-                "category": r.get("category", ""),
-                "name": r.get("name", ""),
-                "score": r.get("score", 0),
-            }
-            for r in results
-        ]
-
     async def _search_acord_forms(
         self, query: str, user_id: str = None, category: str = None, limit: int = 5
     ) -> List[Dict]:
@@ -406,11 +366,9 @@ class UnifiedRAG:
             "cuad",
             "underwriting_block",
             "ledgar",
-            "maud",
             "insurance_qa",
             "contract_nli",
             "snorkel_underwriting",
-            "bitext_intents",
             "acord_forms",
             "mini_insurance",
         }
@@ -451,19 +409,46 @@ class UnifiedRAG:
 
         return "\n\n---\n\n".join(parts)
 
+    def format_as_section_content(
+        self, results: List[Dict], max_chars: int = 8000
+    ) -> str:
+        """Format RAG results as clean section content for direct embedding in documents.
 
-# Source tier display labels
+        Unlike format_as_context(), this returns ONLY the clause/provision text
+        with NO metadata headers, source labels, or relevance scores.
+        The text goes directly into the generated document section.
+        """
+        if not results:
+            return ""
+
+        parts = []
+        total_chars = 0
+
+        for r in results:
+            text = (r.get("text", "") or "").strip()
+            if not text or len(text) < 50:
+                continue
+            if total_chars + len(text) > max_chars:
+                remaining = max_chars - total_chars
+                if remaining > 200:
+                    parts.append(text[:remaining].rsplit(" ", 1)[0])
+                break
+            parts.append(text)
+            total_chars += len(text)
+
+        return "\n\n".join(parts)
+
+
+# Source tier display labels (9 curated datasets)
 _TIER_LABELS = {
     "user": "Your Uploaded Documents",
     "acord": "ACORD Standard Clause",
     "cuad": "CUAD Contract Library",
     "jetech": "JETech Underwriting",
     "ledgar": "LEDGAR SEC Provisions",
-    "maud": "MAUD Merger Agreements",
     "insurance_qa": "Insurance Q&A",
     "contract_nli": "Contract NLI Clauses",
     "snorkel": "Underwriting Conversations",
-    "bitext": "Insurance Intent Data",
     "acord_forms": "ACORD Form Specifications",
     "mini_insurance": "Mini Insurance Dataset",
     "global": "Insurance Knowledge Base",

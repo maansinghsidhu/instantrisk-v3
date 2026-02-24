@@ -544,16 +544,17 @@ class AppRouter {
               ),
             ],
           ),
+
+          GoRoute(
+            path: '/shared',
+            name: 'sharedWithMe',
+            pageBuilder: (context, state) => NoTransitionPage(
+              child: SharedWithMeScreen(),
+            ),
+          ),
         ],
       ),
-
-      GoRoute(
-        path: '/shared',
-        name: 'sharedWithMe',
-        pageBuilder: (context, state) => NoTransitionPage(
-          child: SharedWithMeScreen(),
-        ),
-      ),
+    ],
 
       errorBuilder: (context, state) => Scaffold(
         body: Center(

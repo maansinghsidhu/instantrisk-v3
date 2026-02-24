@@ -434,6 +434,9 @@ async def lifespan(app: FastAPI):
             "CREATE INDEX IF NOT EXISTS idx_submission_shares_assessment ON submission_shares(assessment_id)",
             "CREATE INDEX IF NOT EXISTS idx_submission_shares_shared_by ON submission_shares(shared_by)",
             "CREATE INDEX IF NOT EXISTS idx_submission_shares_shared_with ON submission_shares(shared_with)",
+            # v133: Remove maud (M&A) and bitext_intents (chatbot) vectors from pgvector.
+            # These datasets contaminate insurance document sections with irrelevant text.
+            "DELETE FROM rag_vectors WHERE doc_type IN ('maud', 'bitext_intents')",
         ]
         # Run each migration in its own transaction
         for sql in migrations:

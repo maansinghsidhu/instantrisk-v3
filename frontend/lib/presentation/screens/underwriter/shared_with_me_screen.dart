@@ -19,7 +19,7 @@ class _SharedWithMeScreenState extends State<SharedWithMeScreen> {
 
   Future<void> _fetchShares() async {
     try {
-      final response = await authService.get('/api/v1/shares/received');
+      final response = await authService.get('/shares/received');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as List? ?? [];
         if (mounted) {
@@ -62,10 +62,7 @@ class _SharedWithMeScreenState extends State<SharedWithMeScreen> {
       appBar: AppBar(
         backgroundColor: AppTheme.surfaceOf(context),
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: AppTheme.text1(context)),
-          onPressed: () => context.pop(),
-        ),
+        automaticallyImplyLeading: false,
         title: Text(
           'Shared With Me',
           style: TextStyle(
@@ -92,7 +89,8 @@ class _SharedWithMeScreenState extends State<SharedWithMeScreen> {
                         const SizedBox(height: 16),
                         Text(
                           _errorMessage!,
-                          style: TextStyle(color: AppTheme.text1(context), textAlign: TextAlign.center),
+                          style: TextStyle(color: AppTheme.text1(context)),
+                          textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
                         ElevatedButton(
@@ -130,8 +128,8 @@ class _SharedWithMeScreenState extends State<SharedWithMeScreen> {
                               style: TextStyle(
                                 color: AppTheme.text2(context),
                                 fontSize: 14,
-                                textAlign: TextAlign.center,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),
@@ -175,7 +173,7 @@ class _SharedWithMeScreenState extends State<SharedWithMeScreen> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: shareColor.withValues(alpha: 0.1),
+                        color: shareColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(shareIcon, color: shareColor, size: 22),
@@ -208,7 +206,7 @@ class _SharedWithMeScreenState extends State<SharedWithMeScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: shareColor.withValues(alpha: 0.1),
+                        color: shareColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -254,7 +252,7 @@ class _SharedWithMeScreenState extends State<SharedWithMeScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceVariantOf(context),
+                      color: AppTheme.cardAltOf(context),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(

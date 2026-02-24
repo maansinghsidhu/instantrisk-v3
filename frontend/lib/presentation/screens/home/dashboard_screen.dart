@@ -101,7 +101,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _fetchSharedWithMe() async {
     try {
-      final response = await authService.get('/api/v1/shares/received');
+      final response = await authService.get('/shares/received');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as List? ?? [];
         if (mounted) {

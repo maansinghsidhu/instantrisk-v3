@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'dart:convert';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -27,7 +28,7 @@ class _ShareSubmissionScreenState extends State<ShareSubmissionScreen> {
   bool _includeDocuments = true;
 
   Future<Map<String, dynamic>> _fetchAssessment() async {
-    final response = await authService.get('/api/v1/assessments/${widget.assessmentId}');
+    final response = await authService.get('/assessments/${widget.assessmentId}');
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     }
@@ -37,7 +38,7 @@ class _ShareSubmissionScreenState extends State<ShareSubmissionScreen> {
   Future<List<UserSearchResult>> _searchUsers(String query) async {
     if (query.isEmpty) return [];
     try {
-      final response = await authService.get('/api/v1/shares/users/search?q=${Uri.encodeComponent(query)}');
+      final response = await authService.get('/shares/users/search?q=${Uri.encodeComponent(query)}');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as List<dynamic>;
         return data.map((e) => UserSearchResult.fromJson(e as Map<String, dynamic>)).toList();
@@ -66,13 +67,9 @@ class _ShareSubmissionScreenState extends State<ShareSubmissionScreen> {
         if (_messageController.text.isNotEmpty) 'message': _messageController.text,
       };
 
-      final response = await http.post(
-        Uri.parse('${authService.baseUrl}/api/v1/shares'),
-        headers: {
-          'Authorization': 'Bearer ${authService.token}',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(body),
+      final response = await authService.post(
+        '/shares',
+        body: body,
       );
 
       if (response.statusCode == 201) {
@@ -159,7 +156,7 @@ class _ShareSubmissionScreenState extends State<ShareSubmissionScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceVariantOf(context),
+        color: AppTheme.cardAltOf(context),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -296,24 +293,26 @@ class _ShareSubmissionScreenState extends State<ShareSubmissionScreen> {
         ),
         const SizedBox(height: 12),
         TypeAheadField<UserSearchResult>(
-          textFieldConfiguration: TextFieldConfiguration(
-            controller: _userSearchController,
+          controller: _userSearchController,
+          builder: (context, controller, focusNode) => TextField(
+            controller: controller,
+            focusNode: focusNode,
+            onChanged: (value) async {
+              final results = await _searchUsers(value);
+              setState(() => _searchResults = results);
+            },
             decoration: InputDecoration(
               hintText: 'Search by name or email...',
               hintStyle: TextStyle(color: AppTheme.textH(context)),
               prefixIcon: Icon(Icons.search_rounded, color: AppTheme.textH(context)),
               filled: true,
-              fillColor: AppTheme.surfaceVariantOf(context),
+              fillColor: AppTheme.cardAltOf(context),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide.none,
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
-            onChanged: (value) async {
-              final results = await _searchUsers(value);
-              setState(() => _searchResults = results);
-            },
           ),
           suggestionsCallback: (pattern) async {
             return await _searchUsers(pattern);
@@ -342,7 +341,7 @@ class _ShareSubmissionScreenState extends State<ShareSubmissionScreen> {
               ),
             );
           },
-          onSuggestionSelected: (suggestion) {
+          onSelected: (suggestion) {
             setState(() {
               _selectedUser = suggestion;
               _userSearchController.text = suggestion.fullName.isEmpty 
@@ -360,7 +359,7 @@ class _ShareSubmissionScreenState extends State<ShareSubmissionScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceVariantOf(context),
+        color: AppTheme.cardAltOf(context),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -411,7 +410,7 @@ class _ShareSubmissionScreenState extends State<ShareSubmissionScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceVariantOf(context),
+        color: AppTheme.cardAltOf(context),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -454,7 +453,7 @@ class _ShareSubmissionScreenState extends State<ShareSubmissionScreen> {
             hintText: 'Add a note for the recipient...',
             hintStyle: TextStyle(color: AppTheme.textH(context)),
             filled: true,
-            fillColor: AppTheme.surfaceVariantOf(context),
+            fillColor: AppTheme.cardAltOf(context),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide.none,

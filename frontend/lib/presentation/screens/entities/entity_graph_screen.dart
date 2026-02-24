@@ -39,7 +39,7 @@ class _EntityGraphScreenState extends State<EntityGraphScreen> {
     setState(() => _isLoading = true);
     try {
       final response = await authService.get(
-        '/api/v1/entities/related/${widget.assessmentId}',
+        '/entities/related/${widget.assessmentId}',
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;

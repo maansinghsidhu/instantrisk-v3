@@ -34,7 +34,9 @@ BATCH_SIZE = 100
 S3_TRAINING_BUCKET = "instantrisk-pipeline-artifacts-995306061991"
 S3_TRAINING_PREFIX = "training-data/"
 
-# All 11 real datasets (6 original + 5 previously missing)
+# 9 curated insurance datasets.
+# Removed: maud.jsonl (M&A merger clauses — wrong domain) and
+#           bitext_intents.jsonl (chatbot intents — useless for doc drafting)
 RAG_SOURCES = [
     {
         "path": TRAINING_DATA_DIR / "embeddings/acord_clauses.jsonl",
@@ -57,19 +59,8 @@ RAG_SOURCES = [
         "text_field": "text",
     },
     {
-        "path": TRAINING_DATA_DIR / "embeddings/maud.jsonl",
-        "type": "maud",
-        "text_field": "text",
-    },
-    {
         "path": TRAINING_DATA_DIR / "embeddings/insurance_qa.jsonl",
         "type": "insurance_qa",
-        "text_field": "text",
-    },
-    # --- 5 previously missing datasets (pre-computed NPZ available) ---
-    {
-        "path": TRAINING_DATA_DIR / "embeddings/bitext_intents.jsonl",
-        "type": "bitext_intents",
         "text_field": "text",
     },
     {

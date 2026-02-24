@@ -1,15 +1,21 @@
 """
 InstantRisk Engine - Comprehensive Clauses Library Service
 
-Provides access to 11,000+ insurance and contract clauses from multiple sources:
-- CUAD: Contract clauses with 41 clause types
-- LEDGAR: Contract provisions in 100 categories
-- ContractNLI: NLI clauses
+Provides access to insurance and contract clauses from pgvector (primary)
+or file-based sources (fallback).
+
+Sources indexed in pgvector via rag_indexer:
+- ACORD: Standard insurance clause wording (16,678 clauses)
+- jetech: Insurance contract blocks (48,943 blocks)
+- LEDGAR: Contract provisions in 100 categories (80,000 provisions)
+- CUAD: Contract clauses with 41 types (508 clauses)
+- ContractNLI: NLI contract clauses (10,319 clauses)
+- acord_forms: ACORD form data (747 forms)
 
 Features:
-- Fast in-memory indexing for quick search
-- Category-based browsing (100+ categories)
-- Full-text search across all clauses
+- Primary: pgvector semantic search (149K+ vectors)
+- Fallback: file-based keyword search if pgvector unavailable
+- Category-based browsing
 - Pagination for large result sets
 - Line of business filtering
 """
@@ -29,6 +35,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Clause:
     """Represents a single clause from any source."""
+
     id: str
     name: str
     text: str
@@ -56,60 +63,160 @@ class ClausesLibraryService:
 
     # LEDGAR label to category mapping (100 categories)
     LEDGAR_CATEGORIES = {
-        0: "Adjustments", 1: "Agreements", 2: "Amendments", 3: "Anti-Corruption",
-        4: "Arbitration", 5: "Assignments", 6: "Audits", 7: "Authorized Representative",
-        8: "Base Salary", 9: "Benefits", 10: "Binding", 11: "Board Composition",
-        12: "Board Meetings", 13: "Books And Records", 14: "Brokers",
-        15: "Business Combination", 16: "Buyout", 17: "Cap On Liability",
-        18: "Change Of Control", 19: "Choice Of Law", 20: "Closing Date",
-        21: "Closing Deliveries", 22: "Compliance", 23: "Conditions Precedent",
-        24: "Confidentiality", 25: "Consent Rights", 26: "Consideration",
-        27: "Covenants", 28: "Definitions", 29: "Disclosure", 30: "Disputes",
-        31: "Drag Along", 32: "Effectiveness", 33: "Employment",
-        34: "Entire Agreement", 35: "Equity", 36: "Escrow", 37: "Events Of Default",
-        38: "Exclusivity", 39: "Execution", 40: "Exercise Period", 41: "Expenses",
-        42: "Fee", 43: "Financial Reporting", 44: "Financing", 45: "Force Majeure",
-        46: "Further Assurances", 47: "General Provisions", 48: "Good Faith",
-        49: "Governing Law", 50: "Guarantees", 51: "Holdback", 52: "IP Rights",
-        53: "Indemnification", 54: "Information Rights", 55: "Insurance",
-        56: "Interest", 57: "Jurisdiction", 58: "Knowledge", 59: "Lease",
-        60: "Limitation Of Liability", 61: "Liquidated Damages", 62: "Liquidity",
-        63: "Litigation", 64: "Material Adverse Change", 65: "Milestones",
-        66: "Miscellaneous", 67: "Non-Compete", 68: "Non-Solicitation",
-        69: "Notice", 70: "Participation", 71: "Payment Terms", 72: "Penalties",
-        73: "Performance", 74: "Preemptive Rights", 75: "Price", 76: "Publicity",
-        77: "Purchase And Sale", 78: "Recitals", 79: "Redemption", 80: "Registration Rights",
-        81: "Remedies", 82: "Renewal", 83: "Representations", 84: "Resignation",
-        85: "Restrictive Covenants", 86: "Rights", 87: "Risk Of Loss",
-        88: "Severability", 89: "Shareholder Rights", 90: "Stock Options",
-        91: "Subordination", 92: "Survival", 93: "Tag Along", 94: "Taxes",
-        95: "Term", 96: "Termination", 97: "Third Party Rights", 98: "Transfer",
-        99: "Warranties"
+        0: "Adjustments",
+        1: "Agreements",
+        2: "Amendments",
+        3: "Anti-Corruption",
+        4: "Arbitration",
+        5: "Assignments",
+        6: "Audits",
+        7: "Authorized Representative",
+        8: "Base Salary",
+        9: "Benefits",
+        10: "Binding",
+        11: "Board Composition",
+        12: "Board Meetings",
+        13: "Books And Records",
+        14: "Brokers",
+        15: "Business Combination",
+        16: "Buyout",
+        17: "Cap On Liability",
+        18: "Change Of Control",
+        19: "Choice Of Law",
+        20: "Closing Date",
+        21: "Closing Deliveries",
+        22: "Compliance",
+        23: "Conditions Precedent",
+        24: "Confidentiality",
+        25: "Consent Rights",
+        26: "Consideration",
+        27: "Covenants",
+        28: "Definitions",
+        29: "Disclosure",
+        30: "Disputes",
+        31: "Drag Along",
+        32: "Effectiveness",
+        33: "Employment",
+        34: "Entire Agreement",
+        35: "Equity",
+        36: "Escrow",
+        37: "Events Of Default",
+        38: "Exclusivity",
+        39: "Execution",
+        40: "Exercise Period",
+        41: "Expenses",
+        42: "Fee",
+        43: "Financial Reporting",
+        44: "Financing",
+        45: "Force Majeure",
+        46: "Further Assurances",
+        47: "General Provisions",
+        48: "Good Faith",
+        49: "Governing Law",
+        50: "Guarantees",
+        51: "Holdback",
+        52: "IP Rights",
+        53: "Indemnification",
+        54: "Information Rights",
+        55: "Insurance",
+        56: "Interest",
+        57: "Jurisdiction",
+        58: "Knowledge",
+        59: "Lease",
+        60: "Limitation Of Liability",
+        61: "Liquidated Damages",
+        62: "Liquidity",
+        63: "Litigation",
+        64: "Material Adverse Change",
+        65: "Milestones",
+        66: "Miscellaneous",
+        67: "Non-Compete",
+        68: "Non-Solicitation",
+        69: "Notice",
+        70: "Participation",
+        71: "Payment Terms",
+        72: "Penalties",
+        73: "Performance",
+        74: "Preemptive Rights",
+        75: "Price",
+        76: "Publicity",
+        77: "Purchase And Sale",
+        78: "Recitals",
+        79: "Redemption",
+        80: "Registration Rights",
+        81: "Remedies",
+        82: "Renewal",
+        83: "Representations",
+        84: "Resignation",
+        85: "Restrictive Covenants",
+        86: "Rights",
+        87: "Risk Of Loss",
+        88: "Severability",
+        89: "Shareholder Rights",
+        90: "Stock Options",
+        91: "Subordination",
+        92: "Survival",
+        93: "Tag Along",
+        94: "Taxes",
+        95: "Term",
+        96: "Termination",
+        97: "Third Party Rights",
+        98: "Transfer",
+        99: "Warranties",
     }
 
     # CUAD clause types (41 types)
     CUAD_TYPES = [
-        "Document Name", "Parties", "Agreement Date", "Effective Date",
-        "Expiration Date", "Renewal Term", "Notice Period To Terminate Renewal",
-        "Governing Law", "Most Favored Nation", "Non-Compete",
-        "Exclusivity", "No-Solicit Of Customers", "Competitive Restriction Exception",
-        "No-Solicit Of Employees", "Non-Disparagement", "Termination For Convenience",
-        "Rofr/Rofo/Rofn", "Change Of Control", "Anti-Assignment",
-        "Revenue/Profit Sharing", "Price Restrictions", "Minimum Commitment",
-        "Volume Restriction", "Ip Ownership Assignment", "Joint Ip Ownership",
-        "License Grant", "Non-Transferable License", "Affiliate License-Licensor",
-        "Affiliate License-Licensee", "Unlimited/All-You-Can-Eat-License",
-        "Irrevocable Or Perpetual License", "Source Code Escrow",
-        "Post-Termination Services", "Audit Rights", "Uncapped Liability",
-        "Cap On Liability", "Liquidated Damages", "Warranty Duration",
-        "Insurance", "Covenant Not To Sue", "Third Party Beneficiary"
+        "Document Name",
+        "Parties",
+        "Agreement Date",
+        "Effective Date",
+        "Expiration Date",
+        "Renewal Term",
+        "Notice Period To Terminate Renewal",
+        "Governing Law",
+        "Most Favored Nation",
+        "Non-Compete",
+        "Exclusivity",
+        "No-Solicit Of Customers",
+        "Competitive Restriction Exception",
+        "No-Solicit Of Employees",
+        "Non-Disparagement",
+        "Termination For Convenience",
+        "Rofr/Rofo/Rofn",
+        "Change Of Control",
+        "Anti-Assignment",
+        "Revenue/Profit Sharing",
+        "Price Restrictions",
+        "Minimum Commitment",
+        "Volume Restriction",
+        "Ip Ownership Assignment",
+        "Joint Ip Ownership",
+        "License Grant",
+        "Non-Transferable License",
+        "Affiliate License-Licensor",
+        "Affiliate License-Licensee",
+        "Unlimited/All-You-Can-Eat-License",
+        "Irrevocable Or Perpetual License",
+        "Source Code Escrow",
+        "Post-Termination Services",
+        "Audit Rights",
+        "Uncapped Liability",
+        "Cap On Liability",
+        "Liquidated Damages",
+        "Warranty Duration",
+        "Insurance",
+        "Covenant Not To Sue",
+        "Third Party Beneficiary",
     ]
 
     def __init__(self):
         self._clauses: List[Clause] = []
         self._categories: Dict[str, int] = defaultdict(int)  # category -> count
         self._sources: Dict[str, int] = defaultdict(int)  # source -> count
-        self._index: Dict[str, List[int]] = defaultdict(list)  # keyword -> clause indices
+        self._index: Dict[str, List[int]] = defaultdict(
+            list
+        )  # keyword -> clause indices
         self._loaded = False
 
     def load_all(self) -> None:
@@ -155,7 +262,7 @@ class ClausesLibraryService:
                     line_of_business=clause_data.get("line_of_business", "all"),
                     is_exclusion=clause_data.get("is_exclusion", False),
                     is_mandatory=False,  # No mandatory clauses - all recommendations are based on relevance
-                    keywords=self._extract_keywords(clause_data.get("text", ""))
+                    keywords=self._extract_keywords(clause_data.get("text", "")),
                 )
                 self._clauses.append(clause)
                 self._categories[clause.category] += 1
@@ -167,7 +274,9 @@ class ClausesLibraryService:
 
     def _load_ledgar_clauses(self) -> None:
         """Load LEDGAR clauses (80,000 provisions in 100 categories)."""
-        ledgar_path = os.path.join(self.INSURANCE_DATA_PATH, "contract_clauses", "ledgar")
+        ledgar_path = os.path.join(
+            self.INSURANCE_DATA_PATH, "contract_clauses", "ledgar"
+        )
 
         for filename in ["train.json", "validation.json", "test.json"]:
             filepath = os.path.join(ledgar_path, filename)
@@ -184,7 +293,9 @@ class ClausesLibraryService:
                         label = data.get("label", 0)
 
                         # Map label to category
-                        category = self.LEDGAR_CATEGORIES.get(label, f"Category_{label}")
+                        category = self.LEDGAR_CATEGORIES.get(
+                            label, f"Category_{label}"
+                        )
 
                         # Generate unique ID
                         clause_id = f"ledgar_{hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()[:12]}"
@@ -192,11 +303,13 @@ class ClausesLibraryService:
                         clause = Clause(
                             id=clause_id,
                             name=f"{category} Provision",
-                            text=text[:2000] if len(text) > 2000 else text,  # Limit text length
+                            text=text[:2000]
+                            if len(text) > 2000
+                            else text,  # Limit text length
                             category=category.lower().replace(" ", "_"),
                             source="ledgar",
                             clause_type=category,
-                            keywords=self._extract_keywords(text[:500])
+                            keywords=self._extract_keywords(text[:500]),
                         )
                         self._clauses.append(clause)
                         self._categories[clause.category] += 1
@@ -244,7 +357,11 @@ class ClausesLibraryService:
                                 if ct.lower() in question.lower():
                                     clause_type = ct
                                     break
-                            name = f"{clause_type} - {title[:50]}" if title else clause_type
+                            name = (
+                                f"{clause_type} - {title[:50]}"
+                                if title
+                                else clause_type
+                            )
 
                         if not text:
                             continue
@@ -256,10 +373,12 @@ class ClausesLibraryService:
                             id=clause_id,
                             name=name,
                             text=text[:2000] if len(text) > 2000 else text,
-                            category=clause_type.lower().replace(" ", "_").replace("/", "_"),
+                            category=clause_type.lower()
+                            .replace(" ", "_")
+                            .replace("/", "_"),
                             source="cuad",
                             clause_type=clause_type,
-                            keywords=self._extract_keywords(text[:500])
+                            keywords=self._extract_keywords(text[:500]),
                         )
                         self._clauses.append(clause)
                         self._categories[clause.category] += 1
@@ -276,7 +395,9 @@ class ClausesLibraryService:
 
     def _load_contract_nli_clauses(self) -> None:
         """Load ContractNLI clauses (10,319 clauses)."""
-        nli_path = os.path.join(self.INSURANCE_DATA_PATH, "contract_clauses", "contract_nli")
+        nli_path = os.path.join(
+            self.INSURANCE_DATA_PATH, "contract_clauses", "contract_nli"
+        )
 
         for filename in ["train.json", "dev.json", "test.json", "train_full.json"]:
             filepath = os.path.join(nli_path, filename)
@@ -296,7 +417,9 @@ class ClausesLibraryService:
                             text = data.get("text", "")
                             category = data.get("category", "general")
                             label = data.get("label", "")
-                            name = data.get("name", f"Contract NLI - {category.title()}")
+                            name = data.get(
+                                "name", f"Contract NLI - {category.title()}"
+                            )
                         else:
                             # Original format: sentence1, sentence2, gold_label
                             sentence1 = data.get("sentence1", "")
@@ -319,7 +442,7 @@ class ClausesLibraryService:
                             category=category,
                             source="contract_nli",
                             clause_type=label,
-                            keywords=self._extract_keywords(text[:500])
+                            keywords=self._extract_keywords(text[:500]),
                         )
                         self._clauses.append(clause)
                         self._categories[clause.category] += 1
@@ -353,19 +476,27 @@ class ClausesLibraryService:
                     with open(filepath, "r", encoding="utf-8") as f:
                         data = json.load(f)
 
-                    source_category = data.get("type", data.get("category", filename.replace(".json", "")))
+                    source_category = data.get(
+                        "type", data.get("category", filename.replace(".json", ""))
+                    )
 
                     for clause_data in data.get("clauses", []):
                         clause = Clause(
-                            id=clause_data.get("id", f"tmpl_{hashlib.md5(str(clause_data).encode(), usedforsecurity=False).hexdigest()[:12]}"),
+                            id=clause_data.get(
+                                "id",
+                                f"tmpl_{hashlib.md5(str(clause_data).encode(), usedforsecurity=False).hexdigest()[:12]}",
+                            ),
                             name=clause_data.get("name", ""),
                             text=clause_data.get("text", ""),
                             category=source_category,
                             source="templates",
                             typical_use=clause_data.get("typical_use"),
                             line_of_business=clause_data.get("line_of_business"),
-                            is_exclusion="exclusion" in clause_data.get("name", "").lower(),
-                            keywords=self._extract_keywords(clause_data.get("text", ""))
+                            is_exclusion="exclusion"
+                            in clause_data.get("name", "").lower(),
+                            keywords=self._extract_keywords(
+                                clause_data.get("text", "")
+                            ),
                         )
                         self._clauses.append(clause)
                         self._categories[clause.category] += 1
@@ -383,19 +514,63 @@ class ClausesLibraryService:
 
         # Common legal/insurance terms to look for
         legal_terms = {
-            "liability", "indemnification", "termination", "confidential", "warranty",
-            "insurance", "coverage", "exclusion", "premium", "claim", "loss",
-            "damage", "policy", "insured", "insurer", "underwriter", "broker",
-            "risk", "peril", "deductible", "limit", "aggregate", "occurrence",
-            "negligence", "breach", "contract", "agreement", "party", "parties",
-            "obligation", "duty", "rights", "remedy", "dispute", "arbitration",
-            "jurisdiction", "governing", "law", "notice", "consent", "assignment",
-            "sanction", "compliance", "regulation", "statutory", "cyber", "terrorism",
-            "war", "nuclear", "pollution", "asbestos", "pandemic", "epidemic"
+            "liability",
+            "indemnification",
+            "termination",
+            "confidential",
+            "warranty",
+            "insurance",
+            "coverage",
+            "exclusion",
+            "premium",
+            "claim",
+            "loss",
+            "damage",
+            "policy",
+            "insured",
+            "insurer",
+            "underwriter",
+            "broker",
+            "risk",
+            "peril",
+            "deductible",
+            "limit",
+            "aggregate",
+            "occurrence",
+            "negligence",
+            "breach",
+            "contract",
+            "agreement",
+            "party",
+            "parties",
+            "obligation",
+            "duty",
+            "rights",
+            "remedy",
+            "dispute",
+            "arbitration",
+            "jurisdiction",
+            "governing",
+            "law",
+            "notice",
+            "consent",
+            "assignment",
+            "sanction",
+            "compliance",
+            "regulation",
+            "statutory",
+            "cyber",
+            "terrorism",
+            "war",
+            "nuclear",
+            "pollution",
+            "asbestos",
+            "pandemic",
+            "epidemic",
         }
 
         # Extract words and find matches
-        words = re.findall(r'\b[a-zA-Z]{4,}\b', text.lower())
+        words = re.findall(r"\b[a-zA-Z]{4,}\b", text.lower())
         keywords = []
         seen = set()
 
@@ -448,6 +623,181 @@ class ClausesLibraryService:
             # Index by source
             self._index[f"src:{clause.source}"].append(idx)
 
+    # ---- pgvector fallback methods ----
+
+    def _use_pgvector(self) -> bool:
+        """Return True if file-based library is empty and pgvector should be used."""
+        self.load_all()
+        return len(self._clauses) == 0
+
+    # Doc types that contain real clause/contract wording suitable for documents.
+    # insurance_qa, mini_insurance, snorkel_underwriting, contract_nli are
+    # context-only datasets and must NEVER appear in document section content.
+    DOCUMENT_DOC_TYPES = {"acord", "jetech", "ledgar", "cuad", "acord_forms"}
+
+    def _pgvector_search(
+        self,
+        query: Optional[str] = None,
+        category: Optional[str] = None,
+        source: Optional[str] = None,
+        line_of_business: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> Tuple[List[Dict[str, Any]], int]:
+        """
+        Search clauses via pgvector when file-based library is empty.
+        Uses RAGIndexer.search() which is synchronous.
+
+        IMPORTANT: Only searches document-appropriate datasets (acord, jetech,
+        ledgar, cuad, acord_forms). Context-only datasets (insurance_qa,
+        mini_insurance, snorkel_underwriting, contract_nli) are excluded.
+        """
+        try:
+            from app.services.rag_indexer import rag_indexer
+        except Exception as e:
+            logger.warning(f"Could not import rag_indexer for clause search: {e}")
+            return [], 0
+
+        # Build query from available params
+        search_query = query or category or line_of_business or "insurance clause"
+
+        # Map source filter to pgvector doc_type
+        doc_type_map = {
+            "lma": "acord",
+            "acord": "acord",
+            "cuad": "cuad",
+            "ledgar": "ledgar",
+            "jetech": "jetech",
+            "acord_forms": "acord_forms",
+        }
+        doc_type = doc_type_map.get((source or "").lower()) if source else None
+
+        # pgvector returns top_k results — request enough to paginate.
+        # When no specific doc_type is requested, we search each allowed
+        # doc_type individually and merge results to guarantee context-only
+        # datasets are never included.
+        top_k = min(page * page_size + page_size, 200)
+
+        try:
+            if doc_type:
+                # Caller specified a source — validate it's document-appropriate
+                if doc_type not in self.DOCUMENT_DOC_TYPES:
+                    logger.warning(
+                        f"Blocked clause search for context-only doc_type={doc_type}"
+                    )
+                    return [], 0
+                raw_results = rag_indexer.search(
+                    query=search_query, top_k=top_k, doc_type=doc_type
+                )
+            else:
+                # No source filter — search ONLY document-appropriate types
+                raw_results = []
+                per_type_k = max(top_k // len(self.DOCUMENT_DOC_TYPES), 20)
+                for dt in self.DOCUMENT_DOC_TYPES:
+                    try:
+                        partial = rag_indexer.search(
+                            query=search_query, top_k=per_type_k, doc_type=dt
+                        )
+                        raw_results.extend(partial)
+                    except Exception as e:
+                        logger.debug(f"pgvector search for {dt} failed: {e}")
+                # Sort merged results by score descending
+                raw_results.sort(key=lambda r: r.get("score", 0), reverse=True)
+                # Trim to top_k
+                raw_results = raw_results[:top_k]
+        except Exception as e:
+            logger.warning(f"pgvector clause search failed: {e}")
+            return [], 0
+
+        if not raw_results:
+            return [], 0
+
+        # Filter by category substring if specified
+        if category:
+            cat_lower = category.lower()
+            raw_results = [
+                r
+                for r in raw_results
+                if cat_lower in (r.get("category", "") or "").lower()
+                or cat_lower in (r.get("type", "") or "").lower()
+            ]
+
+        # Filter by line_of_business substring
+        if line_of_business:
+            lob_lower = line_of_business.lower()
+            lob_filtered = [
+                r
+                for r in raw_results
+                if lob_lower in (r.get("text", "") or "").lower()
+                or lob_lower in (r.get("category", "") or "").lower()
+            ]
+            # Only apply filter if it doesn't eliminate everything
+            if lob_filtered:
+                raw_results = lob_filtered
+
+        # Filter out non-insurance junk
+        non_insurance = [
+            "employment",
+            "real estate",
+            "merger",
+            "acquisition",
+            "stock purchase",
+        ]
+        filtered = []
+        for r in raw_results:
+            cat = (r.get("category", "") or "").lower()
+            if any(ni in cat for ni in non_insurance):
+                continue
+            text = r.get("text", "") or ""
+            if len(text) < 30:
+                continue
+            filtered.append(r)
+
+        total = len(filtered)
+
+        # Paginate
+        start = (page - 1) * page_size
+        end = start + page_size
+        page_results = filtered[start:end]
+
+        # Convert to clause dict format
+        results = []
+        for r in page_results:
+            text = r.get("text", "") or ""
+            name = r.get("name", "") or r.get("question", "") or ""
+            cat = r.get("category", "") or r.get("type", "") or "general"
+            src = r.get("type", "") or r.get("source", "") or "rag"
+            clause_id = f"rag_{hashlib.md5(text[:200].encode(), usedforsecurity=False).hexdigest()[:12]}"
+
+            if not name:
+                name = f"{cat.replace('_', ' ').title()} Clause"
+
+            results.append(
+                {
+                    "id": clause_id,
+                    "name": name[:200],
+                    "category": cat.lower().replace(" ", "_"),
+                    "source": src,
+                    "clause_type": cat,
+                    "line_of_business": line_of_business,
+                    "typical_use": None,
+                    "form_number": None,
+                    "is_exclusion": "exclusion" in cat.lower()
+                    or "exclusion" in text[:200].lower(),
+                    "is_mandatory": False,
+                    "text": text[:2000],
+                    "text_preview": text[:300] + ("..." if len(text) > 300 else ""),
+                }
+            )
+
+        return results, total
+
+    def _pgvector_get_clause_by_id(self, clause_id: str) -> Optional[Dict[str, Any]]:
+        """Look up a clause by ID — for pgvector clauses, search by text hash."""
+        # pgvector clauses have IDs like rag_abc123def456 — we can't reverse the hash.
+        # Return None and let the caller handle it.
+        return None
+
     def search(
         self,
         query: Optional[str] = None,
@@ -455,15 +805,27 @@ class ClausesLibraryService:
         source: Optional[str] = None,
         line_of_business: Optional[str] = None,
         page: int = 1,
-        page_size: int = 50
+        page_size: int = 50,
     ) -> Tuple[List[Dict[str, Any]], int]:
         """
         Search clauses with filters and pagination.
+        Uses pgvector when file-based library is empty.
 
         Returns:
             Tuple of (list of clause dicts, total count)
         """
-        self.load_all()
+        # If file-based library is empty, delegate to pgvector
+        if self._use_pgvector():
+            return self._pgvector_search(
+                query=query,
+                category=category,
+                source=source,
+                line_of_business=line_of_business,
+                page=page,
+                page_size=page_size,
+            )
+
+        # --- Original file-based search below ---
 
         # Start with all clause indices
         candidates = set(range(len(self._clauses)))
@@ -496,7 +858,10 @@ class ClausesLibraryService:
             # Also do text search for remaining candidates
             for idx in list(candidates):
                 clause = self._clauses[idx]
-                if query.lower() in clause.text.lower() or query.lower() in clause.name.lower():
+                if (
+                    query.lower() in clause.text.lower()
+                    or query.lower() in clause.name.lower()
+                ):
                     query_matches.add(idx)
 
             candidates &= query_matches
@@ -507,19 +872,28 @@ class ClausesLibraryService:
             lob_matches = set()
             for idx in candidates:
                 clause = self._clauses[idx]
-                if clause.line_of_business and lob_lower in clause.line_of_business.lower():
+                if (
+                    clause.line_of_business
+                    and lob_lower in clause.line_of_business.lower()
+                ):
                     lob_matches.add(idx)
                 # Also check text for LOB mentions
-                elif lob_lower in clause.text.lower() or lob_lower in clause.category.lower():
+                elif (
+                    lob_lower in clause.text.lower()
+                    or lob_lower in clause.category.lower()
+                ):
                     lob_matches.add(idx)
             candidates &= lob_matches if lob_matches else candidates
 
         # Sort by relevance (source priority)
         source_priority = {"templates": 0, "cuad": 1, "ledgar": 2, "contract_nli": 3}
-        sorted_indices = sorted(candidates, key=lambda i: (
-            source_priority.get(self._clauses[i].source, 5),
-            self._clauses[i].name
-        ))
+        sorted_indices = sorted(
+            candidates,
+            key=lambda i: (
+                source_priority.get(self._clauses[i].source, 5),
+                self._clauses[i].name,
+            ),
+        )
 
         # Paginate
         total = len(sorted_indices)
@@ -538,11 +912,9 @@ class ClausesLibraryService:
 
         categories = []
         for cat, count in sorted(self._categories.items(), key=lambda x: -x[1]):
-            categories.append({
-                "id": cat,
-                "name": cat.replace("_", " ").title(),
-                "count": count
-            })
+            categories.append(
+                {"id": cat, "name": cat.replace("_", " ").title(), "count": count}
+            )
         return categories
 
     def get_sources(self) -> Dict[str, int]:
@@ -557,6 +929,11 @@ class ClausesLibraryService:
         for clause in self._clauses:
             if clause.id == clause_id:
                 return self._clause_to_dict(clause, include_full_text=True)
+
+        # If file-based is empty, try pgvector search by name/id
+        if self._use_pgvector():
+            return self._pgvector_get_clause_by_id(clause_id)
+
         return None
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -569,11 +946,15 @@ class ClausesLibraryService:
             "sources": dict(self._sources),
             "top_categories": [
                 {"category": cat, "count": count}
-                for cat, count in sorted(self._categories.items(), key=lambda x: -x[1])[:20]
-            ]
+                for cat, count in sorted(self._categories.items(), key=lambda x: -x[1])[
+                    :20
+                ]
+            ],
         }
 
-    def _clause_to_dict(self, clause: Clause, include_full_text: bool = False) -> Dict[str, Any]:
+    def _clause_to_dict(
+        self, clause: Clause, include_full_text: bool = False
+    ) -> Dict[str, Any]:
         """Convert Clause to dictionary."""
         result = {
             "id": clause.id,
@@ -591,8 +972,16 @@ class ClausesLibraryService:
         if include_full_text:
             result["text"] = clause.text
         else:
-            # Include truncated text preview
-            result["text_preview"] = clause.text[:300] + "..." if len(clause.text) > 300 else clause.text
+            # Always include full text up to 2000 chars for document drafting.
+            # SectionDrafter reads result["text"] — a 300-char preview is too short
+            # for actual clause wording to be embedded in generated documents.
+            result["text"] = (
+                clause.text[:2000] if len(clause.text) > 2000 else clause.text
+            )
+            # Keep text_preview as well for UI display purposes
+            result["text_preview"] = (
+                clause.text[:300] + "..." if len(clause.text) > 300 else clause.text
+            )
 
         return result
 

@@ -50,7 +50,7 @@ class _QRUploadScreenState extends State<QRUploadScreen> {
   final List<_UploadingFile> _files = [];
   bool _isComplete = false;
   String? _error;
-  final String _apiBase = '/api/v1/upload-sessions';
+  final String _apiBase = '/upload-sessions';
   int _currentUploadIndex = -1;
 
   @override

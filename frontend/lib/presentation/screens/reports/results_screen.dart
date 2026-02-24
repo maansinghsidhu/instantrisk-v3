@@ -994,6 +994,71 @@ class _ResultsScreenState extends State<ResultsScreen>
   }
 
   Future<void> _shareResults() async {
+    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Share Assessment',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.text1(context),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.link, color: AppTheme.accent),
+                ),
+                title: const Text('Get public link',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Anyone with the link can view — expires in 24h'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _createAndShowPublicLink();
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.person_add_outlined, color: Colors.green),
+                ),
+                title: const Text('Share with colleague',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Send directly to another InstantRisk user'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/home/share/${widget.assessmentId}');
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _createAndShowPublicLink() async {
     try {
       final response = await authService.post(
         '/share/assessments/${widget.assessmentId}',

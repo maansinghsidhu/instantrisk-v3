@@ -402,10 +402,10 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
     if (draftContent != null && draftContent is Map) {
       final sections = draftContent['sections'] as List<dynamic>? ?? [];
       content = sections.map((section) {
-        final heading = section['heading'] as String? ?? '';
+        final heading = section['title'] as String? ?? '';
         final body = section['content'] as String? ?? '';
-        return heading.isNotEmpty ? '$heading\n\n$body' : body;
-      }).join('\n\n');
+        return heading.isNotEmpty ? '=== $heading ===\n\n$body' : body;
+      }).join('\n\n---\n\n');
     } else {
       content = _document?['content'] as String? ?? '';
     }

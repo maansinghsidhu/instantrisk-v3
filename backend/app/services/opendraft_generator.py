@@ -364,6 +364,8 @@ class OpenDraftGenerator:
                 "ai_analysis_summary": self._extract_ai_analysis_summary(
                     assessment_data.get("ai_analysis", {})
                 ),
+                # User instructions from AI Document Advisor (if provided)
+                "user_special_instructions": assessment_data.get("user_request", ""),
             },
             indent=2,
         )
@@ -764,13 +766,88 @@ Return ONLY valid JSON:
             "footer_notes": "This slip is for placing purposes only and is subject to contract.",
         }
 
+    async def _substitute_variables(self, text: str, assessment_data: Dict) -> str:
+        """Replace original party names / dates / amounts in RAG dataset text
+        with the actual assessment values.
+
+        Uses a minimal LLM pass ONLY when the text contains patterns that suggest
+        original party names, specific dates, or currency amounts. Otherwise returns
+        the text unchanged — preserving 100% of the dataset wording.
+
+        Rules for the LLM:
+        - Substitute party/company names → insured_name
+        - Substitute specific dates → actual inception/expiry dates
+        - Substitute currency amounts → keep numeric values, update currency symbol
+        - DO NOT rewrite, rephrase, or alter any other text
+        """
+        import re
+
+        has_company = bool(
+            re.search(r"\b(Ltd|Inc|Corp|LLC|Plc|GmbH|Limited|Group)\b", text)
+        )
+        has_dates = bool(
+            re.search(
+                r"\b(January|February|March|April|May|June|July|August|"
+                r"September|October|November|December)\s+\d{1,2},?\s+\d{4}\b",
+                text,
+            )
+        )
+        has_amounts = bool(re.search(r"(USD|GBP|EUR|£|\$|€)\s*[\d,]+", text))
+
+        if not (has_company or has_dates or has_amounts):
+            return text  # Nothing to substitute — return dataset text as-is
+
+        insured = (
+            assessment_data.get("insured_entity_name")
+            or assessment_data.get("insured_name")
+            or "the Insured"
+        )
+        inception = assessment_data.get("inception_date") or "TBA"
+        expiry = assessment_data.get("expiry_date") or "TBA"
+        currency = assessment_data.get("currency") or "GBP"
+        territory = assessment_data.get("territory") or ""
+
+        try:
+            result = await self._run_agent(
+                "VariableSubstituter",
+                "You perform variable substitution only in legal/insurance text. "
+                "You do NOT rewrite, rephrase, summarise, or alter any wording. "
+                "You ONLY replace specific values as instructed.",
+                f"""In the clause text below, replace ONLY:
+1. Any company or party names with: {insured}
+2. Any specific calendar dates with: inception {inception}, expiry {expiry}
+3. Any currency symbols with: {currency} (keep the numeric values)
+4. Any specific territory/jurisdiction references with: {territory}
+
+Every other word must remain IDENTICAL to the original.
+
+CLAUSE TEXT:
+{text}
+
+Return only the substituted clause text, nothing else.""",
+                temperature=0.0,
+            )
+            # Safety: if LLM returns something vastly shorter (hallucination), keep original
+            if result and len(result) >= len(text) * 0.6:
+                return result.strip()
+        except Exception as e:
+            logger.debug(f"Variable substitution skipped: {e}")
+
+        return text  # Fall back to original on any error
+
     # ─── PHASE 3: COMPOSE (Agents 7-9) ────────────────────────────────
 
-    def _build_template_data(self, assessment_data: Dict) -> Dict:
+    def _build_template_data(
+        self, assessment_data: Dict, category_rag: Dict = None
+    ) -> Dict:
         """Map assessment fields to template placeholder names.
 
         Risk-score-aware: high risk scores (>70) get stricter terms,
         additional exclusions, and enhanced subjectivities.
+
+        category_rag: optional dict pre-fetched by agent_section_drafter containing
+        RAG results for exclusions/subjectivities/warranties/conditions.
+        These are used instead of hardcoded Python strings when available.
         """
         risk_score = assessment_data.get("risk_score") or 0
         risk_category = assessment_data.get("risk_category", "").lower()
@@ -779,8 +856,11 @@ Return ONLY valid JSON:
         ) or assessment_data.get("insured_name", "")
 
         # Category-specific exclusions, subjectivities, warranties, conditions
+        # category_rag provides dataset-sourced text when available
         exclusions, subjectivities, warranties, conditions = (
-            self._build_category_clauses(risk_category, insured_name, assessment_data)
+            self._build_category_clauses(
+                risk_category, insured_name, assessment_data, category_rag=category_rag
+            )
         )
 
         # Risk-score-aware adjustments
@@ -988,11 +1068,26 @@ Return ONLY valid JSON:
         }
         return risk_code_map.get(risk_category, "")
 
-    def _build_category_clauses(self, category: str, insured: str, data: dict):
-        """Build category-specific exclusions, subjectivities, warranties, conditions."""
+    def _build_category_clauses(
+        self,
+        category: str,
+        insured: str,
+        data: dict,
+        category_rag: Dict = None,
+    ):
+        """Build category-specific exclusions, subjectivities, warranties, conditions.
 
-        # ── COMMON BASE ──
-        base_exclusions = "War, invasion, acts of foreign enemies, hostilities\nNuclear, radioactive contamination\nSanctions — coverage restricted where prohibited by applicable law"
+        Priority:
+        1. Dataset-sourced text from category_rag (pre-fetched from acord/jetech/ledgar)
+           — always prepended with base_exclusions for universal coverage
+        2. Hardcoded category-specific strings — fallback when RAG returned nothing
+        """
+        # ── COMMON BASE — always included regardless of RAG ──
+        base_exclusions = (
+            "War, invasion, acts of foreign enemies, hostilities\n"
+            "Nuclear, radioactive contamination\n"
+            "Sanctions — coverage restricted where prohibited by applicable law"
+        )
         base_conditions = (
             "Claims Cooperation Clause: The Insured shall cooperate fully with Underwriters in the "
             "investigation, defence and settlement of any claim.\n\n"
@@ -1000,6 +1095,57 @@ Return ONLY valid JSON:
             "duty to make a fair presentation of the risk.\n\n"
             "Subrogation: Underwriters shall be subrogated to all rights of recovery of the Insured."
         )
+
+        # ── PRIORITY 1: Dataset-sourced text from pre-fetched RAG ──
+        # category_rag is pre-fetched in agent_section_drafter() before template rendering.
+        # If it has content, use it directly — datasets provide real insurance wording.
+        # Base exclusions (war/nuclear/sanctions) are always prepended.
+        if category_rag:
+            rag_exclusions = category_rag.get("exclusions", "")
+            rag_subjectivities = category_rag.get("subjectivities", "")
+            rag_warranties = category_rag.get("warranties", "")
+            rag_conditions = category_rag.get("conditions", "")
+
+            has_any_rag = any(
+                len(v.strip()) > 100
+                for v in [
+                    rag_exclusions,
+                    rag_subjectivities,
+                    rag_warranties,
+                    rag_conditions,
+                ]
+            )
+
+            if has_any_rag:
+                logger.info(
+                    f"_build_category_clauses: using dataset-sourced text "
+                    f"(category={category}, "
+                    f"excl={len(rag_exclusions)}, subj={len(rag_subjectivities)}, "
+                    f"warr={len(rag_warranties)}, cond={len(rag_conditions)} chars)"
+                )
+                final_exclusions = (
+                    f"{base_exclusions}\n\n{rag_exclusions}".strip()
+                    if rag_exclusions.strip()
+                    else base_exclusions
+                )
+                final_subjectivities = (
+                    rag_subjectivities if rag_subjectivities.strip() else ""
+                )
+                final_warranties = rag_warranties if rag_warranties.strip() else ""
+                final_conditions = (
+                    f"{base_conditions}\n\n{rag_conditions}".strip()
+                    if rag_conditions.strip()
+                    else base_conditions
+                )
+                return (
+                    final_exclusions,
+                    final_subjectivities,
+                    final_warranties,
+                    final_conditions,
+                )
+
+        # ── PRIORITY 2: Hardcoded category-specific strings ──
+        # Fallback when RAG returned nothing or category_rag not provided.
 
         if category == "cyber":
             exclusions = (
@@ -1485,8 +1631,54 @@ Return ONLY valid JSON:
         drafted_sections = []
         gap_sections = []
 
+        # Step 0: Pre-fetch RAG content for category-specific clauses BEFORE template rendering.
+        # This ensures _build_category_clauses() uses dataset text instead of hardcoded strings.
+        category_rag: Dict = {}
+        try:
+            prefetch_queries = {
+                "exclusions": f"{risk_category} insurance exclusions excluded perils",
+                "subjectivities": f"{risk_category} insurance subjectivities conditions precedent pre-inception",
+                "warranties": f"{risk_category} insurance warranties insured warrants",
+                "conditions": f"{risk_category} insurance policy conditions claims cooperation",
+            }
+            rag_fetch_tasks = {
+                key: asyncio.wait_for(
+                    self.unified_rag.search(
+                        query=q,
+                        user_id=user_id,
+                        top_k=6,
+                        min_score=0.4,
+                        source_tiers=["acord", "jetech", "ledgar", "cuad"],
+                    ),
+                    timeout=20,
+                )
+                for key, q in prefetch_queries.items()
+            }
+            prefetch_results = await asyncio.gather(
+                *rag_fetch_tasks.values(), return_exceptions=True
+            )
+            for cat_key, result in zip(rag_fetch_tasks.keys(), prefetch_results):
+                if isinstance(result, Exception):
+                    logger.debug(f"category_rag prefetch '{cat_key}' failed: {result}")
+                    category_rag[cat_key] = ""
+                else:
+                    category_rag[cat_key] = self.unified_rag.format_as_section_content(
+                        result if isinstance(result, list) else [], max_chars=3000
+                    )
+            logger.info(
+                f"SectionDrafter: category_rag prefetched "
+                f"(excl={len(category_rag.get('exclusions', ''))}, "
+                f"subj={len(category_rag.get('subjectivities', ''))}, "
+                f"warr={len(category_rag.get('warranties', ''))}, "
+                f"cond={len(category_rag.get('conditions', ''))} chars)"
+            )
+        except Exception as e:
+            logger.warning(f"SectionDrafter: category_rag prefetch failed: {e}")
+
         # Step 1: Render template with assessment data (instant, no AI)
-        template_data = self._build_template_data(assessment_data)
+        template_data = self._build_template_data(
+            assessment_data, category_rag=category_rag
+        )
         rendered = render_template(template_id, template_data) if template_id else ""
         rendered_sections = self._split_rendered_template(rendered)
 
@@ -1540,15 +1732,14 @@ Return ONLY valid JSON:
             if not std_clause_text:
                 try:
                     from app.services.clauses_library_service import (
-                        ClausesLibraryService,
+                        clauses_library_service,
                     )
 
-                    clause_lib = ClausesLibraryService()
                     # Search with risk category + section title for better relevance
                     search_query = (
                         f"{title} {risk_category}" if risk_category else title
                     )
-                    lib_results, lib_total = clause_lib.search(
+                    lib_results, lib_total = clauses_library_service.search(
                         query=search_query,
                         line_of_business=risk_category,
                         page_size=10,
@@ -1633,7 +1824,7 @@ Return ONLY valid JSON:
         )
 
         # Step 2: Fill gaps — datasets FIRST (149K+ vectors), AI only for true gaps
-        # With 15 indexed datasets, we should pull most content from RAG, not AI
+        # With 9 curated insurance datasets, RAG should provide content for most sections
         # Section-specific default content for common insurance document sections
         insured_name = assessment_data.get(
             "insured_entity_name"
@@ -1923,35 +2114,19 @@ Return ONLY valid JSON:
         for section in gap_sections:
             title_upper = section["title"].strip().upper()
 
-            # Priority 1: Use section-specific defaults
-            default_content = section_defaults.get(title_upper)
-            if default_content:
-                drafted_sections.append(
-                    {
-                        "section_number": section["section_number"],
-                        "title": section["title"],
-                        "content": default_content,
-                        "source_clauses": [
-                            {"id": "standard_default", "source": "standard_default"}
-                        ],
-                        "source_type": "section_default",
-                    }
-                )
-                continue
-
-            # Priority 2: Targeted RAG search across 15 indexed datasets (149K+ vectors)
-            # This should be the PRIMARY source for most sections — datasets are gold
+            # Priority 1: Targeted RAG search across 9 indexed datasets (149K+ vectors)
+            # Datasets are gold — always try them before falling back to hardcoded defaults
             rag_content = ""
             try:
-                # Pass 1: Insurance-specific tiers with moderate threshold
+                # Pass 1: Document-appropriate tiers only (real clause/contract wording).
+                # insurance_qa, mini_insurance, snorkel, contract_nli are
+                # context-only datasets and must NEVER appear in document sections.
                 preferred_tiers = [
                     "acord",
                     "cuad",
-                    "insurance_qa",
                     "jetech",
-                    "maud",
+                    "ledgar",
                     "acord_forms",
-                    "mini_insurance",
                 ]
                 results = await asyncio.wait_for(
                     self.unified_rag.search(
@@ -1963,7 +2138,8 @@ Return ONLY valid JSON:
                     ),
                     timeout=30,
                 )
-                # Pass 2: If insurance tiers didn't return enough, widen to ALL tiers
+                # Pass 2: If document tiers didn't return enough, add user docs but
+                # still exclude context-only datasets from document content.
                 if not results or len(results) < 3:
                     results = await asyncio.wait_for(
                         self.unified_rag.search(
@@ -1971,6 +2147,14 @@ Return ONLY valid JSON:
                             user_id=user_id,
                             top_k=12,
                             min_score=0.35,  # Even lower threshold for broad search
+                            source_tiers=[
+                                "user",
+                                "acord",
+                                "cuad",
+                                "jetech",
+                                "ledgar",
+                                "acord_forms",
+                            ],
                         ),
                         timeout=30,
                     )
@@ -2042,7 +2226,7 @@ Return ONLY valid JSON:
                     results = (
                         filtered if filtered else results[:1]
                     )  # Keep at least 1 result
-                rag_content = self.unified_rag.format_as_context(
+                rag_content = self.unified_rag.format_as_section_content(
                     results, max_chars=10000
                 )
             except Exception as e:
@@ -2060,56 +2244,71 @@ Return ONLY valid JSON:
                         "source_type": "rag",
                     }
                 )
-            else:
-                # Priority 3: AI gap-fill — LAST RESORT only when datasets have no content
-                # With 149K+ vectors, hitting this means the section is highly specialized
-                logger.warning(
-                    f"SectionDrafter: No dataset content for '{section['title']}' "
-                    f"(risk={risk_category}) — falling back to AI generation"
+                continue
+
+            # Priority 2: Section-specific hardcoded defaults (universal insurance wording)
+            # Only reached when all 9 RAG datasets returned no usable content
+            default_content = section_defaults.get(title_upper)
+            if default_content:
+                drafted_sections.append(
+                    {
+                        "section_number": section["section_number"],
+                        "title": section["title"],
+                        "content": default_content,
+                        "source_clauses": [
+                            {"id": "standard_default", "source": "standard_default"}
+                        ],
+                        "source_type": "section_default",
+                    }
                 )
-                try:
-                    # Build ML insight block for AI gap-fill
-                    ml_gap_block = ""
-                    if ml_context:
-                        appetite = ml_context.get("appetite", {})
-                        pricing = ml_context.get("pricing", {})
-                        ml_cats = [
-                            c["category"] for c in ml_context.get("clauses", [])[:8]
-                        ]
-                        ml_gap_block = (
-                            f"\nInstantRisk Engine: appetite={appetite.get('decision', 'unknown')} "
-                            f"({appetite.get('confidence', 0):.0%}), "
-                            f"pricing={pricing.get('band', 'unknown')}, "
-                            f"clause categories={', '.join(ml_cats)}"
+                continue
+
+            # Priority 3: AI gap-fill — LAST RESORT only when datasets AND defaults have no content
+            logger.warning(
+                f"SectionDrafter: No dataset content for '{section['title']}' "
+                f"(risk={risk_category}) — falling back to AI generation"
+            )
+            try:
+                # Build ML insight block for AI gap-fill
+                ml_gap_block = ""
+                if ml_context:
+                    appetite = ml_context.get("appetite", {})
+                    pricing = ml_context.get("pricing", {})
+                    ml_cats = [c["category"] for c in ml_context.get("clauses", [])[:8]]
+                    ml_gap_block = (
+                        f"\nInstantRisk Engine: appetite={appetite.get('decision', 'unknown')} "
+                        f"({appetite.get('confidence', 0):.0%}), "
+                        f"pricing={pricing.get('band', 'unknown')}, "
+                        f"clause categories={', '.join(ml_cats)}"
+                    )
+
+                # Build adjacent sections context
+                adj_sections_ctx = ""
+                current_idx = None
+                for i, s in enumerate(drafted_sections):
+                    if s.get("title") == section.get("title"):
+                        current_idx = i
+                        break
+                if current_idx is not None:
+                    adjacent = []
+                    if current_idx > 0:
+                        prev_s = drafted_sections[current_idx - 1]
+                        adjacent.append(
+                            f"PREVIOUS SECTION: {prev_s.get('title', '')}\n{prev_s.get('content', '')[:500]}"
+                        )
+                    if current_idx < len(drafted_sections) - 1:
+                        next_s = drafted_sections[current_idx + 1]
+                        adjacent.append(
+                            f"NEXT SECTION: {next_s.get('title', '')}\n{next_s.get('content', '')[:500]}"
+                        )
+                    if adjacent:
+                        adj_sections_ctx = (
+                            "\n\n--- ADJACENT SECTIONS FOR CONSISTENCY ---\n"
+                            + "\n\n".join(adjacent)
                         )
 
-                    # Build adjacent sections context
-                    adj_sections_ctx = ""
-                    current_idx = None
-                    for i, s in enumerate(drafted_sections):
-                        if s.get("title") == section.get("title"):
-                            current_idx = i
-                            break
-                    if current_idx is not None:
-                        adjacent = []
-                        if current_idx > 0:
-                            prev_s = drafted_sections[current_idx - 1]
-                            adjacent.append(
-                                f"PREVIOUS SECTION: {prev_s.get('title', '')}\n{prev_s.get('content', '')[:500]}"
-                            )
-                        if current_idx < len(drafted_sections) - 1:
-                            next_s = drafted_sections[current_idx + 1]
-                            adjacent.append(
-                                f"NEXT SECTION: {next_s.get('title', '')}\n{next_s.get('content', '')[:500]}"
-                            )
-                        if adjacent:
-                            adj_sections_ctx = (
-                                "\n\n--- ADJACENT SECTIONS FOR CONSISTENCY ---\n"
-                                + "\n\n".join(adjacent)
-                            )
-
-                    # Include key assessment data for context
-                    assessment_ctx = f"""
+                # Include key assessment data for context
+                assessment_ctx = f"""
 INSURED: {insured_name}
 RISK CATEGORY: {risk_category}
 TERRITORY: {assessment_data.get("territory", "Not specified")}
@@ -2119,36 +2318,35 @@ INCEPTION: {assessment_data.get("inception_date", "TBA")}
 EXPIRY: {assessment_data.get("expiry_date", "TBA")}
 """
 
-                    response = await asyncio.wait_for(
-                        self._run_agent(
-                            "SectionDrafter",
-                            "You are a professional insurance document drafter. Write clear, precise wording that is consistent with the overall document structure and adjacent sections. Your output must be suitable for any insurance carrier or market.",
-                            f"""Draft the '{section["title"]}' section for a {structure.get("document_type", "policy")} document.
+                response = await asyncio.wait_for(
+                    self._run_agent(
+                        "SectionDrafter",
+                        "You are a professional insurance document drafter. Write clear, precise wording that is consistent with the overall document structure and adjacent sections. Your output must be suitable for any insurance carrier or market.",
+                        f"""Draft the '{section["title"]}' section for a {structure.get("document_type", "policy")} document.
 
 {assessment_ctx}{ml_gap_block}
 {adj_sections_ctx}
 
 Write professional insurance document wording appropriate for the risk category and territory. Follow standard insurance document conventions.""",
-                            temperature=0.2,
-                        ),
-                        timeout=90,
-                    )
-                except asyncio.TimeoutError:
-                    response = None
-
-                drafted_sections.append(
-                    {
-                        "section_number": section["section_number"],
-                        "title": section["title"],
-                        "content": response
-                        or f"[{section['title']} - To be completed]",
-                        "source_clauses": [
-                            {"id": "ai_generated", "source": "ai_generated"}
-                        ],
-                        "source_type": "ai_generated",
-                        "requires_review": True,
-                    }
+                        temperature=0.2,
+                    ),
+                    timeout=90,
                 )
+            except asyncio.TimeoutError:
+                response = None
+
+            drafted_sections.append(
+                {
+                    "section_number": section["section_number"],
+                    "title": section["title"],
+                    "content": response or f"[{section['title']} - To be completed]",
+                    "source_clauses": [
+                        {"id": "ai_generated", "source": "ai_generated"}
+                    ],
+                    "source_type": "ai_generated",
+                    "requires_review": True,
+                }
+            )
 
         # Sort by section number
         drafted_sections.sort(
@@ -2163,6 +2361,14 @@ Write professional insurance document wording appropriate for the risk category 
             f"SectionDrafter: completed {len(drafted_sections)} sections "
             f"(template={template_hits}, clause={clause_hits}, gaps={gap_count})"
         )
+
+        # Change 10: Log source_type breakdown for observability
+        source_counts: Dict[str, int] = {}
+        for s in drafted_sections:
+            st = s.get("source_type", "unknown")
+            source_counts[st] = source_counts.get(st, 0) + 1
+        logger.info(f"SectionDrafter source_type breakdown: {source_counts}")
+
         return drafted_sections
 
     async def agent_consistency_checker(
@@ -2881,15 +3087,43 @@ Return ONLY valid JSON:
         )
         await step(4, "ClauseManager", "completed")
 
-        # Merge user-selected clause IDs (from frontend) into selected_clauses
+        # Merge user-selected clauses (from frontend) into selected_clauses.
+        # clause_ids may be:
+        #   - a list of dicts with keys: clause_id, name, selected_text, source, ...
+        #   - a list of plain strings (legacy)
         if clause_ids:
             existing_ids = {c.get("clause_id") for c in selected_clauses}
-            for cid in clause_ids:
-                if cid not in existing_ids:
+            merged_count = 0
+            for item in clause_ids:
+                if isinstance(item, dict):
+                    cid = item.get("clause_id") or item.get("id")
+                    if not cid or cid in existing_ids:
+                        continue
+                    existing_ids.add(cid)
                     selected_clauses.append(
                         {
                             "clause_id": cid,
-                            "name": cid,
+                            "name": item.get("name", cid),
+                            "priority": "user_selected",
+                            # Prefer existing selected_text; fall back to content_preview
+                            "selected_text": item.get("selected_text")
+                            or item.get("content_preview", ""),
+                            "source": item.get("source", "user_selected"),
+                            "source_label": "User Selected",
+                            "score": 1.0,
+                            "status": "generate",
+                        }
+                    )
+                    merged_count += 1
+                elif isinstance(item, str):
+                    # Legacy plain clause ID string
+                    if item in existing_ids:
+                        continue
+                    existing_ids.add(item)
+                    selected_clauses.append(
+                        {
+                            "clause_id": item,
+                            "name": item,
                             "priority": "user_selected",
                             "selected_text": "",
                             "source": "user_selected",
@@ -2898,9 +3132,8 @@ Return ONLY valid JSON:
                             "status": "generate",
                         }
                     )
-            logger.info(
-                f"Merged {len(clause_ids)} user-selected clause IDs into pipeline"
-            )
+                    merged_count += 1
+            logger.info(f"Merged {merged_count} user-selected clauses into pipeline")
 
         # Store user clause selections in results for traceability
         results["clause_selections"] = [c.get("clause_id") for c in selected_clauses]

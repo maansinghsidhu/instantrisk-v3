@@ -2500,6 +2500,55 @@ async def generate_documents_opendraft(
                 ):
                     assessment_data[field] = ai_val
 
+    # Flatten clausesByDoc (Map<docType, List<clauseObj>>) into a deduplicated
+    # list of clause dicts that the generator can use directly.
+    # The frontend sends rich objects with clause_id, name, content_preview, etc.
+    flat_clauses: list = []
+    if clauses and isinstance(clauses, dict):
+        seen_ids: set = set()
+        for _doc_type, clause_list in clauses.items():
+            if not isinstance(clause_list, list):
+                continue
+            for c in clause_list:
+                if not isinstance(c, dict):
+                    continue
+                cid = c.get("clause_id") or c.get("id")
+                if not cid or cid in seen_ids:
+                    continue
+                seen_ids.add(cid)
+                flat_clauses.append(
+                    {
+                        "clause_id": cid,
+                        "name": c.get("name", cid),
+                        "selected_text": c.get("content_preview", ""),
+                        "source": c.get("source", "user_selected"),
+                        "is_mandatory": c.get("is_mandatory", False),
+                    }
+                )
+    elif isinstance(clauses, list):
+        # Accept a plain list of clause IDs (legacy) or list of clause dicts
+        for c in clauses:
+            if isinstance(c, str):
+                flat_clauses.append(
+                    {
+                        "clause_id": c,
+                        "name": c,
+                        "selected_text": "",
+                        "source": "user_selected",
+                    }
+                )
+            elif isinstance(c, dict):
+                cid = c.get("clause_id") or c.get("id")
+                if cid:
+                    flat_clauses.append(
+                        {
+                            "clause_id": cid,
+                            "name": c.get("name", cid),
+                            "selected_text": c.get("content_preview", ""),
+                            "source": c.get("source", "user_selected"),
+                        }
+                    )
+
     # Queue background task — returns immediately
     background_tasks.add_task(
         _run_opendraft_job,
@@ -2507,6 +2556,7 @@ async def generate_documents_opendraft(
         assessment_data,
         str(current_user.id),
         documents,
+        flat_clauses if flat_clauses else None,
     )
 
     return {"job_id": job_id, "status": "pending"}
@@ -2517,7 +2567,7 @@ async def _run_opendraft_job(
     assessment_data: dict,
     user_id: str,
     doc_types: list,
-    clause_ids: list = None,
+    clause_dicts: list = None,
     language: str = None,
 ):
     """Background task that runs the 19-agent pipeline and updates job progress in DB."""
@@ -2555,7 +2605,7 @@ async def _run_opendraft_job(
                 user_id=user_id,
                 doc_types=doc_types,
                 progress_callback=progress_callback,
-                clause_ids=clause_ids,
+                clause_ids=clause_dicts,
                 language=language,
             )
 

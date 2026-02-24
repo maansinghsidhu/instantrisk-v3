@@ -13,7 +13,6 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
-    Enum as SQLEnum,
 )
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import relationship
@@ -56,7 +55,7 @@ class SubmissionShare(Base):
     shared_with = Column(
         PgUUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
     )
-    share_type = Column(SQLEnum(ShareType), nullable=False, default=ShareType.ANALYSIS)
+    share_type = Column(String(20), nullable=False, default=ShareType.ANALYSIS.value)
     include_documents = Column(Boolean, default=True, nullable=False)
     message = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
