@@ -9,7 +9,7 @@ from pathlib import Path
 AWS_REGION = "us-east-1"
 S3_BUCKET = "instantrisk-documents-995306061991"
 S3_BACKEND_KEY = "backend-source.zip"
-CODEBUILD_BACKEND = "InstantRiskBackendBuild"
+CODEBUILD_BACKEND = "instantrisk-backend"
 
 SCRIPT_DIR = Path(__file__).parent
 BACKEND_DIR = SCRIPT_DIR.parent / "backend"

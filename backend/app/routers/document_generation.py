@@ -732,7 +732,7 @@ async def _run_generation_job(
         assessment_data,
         user_id,
         document_types,
-        clause_ids=clause_ids,
+        clause_dicts=clause_ids,
         language=language,
     )
 
