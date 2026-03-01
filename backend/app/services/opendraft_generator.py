@@ -1779,6 +1779,57 @@ Return only the substituted clause text, nothing else.""",
             elif full_lib_text and not clause_content:
                 clause_content = full_lib_text
 
+            # Priority 3.7: Match user-selected clauses to sections by title keywords.
+            # This catches cases where clause_ids from the section structure don't match
+            # but the clause NAME clearly belongs in this section (e.g. "War Exclusion"
+            # clause should go in the "EXCLUSIONS" section).
+            if not clause_content:
+                title_lower = title.lower()
+                title_words = set(
+                    title_lower.replace("&", " ").replace("-", " ").split()
+                )
+                # Remove very common words that would match everything
+                title_words -= {
+                    "the",
+                    "and",
+                    "or",
+                    "of",
+                    "in",
+                    "for",
+                    "a",
+                    "an",
+                    "to",
+                    "with",
+                }
+                for cid, cdata in clause_map.items():
+                    cname = (cdata.get("name", "") or "").lower()
+                    ctext = cdata.get("selected_text", "") or ""
+                    if not ctext or len(ctext) < 50:
+                        continue
+                    # Match by title keyword overlap (at least one meaningful word match)
+                    cname_words = set(cname.replace("&", " ").replace("-", " ").split())
+                    cname_words -= {
+                        "the",
+                        "and",
+                        "or",
+                        "of",
+                        "in",
+                        "for",
+                        "a",
+                        "an",
+                        "to",
+                        "with",
+                        "clause",
+                    }
+                    overlap = title_words & cname_words
+                    if overlap and len(overlap) >= 1:
+                        clause_content_parts.append(ctext)
+                        clause_sources.append(
+                            {"id": cid, "source": cdata.get("source", "user_selected")}
+                        )
+                if clause_content_parts and not clause_content:
+                    clause_content = "\n\n".join(clause_content_parts)
+
             # Decide which content to use
             if rendered_content and rendered_content.strip():
                 # Template content — already has data filled in
@@ -2368,6 +2419,23 @@ Write professional insurance document wording appropriate for the risk category 
             st = s.get("source_type", "unknown")
             source_counts[st] = source_counts.get(st, 0) + 1
         logger.info(f"SectionDrafter source_type breakdown: {source_counts}")
+
+        # Minimum content threshold: enrich thin sections from defaults.
+        # A section with <100 chars is likely a placeholder or failed lookup.
+        enriched_count = 0
+        for section in drafted_sections:
+            content = section.get("content", "")
+            if len(content.strip()) < 100 and section.get("source_type") != "template":
+                title_upper = section["title"].strip().upper()
+                default_content = section_defaults.get(title_upper, "")
+                if default_content and len(default_content) > len(content):
+                    section["content"] = default_content
+                    section["source_type"] = "enriched_default"
+                    enriched_count += 1
+        if enriched_count:
+            logger.info(
+                f"SectionDrafter: enriched {enriched_count} thin sections from defaults"
+            )
 
         return drafted_sections
 

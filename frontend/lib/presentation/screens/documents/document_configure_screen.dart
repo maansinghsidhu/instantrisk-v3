@@ -868,6 +868,18 @@ class _DocumentConfigureScreenState extends State<DocumentConfigureScreen>
                         color: AppTheme.text1(context),
                       ),
                     ),
+                    if (clause['text_preview'] != null && (clause['text_preview'] as String).isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        clause['text_preview'] as String,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.text2(context),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ],
                 ),
               ),

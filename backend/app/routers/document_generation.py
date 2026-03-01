@@ -5,6 +5,7 @@ Endpoints for generating insurance documents from assessments
 using the 5-agent AutoGen pipeline.
 """
 
+import asyncio
 import logging
 import os
 import uuid
@@ -55,6 +56,612 @@ lma_clauses_service = LMAClausesService()
 clause_service = get_clause_service()  # Full 33k+ clause library
 
 router = APIRouter()
+
+
+# =============================================================================
+# INLINE CLAUSE DEFINITIONS — always available regardless of library/pgvector
+# =============================================================================
+
+INLINE_MANDATORY_CLAUSES: dict = {
+    # ── Core LMA mandatory clauses (ALL Lloyd's policies) ──
+    "LMA5021": {
+        "id": "LMA5021",
+        "name": "War & Civil War Exclusion",
+        "category": "exclusion",
+        "source": "lma",
+        "is_mandatory": True,
+        "text": (
+            "This insurance excludes:\n\n"
+            "1. Loss, damage, liability or expense directly or indirectly caused by, "
+            "contributed to by, resulting from, or arising out of or in connection with:\n"
+            "(a) war, invasion, acts of foreign enemies, hostilities or warlike operations "
+            "(whether war be declared or not), civil war, rebellion, revolution, insurrection, "
+            "civil commotion assuming the proportions of or amounting to an uprising, "
+            "military or usurped power; or\n"
+            "(b) any act of terrorism being an act of any person acting on behalf of, or in "
+            "connection with, any organisation which carries out activities directed towards "
+            "the overthrowing or influencing, by force or violence, of any government whether "
+            "or not legally constituted; or\n"
+            "(c) any action taken in controlling, preventing, suppressing or in any way "
+            "relating to (a) and/or (b) above.\n\n"
+            "2. If the Underwriters allege that by reason of this exclusion, any loss, damage, "
+            "liability or expense is not covered by this insurance the burden of proving the "
+            "contrary shall be upon the Assured.\n\n"
+            "3. In the event any portion of this exclusion is found to be invalid or "
+            "unenforceable, the remainder shall remain in full force and effect."
+        ),
+    },
+    "LMA3100": {
+        "id": "LMA3100",
+        "name": "Sanctions Limitation & Exclusion Clause",
+        "category": "exclusion",
+        "source": "lma",
+        "is_mandatory": True,
+        "text": (
+            "No (re)insurer shall be deemed to provide cover and no (re)insurer shall be "
+            "liable to pay any claim or provide any benefit hereunder to the extent that "
+            "the provision of such cover, payment of such claim or provision of such benefit "
+            "would expose that (re)insurer to any sanction, prohibition or restriction under "
+            "United Nations resolutions or the trade or economic sanctions, laws or regulations "
+            "of the European Union, United Kingdom or United States of America.\n\n"
+            "If any such sanction, prohibition or restriction takes effect during the currency "
+            "of this insurance, the (re)insurer affected shall have the right to cancel this "
+            "insurance by giving 30 days' written notice. Premium shall be adjusted pro rata "
+            "for the unexpired period.\n\n"
+            "It is understood and agreed that the Insured shall not knowingly engage in any "
+            "transaction or activity that would cause the (re)insurer to be in breach of "
+            "any applicable sanctions regime."
+        ),
+    },
+    "LMA5390": {
+        "id": "LMA5390",
+        "name": "Sanctions Limitation & Exclusion Clause",
+        "category": "exclusion",
+        "source": "lma",
+        "is_mandatory": True,
+        "text": (
+            "No (re)insurer shall be deemed to provide cover and no (re)insurer shall be "
+            "liable to pay any claim or provide any benefit hereunder to the extent that "
+            "the provision of such cover, payment of such claim or provision of such benefit "
+            "would expose that (re)insurer to any sanction, prohibition or restriction under "
+            "United Nations resolutions or the trade or economic sanctions, laws or regulations "
+            "of the European Union, United Kingdom or United States of America."
+        ),
+    },
+    "LMA5400": {
+        "id": "LMA5400",
+        "name": "Several Liability Clause",
+        "category": "condition",
+        "source": "lma",
+        "is_mandatory": True,
+        "text": (
+            "The liability of an insurer under this contract is several and not joint with "
+            "other insurers party to this contract. An insurer is liable only for the "
+            "proportion of liability it has underwritten. An insurer is not jointly liable "
+            "for the proportion of liability underwritten by any other insurer. Nor is an "
+            "insurer otherwise responsible for any liability of any other insurer that may "
+            "underwrite this contract.\n\n"
+            "The proportion of liability under this contract underwritten by an insurer "
+            "(or, in the case of a Lloyd's syndicate, the total of the proportions "
+            "underwritten by all the members of the syndicate taken together) is shown in "
+            "this contract.\n\n"
+            "In the case of a Lloyd's syndicate, each member of the syndicate (rather than "
+            "the syndicate itself) is an insurer. Each member has underwritten a proportion "
+            "of the total shown for the syndicate (that total itself being the total of the "
+            "proportions underwritten by all the members of the syndicate taken together). "
+            "The liability of each member of the syndicate is several and not joint with "
+            "other members. A member is liable only for that member's proportion. A member "
+            "is not jointly liable for any other member's proportion."
+        ),
+    },
+    "LMA5027": {
+        "id": "LMA5027",
+        "name": "Market Reform Contract (MRC) Standard",
+        "category": "condition",
+        "source": "lma",
+        "is_mandatory": True,
+        "text": (
+            "This insurance is subject to the Market Reform Contract (MRC) provisions as "
+            "agreed by the Lloyd's Market Association and the International Underwriting "
+            "Association of London.\n\n"
+            "The MRC sets out the standard framework for placing insurance and reinsurance "
+            "business in the London Market. It provides the structure for the slip and the "
+            "policy, ensuring that all necessary commercial and contractual information is "
+            "clearly presented.\n\n"
+            "All parties agree that the terms and conditions of this insurance are as set "
+            "out in this MRC slip, which constitutes the contract of insurance between the "
+            "Insured and Underwriters."
+        ),
+    },
+    "LMA5515": {
+        "id": "LMA5515",
+        "name": "Law & Jurisdiction (England & Wales)",
+        "category": "condition",
+        "source": "lma",
+        "is_mandatory": True,
+        "text": (
+            "This insurance shall be governed by and construed in accordance with the law "
+            "of England and Wales.\n\n"
+            "Each party agrees to submit to the exclusive jurisdiction of the courts of "
+            "England and Wales in respect of any dispute arising out of or in connection "
+            "with this insurance.\n\n"
+            "For the avoidance of doubt, any arbitration or alternative dispute resolution "
+            "provisions contained herein shall take precedence over this jurisdiction clause "
+            "to the extent of any inconsistency."
+        ),
+    },
+    "LMA5406": {
+        "id": "LMA5406",
+        "name": "Claims Cooperation Clause",
+        "category": "condition",
+        "source": "lma",
+        "is_mandatory": True,
+        "text": (
+            "The Insured shall:\n\n"
+            "(a) give notice to Underwriters as soon as reasonably practicable and in any "
+            "event within 30 days of becoming aware of any occurrence which may give rise "
+            "to a claim under this insurance;\n\n"
+            "(b) cooperate fully with Underwriters and their appointed representatives in "
+            "the investigation, defence and settlement of any claim;\n\n"
+            "(c) not admit liability, make any payment, settle any claim, incur any cost "
+            "or expense, or assume any obligation without the prior written consent of "
+            "Underwriters;\n\n"
+            "(d) take all reasonable steps to preserve any rights of recovery against third "
+            "parties and to minimise any loss, damage, liability or expense;\n\n"
+            "(e) provide Underwriters with all information, documentation and assistance as "
+            "may be reasonably required in connection with any claim or potential claim;\n\n"
+            "(f) not prejudice the position of Underwriters in any way.\n\n"
+            "Failure to comply with the above requirements may prejudice the Insured's right "
+            "to indemnity under this insurance to the extent that Underwriters have been "
+            "prejudiced by such failure."
+        ),
+    },
+    # ── Line-specific mandatory clauses ──
+    "LMA5567": {
+        "id": "LMA5567",
+        "name": "Terrorism Exclusion (Property)",
+        "category": "exclusion",
+        "source": "lma",
+        "is_mandatory": True,
+        "text": (
+            "This insurance excludes loss, damage, cost or expense of whatsoever nature "
+            "directly or indirectly caused by, resulting from or in connection with any "
+            "act of terrorism regardless of any other cause or event contributing concurrently "
+            "or in any other sequence to the loss.\n\n"
+            "For the purposes of this exclusion, 'act of terrorism' means an act, including "
+            "but not limited to the use of force or violence and/or the threat thereof, of "
+            "any person or group(s) of persons, whether acting alone or on behalf of or in "
+            "connection with any organisation(s) or government(s), committed for political, "
+            "religious, ideological or similar purposes including the intention to influence "
+            "any government and/or to put the public, or any section of the public, in fear.\n\n"
+            "This exclusion also excludes loss, damage, cost or expense of whatsoever nature "
+            "directly or indirectly caused by, resulting from or in connection with any action "
+            "taken in controlling, preventing, suppressing or in any way relating to any act "
+            "of terrorism.\n\n"
+            "If Underwriters allege that by reason of this exclusion any loss, damage, cost "
+            "or expense is not covered by this insurance, the burden of proving the contrary "
+            "shall be upon the Insured."
+        ),
+    },
+    "ICC-A": {
+        "id": "ICC-A",
+        "name": "Institute Cargo Clauses (A) - All Risks",
+        "category": "coverage",
+        "source": "lma",
+        "is_mandatory": True,
+        "text": (
+            "RISKS COVERED\n\n"
+            "1. This insurance covers all risks of loss of or damage to the subject-matter "
+            "insured except as excluded by the provisions of Clauses 4, 5, 6 and 7 below.\n\n"
+            "GENERAL AVERAGE\n\n"
+            "2. This insurance covers general average and salvage charges, adjusted or "
+            "determined according to the contract of carriage and/or the governing law and "
+            "practice, incurred to avoid or in connection with the avoidance of loss from "
+            "any cause except those excluded in Clauses 4, 5, 6 and 7 below.\n\n"
+            "BOTH TO BLAME COLLISION CLAUSE\n\n"
+            "3. This insurance indemnifies the Assured, in respect of any risk insured herein, "
+            "against liability incurred under any Both to Blame Collision Clause in the "
+            "contract of carriage.\n\n"
+            "GENERAL EXCLUSIONS\n\n"
+            "4. In no case shall this insurance cover:\n"
+            "4.1 loss damage or expense attributable to wilful misconduct of the Assured\n"
+            "4.2 ordinary leakage, ordinary loss in weight or volume, or ordinary wear and tear\n"
+            "4.3 loss damage or expense caused by insufficiency or unsuitability of packing\n"
+            "4.4 loss damage or expense caused by inherent vice or nature of the subject-matter\n"
+            "4.5 loss damage or expense caused by delay\n"
+            "4.6 loss damage or expense caused by insolvency or financial default of the "
+            "owners managers charterers or operators of the vessel\n"
+            "4.7 deliberate damage to or deliberate destruction of the subject-matter insured "
+            "by the wrongful act of any person\n\n"
+            "DURATION\n\n"
+            "8. This insurance attaches from the time the subject-matter insured is first "
+            "moved in the warehouse for the purpose of the immediate loading into or onto "
+            "the carrying vehicle and continues during the ordinary course of transit until "
+            "delivered to the final warehouse at the destination named, or until the expiry "
+            "of 60 days after completion of discharge from the oversea vessel, whichever "
+            "first occurs."
+        ),
+    },
+    "LMA5401": {
+        "id": "LMA5401",
+        "name": "Cyber Attack Exclusion",
+        "category": "exclusion",
+        "source": "lma",
+        "is_mandatory": True,
+        "text": (
+            "1. Notwithstanding any provision to the contrary within this insurance or any "
+            "endorsement thereto, this insurance excludes any loss, damage, liability, claim, "
+            "cost or expense of whatsoever nature directly or indirectly caused by, contributed "
+            "to by, resulting from, arising out of or in connection with any Cyber Act or "
+            "Cyber Incident including, but not limited to, any action taken in controlling, "
+            "preventing, suppressing or remediating any Cyber Act or Cyber Incident.\n\n"
+            "2. Where, solely and directly as a result of a Cyber Act or Cyber Incident, "
+            "a physical peril insured under this policy ensues, this policy will cover the "
+            "ensuing physical loss or damage only. This does not extend to cover any loss, "
+            "damage, liability, claim, cost or expense directly or indirectly arising from "
+            "the Cyber Act or Cyber Incident itself.\n\n"
+            "3. For the purposes of this exclusion:\n"
+            "3.1 'Cyber Act' means an unauthorised, malicious or criminal act or series of "
+            "related unauthorised, malicious or criminal acts, regardless of time and place, "
+            "involving access to, processing of, use of, or operation of any Computer System.\n"
+            "3.2 'Cyber Incident' means any error or omission or series of related errors or "
+            "omissions involving access to, processing of, use of or operation of any "
+            "Computer System.\n"
+            "3.3 'Computer System' means any computer, hardware, software, communications "
+            "system, electronic device, server, cloud or microcontroller including any similar "
+            "system or any configuration of the aforementioned and including any associated "
+            "input, output, data storage device, networking equipment or back-up facility."
+        ),
+    },
+    "AVN48B": {
+        "id": "AVN48B",
+        "name": "War, Hi-jacking and Other Perils Exclusion (Aviation)",
+        "category": "exclusion",
+        "source": "lma",
+        "is_mandatory": True,
+        "text": (
+            "This policy does not cover claims caused by:\n\n"
+            "(a) War, invasion, acts of foreign enemies, hostilities (whether war be declared "
+            "or not), civil war, rebellion, revolution, insurrection, martial law, military "
+            "or usurped power or attempts at usurpation of power.\n\n"
+            "(b) Any hostile detonation of any weapon of war employing atomic or nuclear "
+            "fission and/or fusion or other like reaction or radioactive force or matter.\n\n"
+            "(c) Strikes, riots, civil commotions or labour disturbances.\n\n"
+            "(d) Any act of one or more persons, whether or not agents of a sovereign Power, "
+            "for political or terrorist purposes and whether the loss or damage resulting "
+            "therefrom is accidental or intentional.\n\n"
+            "(e) Any malicious act or act of sabotage.\n\n"
+            "(f) Confiscation, nationalisation, seizure, restraint, detention, appropriation, "
+            "requisition for title or use by or under the order of any Government (whether "
+            "civil, military or de facto) or public or local authority.\n\n"
+            "(g) Hi-jacking or any unlawful seizure or wrongful exercise of control of the "
+            "aircraft or crew in flight (including any attempt at such seizure or control) "
+            "made by any person or persons on board the aircraft acting without the consent "
+            "of the Insured.\n\n"
+            "Furthermore, this policy does not cover claims arising whilst the aircraft is "
+            "outside the control of the Insured by reason of any of the above perils. The "
+            "aircraft shall be deemed to have been restored to the control of the Insured "
+            "on the safe return of the aircraft to the Insured at an airfield not excluded "
+            "by the geographical limits of this policy."
+        ),
+    },
+    # ── Recommended clauses ──
+    "NMA2914": {
+        "id": "NMA2914",
+        "name": "Joint Excess Loss Clause",
+        "category": "condition",
+        "source": "lma",
+        "is_mandatory": False,
+        "text": (
+            "If other insurance covers the same loss or any part thereof, the Company shall "
+            "not be liable under this insurance for more than its rateable proportion of the "
+            "amount exceeding the total of all deductibles, excesses and retentions applicable "
+            "to such other insurance.\n\n"
+            "The Insured undertakes to maintain such other insurance in force throughout the "
+            "currency of this Policy and to advise Underwriters of any changes thereto."
+        ),
+    },
+    "LMA5014": {
+        "id": "LMA5014",
+        "name": "Duty of Fair Presentation",
+        "category": "condition",
+        "source": "lma",
+        "is_mandatory": False,
+        "text": (
+            "The Insured shall make a fair presentation of the risk to Underwriters in "
+            "accordance with Section 3 of the Insurance Act 2015.\n\n"
+            "A fair presentation means:\n"
+            "(a) disclosure of every material circumstance which the Insured knows or ought "
+            "to know, or failing that, disclosure which gives Underwriters sufficient "
+            "information to put a prudent insurer on notice that it needs to make further "
+            "enquiries;\n"
+            "(b) that the disclosure is made in a manner which would be reasonably clear and "
+            "accessible to a prudent insurer;\n"
+            "(c) in which every material representation as to a matter of fact is substantially "
+            "correct, and every material representation as to a matter of expectation or "
+            "belief is made in good faith.\n\n"
+            "If the Insured fails to make a fair presentation, Underwriters shall have the "
+            "remedies set out in the Insurance Act 2015, which may include avoidance of the "
+            "contract, imposition of different terms, or a proportionate reduction in the "
+            "amount paid on a claim."
+        ),
+    },
+    "LMA5096": {
+        "id": "LMA5096",
+        "name": "Premium Payment Clause",
+        "category": "condition",
+        "source": "lma",
+        "is_mandatory": False,
+        "text": (
+            "The Insured undertakes that premium will be paid in full to Underwriters within "
+            "60 days of inception of this insurance (or, in respect of instalments, within "
+            "60 days of the instalment due date).\n\n"
+            "If the premium due under this insurance has not been so paid to Underwriters "
+            "by the 60th day from the inception of this insurance (or, in respect of "
+            "instalments, by the 60th day of the instalment due date), Underwriters shall "
+            "have the right to cancel this insurance by notifying the Insured via the broker "
+            "in writing.\n\n"
+            "In the event of cancellation, premium is due to Underwriters on a pro rata "
+            "basis for the period that Underwriters are on risk but the full policy premium "
+            "shall be payable if a loss has occurred prior to the date of cancellation.\n\n"
+            "It is agreed that Underwriters shall give not less than 15 days prior notice "
+            "of cancellation to the Insured via the broker."
+        ),
+    },
+    "ICC-B": {
+        "id": "ICC-B",
+        "name": "Institute Cargo Clauses (B) - Named Perils",
+        "category": "coverage",
+        "source": "lma",
+        "is_mandatory": False,
+        "text": (
+            "RISKS COVERED\n\n"
+            "1. This insurance covers, except as excluded by the provisions of Clauses 4, "
+            "5, 6 and 7 below:\n"
+            "1.1 loss of or damage to the subject-matter insured reasonably attributable to:\n"
+            "1.1.1 fire or explosion\n"
+            "1.1.2 vessel or craft being stranded grounded sunk or capsized\n"
+            "1.1.3 overturning or derailment of land conveyance\n"
+            "1.1.4 collision or contact of vessel craft or conveyance with any external object\n"
+            "1.1.5 discharge of cargo at a port of distress\n"
+            "1.1.6 earthquake volcanic eruption or lightning\n"
+            "1.2 loss of or damage to the subject-matter insured caused by:\n"
+            "1.2.1 general average sacrifice\n"
+            "1.2.2 jettison or washing overboard\n"
+            "1.2.3 entry of sea lake or river water into vessel craft hold conveyance "
+            "container or place of storage\n"
+            "1.3 total loss of any package lost overboard or dropped whilst loading on to, "
+            "or unloading from, vessel or craft."
+        ),
+    },
+    "IWC-CARGO": {
+        "id": "IWC-CARGO",
+        "name": "Institute War Clauses (Cargo)",
+        "category": "coverage",
+        "source": "lma",
+        "is_mandatory": False,
+        "text": (
+            "RISKS COVERED\n\n"
+            "1. This insurance covers, except as excluded by the provisions of Clauses 3 "
+            "and 4 below, loss of or damage to the subject-matter insured caused by:\n"
+            "1.1 war civil war revolution rebellion insurrection, or civil strife arising "
+            "therefrom, or any hostile act by or against a belligerent power\n"
+            "1.2 capture seizure arrest restraint or detainment, arising from risks covered "
+            "under 1.1 above, and the consequences thereof or any attempt thereat\n"
+            "1.3 derelict mines torpedoes bombs or other derelict weapons of war.\n\n"
+            "GENERAL AVERAGE\n\n"
+            "2. This insurance covers general average and salvage charges, adjusted or "
+            "determined according to the contract of carriage and/or the governing law and "
+            "practice, incurred to avoid or in connection with the avoidance of loss from a "
+            "risk covered under these clauses."
+        ),
+    },
+    "LMA5402": {
+        "id": "LMA5402",
+        "name": "Cyber Act War Exclusion",
+        "category": "exclusion",
+        "source": "lma",
+        "is_mandatory": False,
+        "text": (
+            "Notwithstanding any provision to the contrary within this insurance:\n\n"
+            "This insurance excludes any loss, damage, liability, cost or expense of "
+            "whatsoever nature directly or indirectly caused by, contributed to by, resulting "
+            "from, arising out of or in connection with a Cyber Operation that is carried out "
+            "in the course of war, or the use of a Computer System by any party to the war.\n\n"
+            "For the purposes of this exclusion:\n"
+            "(a) 'War' means war, whether declared or not, or any armed conflict between two "
+            "or more States; or cyber operations between two or more States which are "
+            "sufficiently disruptive, destructive, or destabilising to amount to armed conflict.\n"
+            "(b) 'Cyber Operation' means the use of a Computer System by or on behalf of a "
+            "State to disrupt, deny, degrade, manipulate or destroy information in, or the "
+            "infrastructure of, a Computer System of another State."
+        ),
+    },
+    "LMA5394": {
+        "id": "LMA5394",
+        "name": "Pandemic Exclusion",
+        "category": "exclusion",
+        "source": "lma",
+        "is_mandatory": False,
+        "text": (
+            "Notwithstanding any provision to the contrary within this insurance or any "
+            "endorsement thereto, this insurance excludes any loss, damage, liability, claim, "
+            "cost or expense of whatsoever nature directly or indirectly caused by, contributed "
+            "to by, resulting from, arising out of, or in connection with:\n\n"
+            "(a) a pandemic or epidemic as declared or recognised by the World Health "
+            "Organisation or any governmental or statutory authority;\n\n"
+            "(b) the fear or threat (whether actual or perceived) of a pandemic or epidemic;\n\n"
+            "(c) any action taken in controlling, preventing, suppressing, mitigating, or in "
+            "any way relating to any pandemic or epidemic.\n\n"
+            "For the avoidance of doubt, this exclusion applies regardless of any other "
+            "cause or event contributing concurrently or in any other sequence to the loss."
+        ),
+    },
+    "AVN52E": {
+        "id": "AVN52E",
+        "name": "War and Allied Perils Extension (Aviation)",
+        "category": "coverage",
+        "source": "lma",
+        "is_mandatory": False,
+        "text": (
+            "In consideration of an additional premium, the cover excluded by AVN48B is "
+            "reinstated subject to the following:\n\n"
+            "This extension covers claims caused by:\n"
+            "(a) War, invasion, acts of foreign enemies, hostilities, civil war, rebellion, "
+            "revolution, insurrection, martial law, military or usurped power;\n"
+            "(b) Strikes, riots, civil commotions or labour disturbances;\n"
+            "(c) Any act of one or more persons, whether or not agents of a sovereign Power, "
+            "for political or terrorist purposes;\n"
+            "(d) Any malicious act or act of sabotage;\n"
+            "(e) Confiscation, nationalisation, seizure, restraint, detention;\n"
+            "(f) Hi-jacking or any unlawful seizure of the aircraft.\n\n"
+            "This extension is subject to 7 days' notice of cancellation by either party, "
+            "except in the event of hostile detonation of a nuclear weapon, in which case "
+            "the cover shall terminate automatically."
+        ),
+    },
+    "LMA3200": {
+        "id": "LMA3200",
+        "name": "Employer's Liability Clause",
+        "category": "coverage",
+        "source": "lma",
+        "is_mandatory": False,
+        "text": (
+            "This insurance covers the Insured's legal liability to pay compensation and "
+            "claimant's costs and expenses in respect of bodily injury or disease sustained "
+            "by any Employee of the Insured arising out of and in the course of employment "
+            "by the Insured in connection with the Insured's business.\n\n"
+            "For the purposes of this section:\n"
+            "'Employee' means any person under a contract of service or apprenticeship with "
+            "the Insured, including:\n"
+            "(a) any person employed by labour-only sub-contractors;\n"
+            "(b) any person hired to or borrowed by the Insured;\n"
+            "(c) any self-employed person performing work under the supervision and control "
+            "of the Insured;\n"
+            "(d) any person supplied to the Insured under a contract or agreement the terms "
+            "of which deem such persons to be employees of the Insured.\n\n"
+            "The indemnity includes costs and expenses incurred with Underwriters' written "
+            "consent in the defence or settlement of any claim."
+        ),
+    },
+}
+
+
+def _resolve_clause_full_text(clause_id: str) -> dict | None:
+    """Resolve a clause ID to a full clause dict with text.
+
+    Priority:
+      1. clauses_library_service (102K+ file-based / pgvector)
+      2. _get_clause_by_id (V3 template files)
+      3. INLINE_MANDATORY_CLAUSES (always-available fallback)
+    """
+    if not clause_id:
+        return None
+
+    # 1. Try comprehensive library
+    try:
+        from app.services.clauses_library_service import clauses_library_service
+
+        result = clauses_library_service.get_clause_by_id(clause_id)
+        if result and result.get("text") and len(result["text"]) >= 30:
+            return result
+    except Exception:
+        pass
+
+    # 2. Try V3 template lookup
+    try:
+        result = _get_clause_by_id(clause_id)
+        if result and result.get("text") and len(result["text"]) >= 30:
+            return result
+    except Exception:
+        pass
+
+    # 3. Inline fallback
+    inline = INLINE_MANDATORY_CLAUSES.get(clause_id)
+    if inline:
+        return inline
+
+    return None
+
+
+def _resolve_clauses_batch(items) -> list:
+    """Resolve a mixed bag of clause IDs/dicts/grouped-by-doc into fully resolved clause dicts.
+
+    Accepts:
+      - list of str (plain clause IDs)
+      - list of dicts ({clause_id, name, content_preview, ...})
+      - dict keyed by doc_type ({"policy_wording": [clause_dicts], ...})
+
+    Returns: deduplicated list of {clause_id, name, selected_text, source, is_mandatory}
+    """
+    if not items:
+        return []
+
+    flat: list = []
+
+    if isinstance(items, dict):
+        # Dict keyed by doc type — flatten all clause lists
+        for _doc_type, clause_list in items.items():
+            if isinstance(clause_list, list):
+                flat.extend(clause_list)
+    elif isinstance(items, list):
+        flat = list(items)
+    else:
+        return []
+
+    resolved: list = []
+    seen_ids: set = set()
+
+    for item in flat:
+        cid = None
+        name = None
+        existing_text = ""
+        source = "user_selected"
+        is_mandatory = False
+
+        if isinstance(item, str):
+            cid = item
+            name = item
+        elif isinstance(item, dict):
+            cid = item.get("clause_id") or item.get("id")
+            name = item.get("name", cid)
+            existing_text = (
+                item.get("selected_text")
+                or item.get("full_text")
+                or item.get("text")
+                or ""
+            )
+            source = item.get("source", "user_selected")
+            is_mandatory = item.get("is_mandatory", False)
+        else:
+            continue
+
+        if not cid or cid in seen_ids:
+            continue
+        seen_ids.add(cid)
+
+        # Resolve full text if what we have is too short (< 50 chars)
+        full_text = existing_text
+        if len(full_text.strip()) < 50:
+            resolved_clause = _resolve_clause_full_text(cid)
+            if resolved_clause:
+                full_text = resolved_clause.get("text", "") or full_text
+                if not name or name == cid:
+                    name = resolved_clause.get("name", name)
+                source = resolved_clause.get("source", source)
+                is_mandatory = resolved_clause.get("is_mandatory", is_mandatory)
+
+        resolved.append(
+            {
+                "clause_id": cid,
+                "name": name or cid,
+                "selected_text": full_text,
+                "source": source,
+                "is_mandatory": is_mandatory,
+            }
+        )
+
+    return resolved
 
 
 def _parse_doc_id(doc_id: str) -> int | None:
@@ -371,6 +978,7 @@ async def suggest_documents(
     }
 
     # Get clause recommendations using the REAL clauses library (with actual data)
+    # Falls back to INLINE_MANDATORY_CLAUSES when library is unavailable/empty.
     from app.services.clauses_library_service import clauses_library_service
 
     lma_clauses = []
@@ -389,20 +997,78 @@ async def suggest_documents(
 
         for clause_id, reason in mandatory_lma_ids.items():
             clause_data = clauses_library_service.get_clause_by_id(clause_id)
+            # Fallback to inline definitions when library has no match
+            if not clause_data or not clause_data.get("text"):
+                clause_data = _resolve_clause_full_text(clause_id)
             if clause_data:
+                clause_text = clause_data.get("text", "") or ""
                 lma_clauses.append(
                     LMAClauseSuggestion(
-                        id=clause_data["id"],
-                        name=clause_data["name"],
+                        id=clause_data.get("id", clause_id),
+                        name=clause_data.get("name", clause_id),
                         mandatory=True,
                         category=clause_data.get("category", "general"),
                         selected=True,
                         reason=reason,
+                        text_preview=clause_text[:300] if clause_text else None,
                     )
                 )
-                existing_ids.add(clause_data["id"])
+                existing_ids.add(clause_data.get("id", clause_id))
 
-        # 2. Risk-category specific recommended clauses (pre-selected)
+        # 1b. Add line-specific mandatory clauses from inline definitions
+        line_mandatory_map = {
+            "property": ["LMA5567"],
+            "marine": ["ICC-A"],
+            "cyber": ["LMA5401"],
+            "aviation": ["AVN48B"],
+        }
+        for line_cid in line_mandatory_map.get(risk_category.lower(), []):
+            if line_cid not in existing_ids:
+                clause_data = _resolve_clause_full_text(line_cid)
+                if clause_data:
+                    clause_text = clause_data.get("text", "") or ""
+                    lma_clauses.append(
+                        LMAClauseSuggestion(
+                            id=clause_data.get("id", line_cid),
+                            name=clause_data.get("name", line_cid),
+                            mandatory=True,
+                            category=clause_data.get("category", "general"),
+                            selected=True,
+                            reason=f"Mandatory for {risk_category} risks",
+                            text_preview=clause_text[:300] if clause_text else None,
+                        )
+                    )
+                    existing_ids.add(clause_data.get("id", line_cid))
+
+        # 1c. Add recommended clauses from inline definitions
+        recommended_map = {
+            "property": ["NMA2914", "LMA5014", "LMA5096"],
+            "marine": ["ICC-B", "IWC-CARGO"],
+            "cyber": ["LMA5402", "LMA5394"],
+            "aviation": ["AVN52E"],
+            "casualty": ["LMA3200"],
+        }
+        for rec_cid in recommended_map.get(
+            risk_category.lower(), ["LMA5014", "LMA5096"]
+        ):
+            if rec_cid not in existing_ids:
+                clause_data = _resolve_clause_full_text(rec_cid)
+                if clause_data:
+                    clause_text = clause_data.get("text", "") or ""
+                    lma_clauses.append(
+                        LMAClauseSuggestion(
+                            id=clause_data.get("id", rec_cid),
+                            name=clause_data.get("name", rec_cid),
+                            mandatory=False,
+                            category=clause_data.get("category", "general"),
+                            selected=True,
+                            reason=f"Recommended for {risk_category} risks",
+                            text_preview=clause_text[:300] if clause_text else None,
+                        )
+                    )
+                    existing_ids.add(clause_data.get("id", rec_cid))
+
+        # 2. Risk-category specific clauses from library search (pre-selected)
         category_searches = {
             "property": ["property", "fire", "damage"],
             "marine": ["marine", "cargo", "hull"],
@@ -422,6 +1088,7 @@ async def suggest_documents(
             )
             for clause_data in results:
                 if clause_data["id"] not in existing_ids:
+                    clause_text = clause_data.get("text", "") or ""
                     lma_clauses.append(
                         LMAClauseSuggestion(
                             id=clause_data["id"],
@@ -430,6 +1097,7 @@ async def suggest_documents(
                             category=clause_data.get("category", "general"),
                             selected=True,
                             reason=f"Recommended for {risk_category} risks",
+                            text_preview=clause_text[:300] if clause_text else None,
                         )
                     )
                     existing_ids.add(clause_data["id"])
@@ -440,6 +1108,7 @@ async def suggest_documents(
         )
         for clause_data in category_results:
             if clause_data["id"] not in existing_ids:
+                clause_text = clause_data.get("text", "") or ""
                 lma_clauses.append(
                     LMAClauseSuggestion(
                         id=clause_data["id"],
@@ -448,6 +1117,7 @@ async def suggest_documents(
                         category=clause_data.get("category", "general"),
                         selected=False,
                         reason=f"Available for {risk_category} policies",
+                        text_preview=clause_text[:300] if clause_text else None,
                     )
                 )
                 existing_ids.add(clause_data["id"])
@@ -456,6 +1126,7 @@ async def suggest_documents(
         lma_results, _ = clauses_library_service.search(source="lma", page_size=50)
         for clause_data in lma_results:
             if clause_data["id"] not in existing_ids:
+                clause_text = clause_data.get("text", "") or ""
                 lma_clauses.append(
                     LMAClauseSuggestion(
                         id=clause_data["id"],
@@ -464,6 +1135,7 @@ async def suggest_documents(
                         category=clause_data.get("category", "general"),
                         selected=False,
                         reason="Available in LMA clause library",
+                        text_preview=clause_text[:300] if clause_text else None,
                     )
                 )
                 existing_ids.add(clause_data["id"])
@@ -727,12 +1399,17 @@ async def _run_generation_job(
         language: Optional target language code for document generation
         user_id: User ID for per-user RAG and ML adapter predictions
     """
+    # Resolve clause IDs (plain strings or dicts) to full clause dicts with text.
+    # Without this, the opendraft generator receives empty selected_text for
+    # string clause IDs and the clause content never makes it into the document.
+    resolved_clauses = _resolve_clauses_batch(clause_ids) if clause_ids else None
+
     await _run_opendraft_job(
         job_id,
         assessment_data,
         user_id,
         document_types,
-        clause_dicts=clause_ids,
+        clause_dicts=resolved_clauses,
         language=language,
     )
 
@@ -2198,7 +2875,7 @@ async def ai_clause_search(
     try:
         from app.services.clauses_library_service import clauses_library_service
 
-        # Build clauses from the real clause library (6,904 clauses)
+        # Build clauses from the real clause library + inline fallbacks
         clauses_by_doc = {}
 
         # Mandatory LMA clauses for all document types
@@ -2214,20 +2891,23 @@ async def ai_clause_search(
         for doc_type in document_types or ["policy_wording"]:
             doc_clauses = []
 
-            # 1. Add mandatory LMA clauses with real text
+            # 1. Add mandatory LMA clauses with FULL text (library + inline fallback)
             for clause_id in mandatory_ids:
                 clause_data = clauses_library_service.get_clause_by_id(clause_id)
+                if not clause_data or not clause_data.get("text"):
+                    clause_data = _resolve_clause_full_text(clause_id)
                 if clause_data:
+                    full_text = clause_data.get("text", "") or ""
                     doc_clauses.append(
                         {
-                            "clause_id": clause_data["id"],
-                            "name": clause_data["name"],
+                            "clause_id": clause_data.get("id", clause_id),
+                            "name": clause_data.get("name", clause_id),
                             "source": clause_data.get("source", "lma"),
                             "content_preview": (
-                                clause_data.get("text", "")
-                                or clause_data.get("name", "")
+                                full_text or clause_data.get("name", "")
                             )[:200]
-                            + "...",
+                            + ("..." if len(full_text) > 200 else ""),
+                            "full_text": full_text,
                             "is_mandatory": True,
                         }
                     )
@@ -2248,15 +2928,22 @@ async def ai_clause_search(
                 results, _ = clauses_library_service.search(query=term, page_size=8)
                 for r in results:
                     if r["id"] not in existing_ids and len(doc_clauses) < 20:
+                        full_text = r.get("text", "") or ""
+                        # Resolve full text if the library result is too short
+                        if len(full_text) < 50:
+                            resolved = _resolve_clause_full_text(r["id"])
+                            if resolved:
+                                full_text = resolved.get("text", "") or full_text
                         doc_clauses.append(
                             {
                                 "clause_id": r["id"],
                                 "name": r["name"],
                                 "source": r.get("source", "library"),
-                                "content_preview": (
-                                    r.get("text", "") or r.get("name", "")
-                                )[:200]
-                                + "...",
+                                "content_preview": (full_text or r.get("name", ""))[
+                                    :200
+                                ]
+                                + ("..." if len(full_text) > 200 else ""),
+                                "full_text": full_text,
                                 "is_mandatory": False,
                             }
                         )
@@ -2500,54 +3187,14 @@ async def generate_documents_opendraft(
                 ):
                     assessment_data[field] = ai_val
 
-    # Flatten clausesByDoc (Map<docType, List<clauseObj>>) into a deduplicated
-    # list of clause dicts that the generator can use directly.
-    # The frontend sends rich objects with clause_id, name, content_preview, etc.
-    flat_clauses: list = []
-    if clauses and isinstance(clauses, dict):
-        seen_ids: set = set()
-        for _doc_type, clause_list in clauses.items():
-            if not isinstance(clause_list, list):
-                continue
-            for c in clause_list:
-                if not isinstance(c, dict):
-                    continue
-                cid = c.get("clause_id") or c.get("id")
-                if not cid or cid in seen_ids:
-                    continue
-                seen_ids.add(cid)
-                flat_clauses.append(
-                    {
-                        "clause_id": cid,
-                        "name": c.get("name", cid),
-                        "selected_text": c.get("content_preview", ""),
-                        "source": c.get("source", "user_selected"),
-                        "is_mandatory": c.get("is_mandatory", False),
-                    }
-                )
-    elif isinstance(clauses, list):
-        # Accept a plain list of clause IDs (legacy) or list of clause dicts
-        for c in clauses:
-            if isinstance(c, str):
-                flat_clauses.append(
-                    {
-                        "clause_id": c,
-                        "name": c,
-                        "selected_text": "",
-                        "source": "user_selected",
-                    }
-                )
-            elif isinstance(c, dict):
-                cid = c.get("clause_id") or c.get("id")
-                if cid:
-                    flat_clauses.append(
-                        {
-                            "clause_id": cid,
-                            "name": c.get("name", cid),
-                            "selected_text": c.get("content_preview", ""),
-                            "source": c.get("source", "user_selected"),
-                        }
-                    )
+    # Resolve clauses to full text using the unified resolver.
+    # The frontend sends either:
+    #   - dict keyed by doc_type: {"policy_wording": [{clause_id, name, content_preview}], ...}
+    #   - list of clause IDs (legacy)
+    #   - list of clause dicts
+    # _resolve_clauses_batch handles all formats and resolves full clause text
+    # from the library/inline fallbacks instead of using 200-char truncated previews.
+    flat_clauses = _resolve_clauses_batch(clauses) if clauses else []
 
     # Queue background task — returns immediately
     background_tasks.add_task(
@@ -2570,122 +3217,185 @@ async def _run_opendraft_job(
     clause_dicts: list = None,
     language: str = None,
 ):
-    """Background task that runs the 19-agent pipeline and updates job progress in DB."""
+    """Background task that runs the 19-agent pipeline and updates job progress in DB.
+
+    IMPORTANT: Uses short-lived DB sessions for each phase to avoid stale connections.
+    The pipeline can run for 2-10+ minutes; holding a single session open that long
+    causes the connection to go stale, making both completion and failure commits fail
+    silently — leaving the job stuck in 'processing' forever.
+    """
     from app.core.database import AsyncSessionLocal
     from app.services.opendraft_generator import opendraft_generator
 
-    async with AsyncSessionLocal() as db:
-        try:
-            # Mark as processing
+    # ── Phase 1: Mark as processing (short-lived session) ──────────────
+    try:
+        async with AsyncSessionLocal() as db:
             job = await db.get(DocumentGenerationJob, job_id)
             if job:
                 job.start_processing()
                 await db.commit()
+                logger.info(f"OpenDraft job {job_id}: marked as processing")
+            else:
+                logger.error(f"OpenDraft job {job_id}: job record not found, aborting")
+                return
+    except Exception as e:
+        logger.error(f"OpenDraft job {job_id}: failed to mark as processing: {e}")
+        return
 
-            # Progress callback updates the DB so the frontend can poll
-            async def progress_callback(progress):
-                async with AsyncSessionLocal() as cb_db:
-                    cb_job = await cb_db.get(DocumentGenerationJob, job_id)
-                    if cb_job:
-                        agent_num = progress.get("step", 0)
-                        agent_name = progress.get("agent", "")
-                        status = progress.get("status", "running")
-                        phase = progress.get("phase", "")
-                        percentage = min(
-                            int((agent_num / 19) * 95), 95
-                        )  # cap at 95% until truly done
-                        if status == "running":
-                            cb_job.update_progress(
-                                agent_name, f"{phase}: {agent_name}", percentage
-                            )
-                            await cb_db.commit()
+    # ── Phase 2: Progress callback (each invocation uses its own session) ──
+    async def progress_callback(progress):
+        try:
+            async with AsyncSessionLocal() as cb_db:
+                cb_job = await cb_db.get(DocumentGenerationJob, job_id)
+                if cb_job:
+                    agent_num = progress.get("step", 0)
+                    agent_name = progress.get("agent", "")
+                    status = progress.get("status", "running")
+                    phase = progress.get("phase", "")
+                    percentage = min(
+                        int((agent_num / 19) * 95), 95
+                    )  # cap at 95% until truly done
+                    if status == "running":
+                        cb_job.update_progress(
+                            agent_name, f"{phase}: {agent_name}", percentage
+                        )
+                        await cb_db.commit()
+        except Exception as e:
+            logger.debug(f"OpenDraft job {job_id}: progress update skipped: {e}")
 
-            result = await opendraft_generator.generate(
+    # ── Phase 3: Run the pipeline (NO db session held open) ────────────
+    result = None
+    error_msg = None
+    try:
+        result = await asyncio.wait_for(
+            opendraft_generator.generate(
                 assessment_data=assessment_data,
                 user_id=user_id,
                 doc_types=doc_types,
                 progress_callback=progress_callback,
                 clause_ids=clause_dicts,
                 language=language,
-            )
+            ),
+            timeout=600,  # 10-minute overall timeout
+        )
+    except asyncio.TimeoutError:
+        error_msg = "Document generation timed out after 10 minutes"
+        logger.error(f"OpenDraft job {job_id}: {error_msg}")
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"OpenDraft job {job_id} pipeline failed: {e}", exc_info=True)
 
-            # Store result and mark complete (convert UUIDs to strings for JSONB)
-            import json as _json
-
-            def _default(o):
-                if hasattr(o, "hex"):  # UUID
-                    return str(o)
-                raise TypeError(
-                    f"Object of type {type(o).__name__} is not JSON serializable"
-                )
-
-            safe_result = _json.loads(_json.dumps(result, default=_default))
-
-            job = await db.get(DocumentGenerationJob, job_id)
-            if job:
-                job.completed_documents = len(result.get("documents", []))
-                job.complete()
-
-                # Create individual GeneratedDocument records for each document
-                from app.models.generated_document import GeneratedDocument
-                from sqlalchemy.orm.attributes import flag_modified
-
-                doc_ids = []
-                for doc_data in safe_result.get("documents", []):
-                    sections_to_store = doc_data.get("sections", [])
-                    if sections_to_store:
-                        sample_keys = list(sections_to_store[0].keys())
-                        logger.info(
-                            f"Storing doc '{doc_data.get('document_type')}': "
-                            f"{len(sections_to_store)} sections, "
-                            f"section[0] keys={sample_keys}"
-                        )
-                    gen_doc = GeneratedDocument(
-                        assessment_id=job.assessment_id,
-                        generation_job_id=job_id,
-                        document_type=doc_data.get("document_type", "unknown"),
-                        title=doc_data.get("title", "Untitled Document"),
-                        status="draft",
-                        draft_content={
-                            "sections": sections_to_store,
-                            "schedules": doc_data.get("schedules", []),
-                            "appendices": doc_data.get("appendices", []),
-                        },
-                        ai_suggestions={
-                            "compliance": doc_data.get("compliance", {}),
-                            "risk_challenge": doc_data.get("risk_challenge", {}),
-                            "quality_gate": doc_data.get("quality_gate", {}),
-                            "gap_analysis": doc_data.get("gap_analysis", {}),
-                            "source_attribution": doc_data.get(
-                                "source_attribution", {}
-                            ),
-                            "ml_predictions": doc_data.get("ml_predictions"),
-                        },
-                        ai_confidence=0.85,
-                        generation_method="ai_prefill",
-                    )
-                    db.add(gen_doc)
-                    await db.flush()  # get the auto-generated id
-                    doc_ids.append(gen_doc.id)
-                    doc_data["id"] = gen_doc.id  # add DB id back to agent_outputs
-
-                # Set agent_outputs AFTER adding document IDs and flag as modified
-                job.agent_outputs = safe_result
-                flag_modified(job, "agent_outputs")
-                await db.commit()
-                logger.info(
-                    f"OpenDraft job {job_id} completed: {len(doc_ids)} documents created (IDs: {doc_ids})"
-                )
-
-        except Exception as e:
-            logger.error(f"OpenDraft job {job_id} failed: {e}", exc_info=True)
-            try:
+    # ── Phase 4: Save results (fresh session, guaranteed not stale) ────
+    if error_msg:
+        # Pipeline failed — mark job as failed
+        try:
+            async with AsyncSessionLocal() as db:
                 job = await db.get(DocumentGenerationJob, job_id)
                 if job:
-                    job.fail(str(e))
+                    job.fail(error_msg)
                     await db.commit()
-            except Exception as e2:
-                logging.getLogger(__name__).debug(f"Could not mark job as failed: {e2}")
+                    logger.info(
+                        f"OpenDraft job {job_id}: marked as failed: {error_msg}"
+                    )
+        except Exception as e2:
+            logger.error(
+                f"OpenDraft job {job_id}: CRITICAL - could not mark job as failed: {e2}",
+                exc_info=True,
+            )
+        return
+
+    # Pipeline succeeded — store documents and mark as completed
+    try:
+        import json as _json
+
+        def _default(o):
+            if hasattr(o, "hex"):  # UUID
+                return str(o)
+            raise TypeError(
+                f"Object of type {type(o).__name__} is not JSON serializable"
+            )
+
+        safe_result = _json.loads(_json.dumps(result, default=_default))
+
+        async with AsyncSessionLocal() as db:
+            job = await db.get(DocumentGenerationJob, job_id)
+            if not job:
+                logger.error(
+                    f"OpenDraft job {job_id}: job record not found for completion"
+                )
+                return
+
+            job.completed_documents = len(result.get("documents", []))
+            job.complete()
+
+            # Create individual GeneratedDocument records for each document
+            from app.models.generated_document import GeneratedDocument
+            from sqlalchemy.orm.attributes import flag_modified
+
+            doc_ids = []
+            for doc_data in safe_result.get("documents", []):
+                sections_to_store = doc_data.get("sections", [])
+                if sections_to_store:
+                    sample_keys = list(sections_to_store[0].keys())
+                    logger.info(
+                        f"Storing doc '{doc_data.get('document_type')}': "
+                        f"{len(sections_to_store)} sections, "
+                        f"section[0] keys={sample_keys}"
+                    )
+                gen_doc = GeneratedDocument(
+                    assessment_id=job.assessment_id,
+                    generation_job_id=job_id,
+                    document_type=doc_data.get("document_type", "unknown"),
+                    title=doc_data.get("title", "Untitled Document"),
+                    status="draft",
+                    draft_content={
+                        "sections": sections_to_store,
+                        "schedules": doc_data.get("schedules", []),
+                        "appendices": doc_data.get("appendices", []),
+                    },
+                    ai_suggestions={
+                        "compliance": doc_data.get("compliance", {}),
+                        "risk_challenge": doc_data.get("risk_challenge", {}),
+                        "quality_gate": doc_data.get("quality_gate", {}),
+                        "gap_analysis": doc_data.get("gap_analysis", {}),
+                        "source_attribution": doc_data.get("source_attribution", {}),
+                        "ml_predictions": doc_data.get("ml_predictions"),
+                    },
+                    ai_confidence=0.85,
+                    generation_method="ai_prefill",
+                )
+                db.add(gen_doc)
+                await db.flush()  # get the auto-generated id
+                doc_ids.append(gen_doc.id)
+                doc_data["id"] = gen_doc.id  # add DB id back to agent_outputs
+
+            # Set agent_outputs AFTER adding document IDs and flag as modified
+            job.agent_outputs = safe_result
+            flag_modified(job, "agent_outputs")
+            await db.commit()
+            logger.info(
+                f"OpenDraft job {job_id} completed: {len(doc_ids)} documents created (IDs: {doc_ids})"
+            )
+
+    except Exception as e:
+        logger.error(
+            f"OpenDraft job {job_id}: failed to save results: {e}", exc_info=True
+        )
+        # Last-resort: try to mark as failed with yet another fresh session
+        try:
+            async with AsyncSessionLocal() as db2:
+                job = await db2.get(DocumentGenerationJob, job_id)
+                if job and job.status != "completed":
+                    job.fail(f"Failed to save results: {str(e)}")
+                    await db2.commit()
+                    logger.info(
+                        f"OpenDraft job {job_id}: marked as failed (save error)"
+                    )
+        except Exception as e2:
+            logger.error(
+                f"OpenDraft job {job_id}: CRITICAL - could not mark job as failed after save error: {e2}",
+                exc_info=True,
+            )
 
 
 def _get_fallback_recommendations(risk_category: str) -> list:

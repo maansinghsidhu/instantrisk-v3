@@ -15,6 +15,7 @@ import logging
 import asyncio
 from typing import List, Dict, Any, Optional, AsyncGenerator
 from dotenv import load_dotenv
+from botocore.config import Config as BotoConfig
 
 # Load .env file so credentials and config are available via os.getenv
 # override=True ensures .env values take precedence over stale env vars
@@ -24,8 +25,12 @@ logger = logging.getLogger(__name__)
 
 # Bedrock configuration - use inference profile IDs (us. prefix) for newer models
 BEDROCK_REGION = os.getenv("AWS_BEDROCK_REGION", "us-east-1")
-BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-5-20250929-v1:0")
-BEDROCK_FALLBACK_MODEL = os.getenv("BEDROCK_FALLBACK_MODEL", "anthropic.claude-3-haiku-20240307-v1:0")
+BEDROCK_MODEL_ID = os.getenv(
+    "BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+)
+BEDROCK_FALLBACK_MODEL = os.getenv(
+    "BEDROCK_FALLBACK_MODEL", "anthropic.claude-3-haiku-20240307-v1:0"
+)
 BEDROCK_ENABLED = os.getenv("BEDROCK_ENABLED", "true").lower() == "true"
 
 
@@ -45,16 +50,25 @@ class BedrockClient:
         """Get or create boto3 Bedrock runtime client."""
         if self._runtime_client is None or force_new:
             import boto3
+
             profile = os.getenv("AWS_PROFILE", "")
+            # Configure timeouts to prevent indefinite hangs
+            boto_config = BotoConfig(
+                read_timeout=120,  # 2 min max for response read
+                connect_timeout=10,  # 10s to establish connection
+                retries={"max_attempts": 0},  # We handle retries ourselves
+            )
             try:
                 if profile:
-                    session = boto3.Session(profile_name=profile, region_name=self.region)
+                    session = boto3.Session(
+                        profile_name=profile, region_name=self.region
+                    )
                 else:
                     # Default credential chain: env vars -> IAM role -> config
                     session = boto3.Session(region_name=self.region)
             except Exception:
                 session = boto3.Session(region_name=self.region)
-            self._runtime_client = session.client("bedrock-runtime")
+            self._runtime_client = session.client("bedrock-runtime", config=boto_config)
         return self._runtime_client
 
     def _build_bedrock_body(
@@ -72,10 +86,12 @@ class BedrockClient:
             if msg["role"] == "system":
                 system_content += msg["content"] + "\n"
             else:
-                conversation_messages.append({
-                    "role": msg["role"],
-                    "content": msg["content"],
-                })
+                conversation_messages.append(
+                    {
+                        "role": msg["role"],
+                        "content": msg["content"],
+                    }
+                )
 
         # Ensure messages alternate properly and start with user
         if not conversation_messages or conversation_messages[0]["role"] != "user":
@@ -123,18 +139,24 @@ class BedrockClient:
             try:
                 client = self._get_client()
 
-                logger.info(f"Bedrock API REQUEST - Model: {model_id}, attempt {attempt + 1}")
+                logger.info(
+                    f"Bedrock API REQUEST - Model: {model_id}, attempt {attempt + 1}"
+                )
 
                 # Run synchronous boto3 call in executor to avoid blocking
+                # Wrap with asyncio timeout as safety net (150s > boto read_timeout of 120s)
                 loop = asyncio.get_event_loop()
-                response = await loop.run_in_executor(
-                    None,
-                    lambda: client.invoke_model(
-                        modelId=model_id,
-                        body=json.dumps(body),
-                        contentType="application/json",
-                        accept="application/json",
+                response = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        None,
+                        lambda: client.invoke_model(
+                            modelId=model_id,
+                            body=json.dumps(body),
+                            contentType="application/json",
+                            accept="application/json",
+                        ),
                     ),
+                    timeout=150,
                 )
 
                 response_body = json.loads(response["body"].read())
@@ -153,7 +175,9 @@ class BedrockClient:
 
             except Exception as e:
                 error_str = str(e)
-                logger.warning(f"Bedrock API error (attempt {attempt + 1}/{self.max_retries}): {error_str}")
+                logger.warning(
+                    f"Bedrock API error (attempt {attempt + 1}/{self.max_retries}): {error_str}"
+                )
                 last_error = error_str
 
                 # On credential/token errors, force new client on next attempt
@@ -161,15 +185,26 @@ class BedrockClient:
                     logger.info("Credential error - refreshing boto3 client")
                     self._runtime_client = None
 
+                # On timeout, force new client to avoid reusing stale connection
+                if "timeout" in error_str.lower() or isinstance(
+                    e, asyncio.TimeoutError
+                ):
+                    logger.warning("Timeout detected - refreshing boto3 client")
+                    self._runtime_client = None
+
                 # Try fallback model on model-specific errors
-                if attempt == 0 and ("model" in error_str.lower() or "validation" in error_str.lower()):
+                if attempt == 0 and (
+                    "model" in error_str.lower() or "validation" in error_str.lower()
+                ):
                     logger.info(f"Trying fallback model: {self.fallback_model_id}")
                     model_id = self.fallback_model_id
 
-                delay = self.base_delay * (2 ** attempt)
+                delay = self.base_delay * (2**attempt)
                 await asyncio.sleep(delay)
 
-        logger.error(f"Bedrock API failed after {self.max_retries} attempts. Last error: {last_error}")
+        logger.error(
+            f"Bedrock API failed after {self.max_retries} attempts. Last error: {last_error}"
+        )
         return ""
 
     async def stream_chat(

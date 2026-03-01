@@ -13,8 +13,10 @@ from pydantic import BaseModel, Field, ConfigDict, field_serializer
 
 # ===== Document Suggestions =====
 
+
 class DocumentSuggestion(BaseModel):
     """Schema for a single document suggestion."""
+
     document_type: str
     template_id: Optional[int] = None
     template_key: str
@@ -27,16 +29,19 @@ class DocumentSuggestion(BaseModel):
 
 class LMAClauseSuggestion(BaseModel):
     """Schema for a suggested LMA clause."""
+
     id: str
     name: str
     mandatory: bool = False
     category: str
     selected: bool = False
     reason: str
+    text_preview: Optional[str] = None
 
 
 class DocumentSuggestionResponse(BaseModel):
     """Schema for document suggestions from AI."""
+
     assessment_id: UUID
     risk_category: Optional[str] = None
     decision: Optional[str] = None
@@ -49,8 +54,10 @@ class DocumentSuggestionResponse(BaseModel):
 
 # ===== Generation Job =====
 
+
 class GenerationJobCreate(BaseModel):
     """Schema for creating a document generation job."""
+
     document_types: List[str]
     template_ids: Optional[Dict[str, int]] = None  # document_type -> template_id
     use_custom_templates: bool = False
@@ -60,6 +67,7 @@ class GenerationJobCreate(BaseModel):
 
 class GenerationStepProgress(BaseModel):
     """Schema for a single generation step."""
+
     agent: str
     description: str
     percentage: int
@@ -68,6 +76,7 @@ class GenerationStepProgress(BaseModel):
 
 class GenerationJobProgress(BaseModel):
     """Schema for generation job progress update."""
+
     job_id: str
     status: str
     current_agent: Optional[str] = None
@@ -83,6 +92,7 @@ class GenerationJobProgress(BaseModel):
 
 class GenerationJobResponse(BaseModel):
     """Schema for generation job response."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -100,21 +110,24 @@ class GenerationJobResponse(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
 
-    @field_serializer('assessment_id')
+    @field_serializer("assessment_id")
     def serialize_assessment_id(self, v):
         return str(v) if v else None
 
 
 # ===== Generated Document =====
 
+
 class GeneratedDocumentBase(BaseModel):
     """Base schema for generated documents."""
+
     document_type: str
     title: str = Field(..., min_length=3, max_length=500)
 
 
 class GeneratedDocumentCreate(GeneratedDocumentBase):
     """Schema for creating a generated document."""
+
     template_id: Optional[int] = None
     draft_content: Dict[str, Any] = {}
     data_mappings: Dict[str, Any] = {}
@@ -122,20 +135,23 @@ class GeneratedDocumentCreate(GeneratedDocumentBase):
 
 class GeneratedDocumentUpdate(BaseModel):
     """Schema for updating a generated document."""
+
     title: Optional[str] = Field(None, min_length=3, max_length=500)
     final_content: Optional[Dict[str, Any]] = None
 
 
 class GeneratedDocumentResponse(GeneratedDocumentBase):
     """Schema for generated document response."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     assessment_id: Any
 
-    @field_serializer('assessment_id')
+    @field_serializer("assessment_id")
     def serialize_assessment_id(self, v):
         return str(v) if v else None
+
     generation_job_id: Optional[str] = None
     template_id: Optional[int] = None
     version: int = 1
@@ -165,20 +181,24 @@ class GeneratedDocumentResponse(GeneratedDocumentBase):
 
 class GeneratedDocumentListResponse(BaseModel):
     """Schema for list of generated documents."""
+
     items: List[GeneratedDocumentResponse]
     total: int
 
 
 # ===== Prefill =====
 
+
 class PrefillRequest(BaseModel):
     """Schema for requesting AI prefill data."""
+
     template_id: int
     include_rag: bool = True  # Use reference documents for enhancement
 
 
 class PrefillFieldMapping(BaseModel):
     """Schema for a single field mapping."""
+
     value: Any
     source: str  # assessment, document, computed, rag, manual_required
     confidence: float = Field(0.0, ge=0.0, le=1.0)
@@ -189,6 +209,7 @@ class PrefillFieldMapping(BaseModel):
 
 class PrefillResponse(BaseModel):
     """Schema for AI prefill response."""
+
     template_id: int
     template_name: str
     field_mappings: Dict[str, PrefillFieldMapping]
@@ -201,8 +222,10 @@ class PrefillResponse(BaseModel):
 
 # ===== Compliance =====
 
+
 class ComplianceIssue(BaseModel):
     """Schema for a compliance issue."""
+
     section: str
     issue: str
     severity: str  # critical, major, minor
@@ -211,6 +234,7 @@ class ComplianceIssue(BaseModel):
 
 class ComplianceReport(BaseModel):
     """Schema for compliance check report."""
+
     passed: bool
     score: int = Field(0, ge=0, le=100)
     critical_issues: List[ComplianceIssue] = []
@@ -224,8 +248,10 @@ class ComplianceReport(BaseModel):
 
 # ===== Finalize =====
 
+
 class FinalizeRequest(BaseModel):
     """Schema for finalizing a document to PDF."""
+
     final_content: Optional[Dict[str, Any]] = None
     include_watermark: bool = False
     include_signatures: bool = True
@@ -233,6 +259,7 @@ class FinalizeRequest(BaseModel):
 
 class FinalizeResponse(BaseModel):
     """Schema for finalize response."""
+
     document_id: int
     status: str
     pdf_url: str
