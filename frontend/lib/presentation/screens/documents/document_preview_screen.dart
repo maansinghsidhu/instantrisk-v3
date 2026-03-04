@@ -62,6 +62,46 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
 
   bool _isExporting = false;
 
+  Future<void> _deleteDocument() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Document'),
+        content: const Text('Are you sure you want to delete this document? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      final response = await authService.delete('/generated-documents/${widget.documentId}');
+      if (response.statusCode == 204 || response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Document deleted')),
+          );
+          context.pop();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _exportDocument(String format) async {
     if (_isExporting) return;
 
@@ -313,6 +353,9 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                     'assessmentId': widget.assessmentId,
                   });
                   break;
+                case 'delete':
+                  _deleteDocument();
+                  break;
               }
             },
             itemBuilder: (context) => [
@@ -344,6 +387,17 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                     Icon(Icons.edit, size: 20),
                     SizedBox(width: 12),
                     Text('Edit Document'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                    SizedBox(width: 12),
+                    Text('Delete', style: TextStyle(color: Colors.red)),
                   ],
                 ),
               ),

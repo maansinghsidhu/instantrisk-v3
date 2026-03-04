@@ -76,6 +76,86 @@ class _DocumentsHubScreenState extends State<DocumentsHubScreen> {
     }
   }
 
+  Future<void> _deleteGeneratedDocument(String docId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Document'),
+        content: const Text('Are you sure you want to delete this generated document? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      final response = await authService.delete('/generated-documents/$docId');
+      if (response.statusCode == 204 || response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Document deleted')),
+          );
+          _loadData();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteAssessment(String assessmentId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Assessment'),
+        content: const Text('Are you sure you want to delete this assessment and all its generated documents? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      final response = await authService.delete('/assessments/$assessmentId');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Assessment deleted')),
+          );
+          _loadData();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete: $e')),
+        );
+      }
+    }
+  }
+
   /// Filter documents by search query
   List<Map<String, dynamic>> get _filteredDocuments {
     if (_searchQuery.isEmpty) return _recentDocuments;
@@ -416,6 +496,14 @@ class _DocumentsHubScreenState extends State<DocumentsHubScreen> {
                   ),
                 ],
               ),
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: () {
+                  final docId = doc['id']?.toString();
+                  if (docId != null) _deleteGeneratedDocument(docId);
+                },
+                child: Icon(Icons.delete_outline, size: 18, color: AppTheme.textH(context)),
+              ),
             ],
           ),
         ),
@@ -583,6 +671,14 @@ class _DocumentsHubScreenState extends State<DocumentsHubScreen> {
                           ),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onTap: () {
+                        final id = assessment['id']?.toString();
+                        if (id != null) _deleteAssessment(id);
+                      },
+                      child: Icon(Icons.delete_outline, size: 16, color: AppTheme.textH(context)),
                     ),
                   ],
                 ),

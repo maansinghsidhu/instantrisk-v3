@@ -116,6 +116,86 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     }
   }
 
+  Future<void> _deleteUploadedDocument(String docId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Document'),
+        content: const Text('Are you sure you want to delete this uploaded document?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      final response = await authService.delete('/documents/$docId');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Document deleted')),
+          );
+          _loadDocuments();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteGeneratedDocument(String docId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Document'),
+        content: const Text('Are you sure you want to delete this generated document?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      final response = await authService.delete('/generated-documents/$docId');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Document deleted')),
+          );
+          _loadDocuments();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _loadDocuments() async {
     try {
       setState(() => _isLoading = true);
@@ -714,6 +794,12 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                     icon: const Icon(Icons.download, color: AppTheme.primaryDark),
                     tooltip: 'Download',
                   ),
+                if (doc['id'] != null)
+                  IconButton(
+                    onPressed: () => _deleteUploadedDocument(doc['id'].toString()),
+                    icon: Icon(Icons.delete_outline, color: AppTheme.textH(context)),
+                    tooltip: 'Delete',
+                  ),
               ],
             ),
             if (doc['ocr_preview'] != null) ...[
@@ -869,6 +955,15 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                           vertical: 8,
                         ),
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () {
+                        final docId = doc['id']?.toString();
+                        if (docId != null) _deleteGeneratedDocument(docId);
+                      },
+                      icon: Icon(Icons.delete_outline, color: AppTheme.textH(context), size: 20),
+                      tooltip: 'Delete',
                     ),
                   ],
                 ),

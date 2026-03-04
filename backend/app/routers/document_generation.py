@@ -1686,6 +1686,45 @@ async def update_generated_document(
     return GeneratedDocumentResponse.model_validate(doc)
 
 
+@router.delete("/generated-documents/{doc_id}", status_code=204)
+async def delete_generated_document(
+    doc_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a generated document and its associated PDF file."""
+    parsed_id = _parse_doc_id(doc_id)
+    if parsed_id is None:
+        raise HTTPException(400, f"Invalid document ID format: {doc_id}")
+
+    # Join with Assessment to verify ownership
+    query = (
+        select(GeneratedDocument)
+        .join(Assessment, GeneratedDocument.assessment_id == Assessment.id)
+        .where(
+            GeneratedDocument.id == parsed_id, Assessment.created_by == current_user.id
+        )
+    )
+    result = await db.execute(query)
+    doc = result.scalars().first()
+
+    if not doc:
+        raise HTTPException(404, "Document not found or access denied")
+
+    # Delete PDF file from disk if it exists
+    if doc.pdf_path:
+        import os
+
+        try:
+            if os.path.exists(doc.pdf_path):
+                os.remove(doc.pdf_path)
+        except OSError as e:
+            logger.warning(f"Failed to delete PDF file {doc.pdf_path}: {e}")
+
+    await db.delete(doc)
+    await db.commit()
+
+
 @router.post(
     "/assessments/{assessment_id}/prefill/{template_id}", response_model=PrefillResponse
 )
@@ -3276,7 +3315,7 @@ async def _run_opendraft_job(
                 clause_ids=clause_dicts,
                 language=language,
             ),
-            timeout=600,  # 10-minute overall timeout
+            timeout=1800,  # 30-minute overall timeout (33 sections × ~60s each)
         )
     except asyncio.TimeoutError:
         error_msg = "Document generation timed out after 10 minutes"

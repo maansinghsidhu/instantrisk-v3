@@ -124,6 +124,46 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return _assessments.where((a) => a.status == _selectedFilter).toList();
   }
 
+  Future<void> _deleteAssessment(AssessmentItem assessment) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Assessment'),
+        content: Text('Are you sure you want to delete "${assessment.title}"? This will also remove all generated documents. This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      final response = await authService.delete('/assessments/${assessment.id}');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Assessment deleted')),
+          );
+          _fetchAssessments();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete: $e')),
+        );
+      }
+    }
+  }
+
   // Rename dialog (available for all tiers)
   Future<void> _showRenameDialog(AssessmentItem assessment) async {
     final controller = TextEditingController(text: assessment.title);
@@ -438,6 +478,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           fontFamily: 'Inter',
                         ),
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => _deleteAssessment(assessment),
+                      child: Icon(Icons.delete_outline, size: 20, color: AppTheme.textH(context)),
                     ),
                   ],
                 ),
