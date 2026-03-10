@@ -14,7 +14,7 @@ from sqlalchemy import select, func, cast, Float
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.core.database import get_db
+from app.core.database import get_db, AsyncSessionLocal
 from app.core.security import get_current_user, get_current_syndicate_user
 from app.models.user import User
 from app.models.assessment import (
@@ -200,7 +200,7 @@ async def run_ai_analysis(assessment_id: str, user_id: str = None):
         except Exception as e:
             logger.error(f"AI analysis failed for {assessment_id}: {e}")
             try:
-                assessment.status = AssessmentStatus.DRAFT
+                assessment.status = AssessmentStatus.FAILED
                 assessment.ai_analysis = {"error": str(e)}
                 await db.commit()
             except Exception:
@@ -738,12 +738,18 @@ async def delete_assessment(
             status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
-    # Cannot delete completed assessments
-    if assessment.status == AssessmentStatus.COMPLETED:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete a completed assessment",
+    # Delete associated documents from DB (cascade doesn't cover all cases)
+    try:
+        from app.models.document import Document
+
+        doc_result = await db.execute(
+            select(Document).where(Document.assessment_id == assessment.id)
         )
+        docs = doc_result.scalars().all()
+        for doc in docs:
+            await db.delete(doc)
+    except Exception:
+        pass  # Best effort — still delete the assessment
 
     await db.delete(assessment)
     await db.commit()
@@ -1119,6 +1125,14 @@ async def upgrade_analysis(
                 import traceback
 
                 traceback.print_exc()
+                # Mark assessment as FAILED so it doesn't stay stuck in IN_PROGRESS
+                try:
+                    if assessment_ref:
+                        assessment_ref.status = AssessmentStatus.FAILED
+                        assessment_ref.ai_analysis = {"error": str(e)}
+                        await db_session.commit()
+                except Exception:
+                    await db_session.rollback()
                 await send_progress_update(
                     ws_session_id, {"type": "error", "message": str(e)}
                 )
