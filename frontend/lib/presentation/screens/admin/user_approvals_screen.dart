@@ -246,6 +246,46 @@ class _UserApprovalsScreenState extends State<UserApprovalsScreen>
     );
   }
 
+  Future<void> _deactivateUser(Map<String, dynamic> user) async {
+    final userId = user['id']?.toString() ?? '';
+    final email = user['email'] ?? 'this user';
+    if (userId.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Deactivate User'),
+        content: Text('Deactivate $email? They will no longer be able to log in.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Deactivate'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final response = await _authService.delete('/auth/users/$userId');
+      if (response.statusCode == 200) {
+        _showSnackBar('User $email deactivated', Colors.orange);
+        await _loadData();
+      } else {
+        final data = jsonDecode(response.body);
+        _showSnackBar(data['detail'] ?? 'Failed to deactivate user', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Error: $e', Colors.red);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -587,9 +627,32 @@ class _UserApprovalsScreenState extends State<UserApprovalsScreen>
             ),
           ],
         ),
-        trailing: Icon(
-          user['approval_status'] == 'approved' ? Icons.check_circle : Icons.cancel,
-          color: statusColor,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              user['approval_status'] == 'approved' ? Icons.check_circle : Icons.cancel,
+              color: statusColor,
+            ),
+            const SizedBox(width: 4),
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'deactivate') _deactivateUser(user);
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'deactivate',
+                  child: Row(
+                    children: [
+                      Icon(Icons.block, size: 18, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('Deactivate', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
         isThreeLine: true,
       ),

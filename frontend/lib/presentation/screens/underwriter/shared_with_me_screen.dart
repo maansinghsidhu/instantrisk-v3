@@ -42,6 +42,58 @@ class _SharedWithMeScreenState extends State<SharedWithMeScreen> {
     }
   }
 
+  Future<void> _removeShare(Map<String, dynamic> item) async {
+    final share = item['share'] as Map<String, dynamic>;
+    final shareId = share['id']?.toString() ?? '';
+    if (shareId.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Share'),
+        content: const Text('Remove this shared submission from your list? You will lose access to it.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final response = await authService.delete('/submission-share/$shareId');
+      if (response.statusCode == 200 && mounted) {
+        setState(() {
+          _shares.removeWhere((s) {
+            final sid = (s['share'] as Map<String, dynamic>?)?['id']?.toString();
+            return sid == shareId;
+          });
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Share removed')),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to remove share'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -217,6 +269,15 @@ class _SharedWithMeScreenState extends State<SharedWithMeScreen> {
                           color: shareColor,
                           letterSpacing: 0.5,
                         ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => _removeShare(item),
+                      child: Icon(
+                        Icons.delete_outline,
+                        size: 20,
+                        color: AppTheme.textH(context),
                       ),
                     ),
                   ],

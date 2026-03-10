@@ -1253,9 +1253,70 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                     ))
               else
                 const Text('No members yet'),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _deleteTeam(team);
+                  },
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  label: const Text('Delete Team', style: TextStyle(color: Colors.red)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.red),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _deleteTeam(Map<String, dynamic> team) {
+    final teamId = team['id']?.toString() ?? '';
+    final teamName = team['name'] ?? 'this team';
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Team'),
+        content: Text('Are you sure you want to delete "$teamName"? All member associations will be removed.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              if (teamId.isEmpty) return;
+              try {
+                final response = await authService.delete('/teams/teams/$teamId');
+                if (response.statusCode == 200) {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    SnackBar(content: Text('"$teamName" deleted')),
+                  );
+                  _loadData();
+                } else {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    SnackBar(content: Text('Failed to delete team: ${response.statusCode}'), backgroundColor: Colors.red),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.danger),
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }
@@ -1321,22 +1382,46 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
   }
 
   void _removeMember(Map<String, dynamic> member) {
+    final teamId = member['team_id']?.toString() ?? '';
+    final userId = member['user_id']?.toString() ?? '';
+    final memberName = member['full_name'] ?? member['email'] ?? 'this member';
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Remove Member'),
-        content: Text('Are you sure you want to remove ${member['full_name'] ?? 'this member'}?'),
+        content: Text('Are you sure you want to remove $memberName from the team?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Member removed')),
-              );
+              if (teamId.isEmpty || userId.isEmpty) {
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('Cannot remove: missing team or user ID'), backgroundColor: Colors.red),
+                );
+                return;
+              }
+              try {
+                final response = await authService.delete('/teams/teams/$teamId/members/$userId');
+                if (response.statusCode == 200) {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    SnackBar(content: Text('$memberName removed from team')),
+                  );
+                  _loadData();
+                } else {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    SnackBar(content: Text('Failed to remove member: ${response.statusCode}'), backgroundColor: Colors.red),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.danger),
             child: const Text('Remove'),
@@ -1530,22 +1615,38 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
   }
 
   void _deleteRole(Map<String, dynamic> role) {
+    final roleId = role['id']?.toString() ?? '';
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Role'),
-        content: Text('Are you sure you want to delete "${role['name']}"?'),
+        content: Text('Are you sure you want to delete "${role['name']}"? This cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Role deleted')),
-              );
+              if (roleId.isEmpty) return;
+              try {
+                final response = await authService.delete('/teams/roles/$roleId');
+                if (response.statusCode == 200) {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    const SnackBar(content: Text('Role deleted')),
+                  );
+                  _loadData();
+                } else {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    SnackBar(content: Text('Failed to delete role: ${response.statusCode}'), backgroundColor: Colors.red),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.danger),
             child: const Text('Delete'),

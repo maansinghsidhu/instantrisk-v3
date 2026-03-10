@@ -31,7 +31,20 @@ from app.services.claimsense_service import get_claimsense_service
 router = APIRouter()
 
 # Greeting patterns for direct response (no RAG needed)
-GREETING_PATTERNS = {"hi", "hello", "hey", "howdy", "hola", "bonjour", "hallo", "ciao", "greetings", "good morning", "good afternoon", "good evening"}
+GREETING_PATTERNS = {
+    "hi",
+    "hello",
+    "hey",
+    "howdy",
+    "hola",
+    "bonjour",
+    "hallo",
+    "ciao",
+    "greetings",
+    "good morning",
+    "good afternoon",
+    "good evening",
+}
 
 GREETING_RESPONSES = {
     "en": "Hello! I'm your insurance AI assistant. I can help you with:\n\n• **Risk Assessment** - Analyze insurance submissions\n• **Policy Wording** - Explain clauses and coverage\n• **Pricing** - Technical premium calculations\n• **Lloyd's Market** - Placing and underwriting guidance\n• **Compliance** - FCA, PRA, and Solvency II requirements\n\nHow can I assist you today?",
@@ -51,39 +64,97 @@ GREETING_RESPONSES = {
 
 # ClaimSense benchmark keywords
 CLAIMSENSE_KEYWORDS = {
-    "benchmark", "claims data", "average severity", "frequency rate",
-    "loss ratio", "claims trend", "industry average", "compare to benchmark",
-    "claims history", "historical claims", "claim statistics",
-    "how does this compare", "industry comparison", "national average",
+    "benchmark",
+    "claims data",
+    "average severity",
+    "frequency rate",
+    "loss ratio",
+    "claims trend",
+    "industry average",
+    "compare to benchmark",
+    "claims history",
+    "historical claims",
+    "claim statistics",
+    "how does this compare",
+    "industry comparison",
+    "national average",
 }
 
 # Policy type detection
 POLICY_TYPE_MAP = {
-    "general liability": "GL", "gl": "GL",
-    "workers comp": "WC", "workers compensation": "WC", "wc": "WC",
-    "auto liability": "AL", "auto": "AL", "al": "AL",
-    "property": "PR", "pr": "PR",
-    "professional liability": "PL", "pl": "PL",
-    "cyber": "CY", "cy": "CY",
-    "directors and officers": "DO", "d&o": "DO", "do": "DO",
-    "employment practices": "EPL", "epl": "EPL",
+    "general liability": "GL",
+    "gl": "GL",
+    "workers comp": "WC",
+    "workers compensation": "WC",
+    "wc": "WC",
+    "auto liability": "AL",
+    "auto": "AL",
+    "al": "AL",
+    "property": "PR",
+    "pr": "PR",
+    "professional liability": "PL",
+    "pl": "PL",
+    "cyber": "CY",
+    "cy": "CY",
+    "directors and officers": "DO",
+    "d&o": "DO",
+    "do": "DO",
+    "employment practices": "EPL",
+    "epl": "EPL",
 }
 
 # US state detection
 STATE_CODES = {
-    "alabama": "AL", "alaska": "AK", "arizona": "AZ", "arkansas": "AR",
-    "california": "CA", "colorado": "CO", "connecticut": "CT", "delaware": "DE",
-    "florida": "FL", "georgia": "GA", "hawaii": "HI", "idaho": "ID",
-    "illinois": "IL", "indiana": "IN", "iowa": "IA", "kansas": "KS",
-    "kentucky": "KY", "louisiana": "LA", "maine": "ME", "maryland": "MD",
-    "massachusetts": "MA", "michigan": "MI", "minnesota": "MN", "mississippi": "MS",
-    "missouri": "MO", "montana": "MT", "nebraska": "NE", "nevada": "NV",
-    "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY",
-    "north carolina": "NC", "north dakota": "ND", "ohio": "OH", "oklahoma": "OK",
-    "oregon": "OR", "pennsylvania": "PA", "rhode island": "RI", "south carolina": "SC",
-    "south dakota": "SD", "tennessee": "TN", "texas": "TX", "utah": "UT",
-    "vermont": "VT", "virginia": "VA", "washington": "WA", "west virginia": "WV",
-    "wisconsin": "WI", "wyoming": "WY",
+    "alabama": "AL",
+    "alaska": "AK",
+    "arizona": "AZ",
+    "arkansas": "AR",
+    "california": "CA",
+    "colorado": "CO",
+    "connecticut": "CT",
+    "delaware": "DE",
+    "florida": "FL",
+    "georgia": "GA",
+    "hawaii": "HI",
+    "idaho": "ID",
+    "illinois": "IL",
+    "indiana": "IN",
+    "iowa": "IA",
+    "kansas": "KS",
+    "kentucky": "KY",
+    "louisiana": "LA",
+    "maine": "ME",
+    "maryland": "MD",
+    "massachusetts": "MA",
+    "michigan": "MI",
+    "minnesota": "MN",
+    "mississippi": "MS",
+    "missouri": "MO",
+    "montana": "MT",
+    "nebraska": "NE",
+    "nevada": "NV",
+    "new hampshire": "NH",
+    "new jersey": "NJ",
+    "new mexico": "NM",
+    "new york": "NY",
+    "north carolina": "NC",
+    "north dakota": "ND",
+    "ohio": "OH",
+    "oklahoma": "OK",
+    "oregon": "OR",
+    "pennsylvania": "PA",
+    "rhode island": "RI",
+    "south carolina": "SC",
+    "south dakota": "SD",
+    "tennessee": "TN",
+    "texas": "TX",
+    "utah": "UT",
+    "vermont": "VT",
+    "virginia": "VA",
+    "washington": "WA",
+    "west virginia": "WV",
+    "wisconsin": "WI",
+    "wyoming": "WY",
 }
 
 
@@ -114,7 +185,8 @@ def detect_claimsense_query(message: str) -> Optional[Dict]:
             break
     # Also check 2-letter state codes directly
     import re
-    state_match = re.search(r'\b([A-Z]{2})\b', message)
+
+    state_match = re.search(r"\b([A-Z]{2})\b", message)
     if state_match and not state:
         candidate = state_match.group(1)
         if candidate in STATE_CODES.values():
@@ -142,22 +214,29 @@ def is_greeting(message: str) -> bool:
 # Request/Response Models
 class ChatMessage(BaseModel):
     """Single chat message."""
+
     role: str = Field(..., description="Message role: 'user' or 'assistant'")
     content: str = Field(..., description="Message content")
 
 
 class ChatRequest(BaseModel):
     """Chat request with messages and options."""
+
     messages: List[ChatMessage] = Field(..., description="Conversation history")
-    conversation_id: Optional[str] = Field(None, description="Conversation ID for history")
+    conversation_id: Optional[str] = Field(
+        None, description="Conversation ID for history"
+    )
     use_rag: bool = Field(True, description="Enable RAG for document context")
-    assessment_id: Optional[str] = Field(None, description="Link to assessment for context")
+    assessment_id: Optional[str] = Field(
+        None, description="Link to assessment for context"
+    )
     temperature: float = Field(0.3, ge=0, le=1, description="Response creativity (0-1)")
     max_tokens: int = Field(2048, ge=100, le=8192, description="Max response length")
 
 
 class ChatResponse(BaseModel):
     """Non-streaming chat response."""
+
     message: str
     conversation_id: str
     sources: List[Dict] = []
@@ -167,6 +246,7 @@ class ChatResponse(BaseModel):
 
 class ConversationSummary(BaseModel):
     """Conversation list item."""
+
     id: str
     title: str
     last_message_at: str
@@ -179,7 +259,7 @@ async def chat_stream(
     request: Request,
     chat_request: ChatRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Streaming chat endpoint for real-time typing experience.
@@ -213,7 +293,11 @@ async def chat_stream(
             yield f"data: {json.dumps({'type': 'start', 'conversation_id': conversation_id})}\n\n"
 
             # Get user's language preference
-            user_language = current_user.preferred_language.value if current_user.preferred_language else "en"
+            user_language = (
+                current_user.preferred_language.value
+                if current_user.preferred_language
+                else "en"
+            )
 
             # Check if this is a greeting - respond directly without RAG
             if chat_request.messages:
@@ -228,7 +312,9 @@ async def chat_stream(
                     )
 
                     # Get localized greeting response
-                    greeting_response = GREETING_RESPONSES.get(user_language, GREETING_RESPONSES["en"])
+                    greeting_response = GREETING_RESPONSES.get(
+                        user_language, GREETING_RESPONSES["en"]
+                    )
 
                     # Stream greeting token by token
                     for char in greeting_response:
@@ -259,7 +345,7 @@ async def chat_stream(
                 rag_results = await chat_service.get_rag_context(
                     query=user_query,
                     assessment_id=chat_request.assessment_id,
-                    user_id=current_user.id
+                    user_id=current_user.id,
                 )
                 rag_context = rag_results.get("context", "")
                 sources = rag_results.get("sources", [])
@@ -277,7 +363,7 @@ async def chat_stream(
                             policy_type=cs_query["policy_type"],
                             state=cs_query.get("state"),
                         )
-                        if benchmark and hasattr(benchmark, 'to_dict'):
+                        if benchmark and hasattr(benchmark, "to_dict"):
                             claimsense_data = benchmark.to_dict()
                         elif isinstance(benchmark, dict):
                             claimsense_data = benchmark
@@ -289,7 +375,10 @@ async def chat_stream(
                             rag_context += f"\n\nCLAIMSENSE BENCHMARK DATA:\n{json.dumps(claimsense_data, default=str)[:2000]}"
                     except Exception as e:
                         import logging
-                        logging.getLogger(__name__).warning(f"ClaimSense query failed: {e}")
+
+                        logging.getLogger(__name__).warning(
+                            f"ClaimSense query failed: {e}"
+                        )
 
             # Save user message
             if chat_request.messages:
@@ -339,7 +428,7 @@ async def chat_stream(
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
             "Access-Control-Allow-Origin": "*",
-        }
+        },
     )
 
 
@@ -347,7 +436,7 @@ async def chat_stream(
 async def chat(
     request: ChatRequest,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """
     Non-streaming chat endpoint.
@@ -367,7 +456,7 @@ async def chat(
         rag_results = await chat_service.get_rag_context(
             query=user_query,
             assessment_id=request.assessment_id,
-            user_id=current_user.id
+            user_id=current_user.id,
         )
         rag_context = rag_results.get("context", "")
         sources = rag_results.get("sources", [])
@@ -403,7 +492,7 @@ async def chat(
         conversation_id=conversation_id,
         sources=sources,
         tokens_used=response.get("tokens_used", 0),
-        model=response.get("model", "")
+        model=response.get("model", ""),
     )
 
 
@@ -411,13 +500,12 @@ async def chat(
 async def get_conversations(
     limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Get list of user's chat conversations."""
     chat_service = ChatService(db)
     conversations = await chat_service.get_conversations(
-        user_id=current_user.id,
-        limit=limit
+        user_id=current_user.id, limit=limit
     )
     return {"conversations": conversations}
 
@@ -427,14 +515,12 @@ async def get_conversation_history(
     conversation_id: str,
     limit: int = Query(100, ge=1, le=500),
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Get chat history for a specific conversation."""
     chat_service = ChatService(db)
     history = await chat_service.get_history(
-        user_id=current_user.id,
-        conversation_id=conversation_id,
-        limit=limit
+        user_id=current_user.id, conversation_id=conversation_id, limit=limit
     )
     return {"messages": history, "conversation_id": conversation_id}
 
@@ -443,17 +529,74 @@ async def get_conversation_history(
 async def delete_conversation(
     conversation_id: str,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Delete a conversation and all its messages."""
-    # TODO: Implement deletion
-    return {"status": "deleted", "conversation_id": conversation_id}
+    from app.models.chat import (
+        ChatMessage as ChatMessageModel,
+        ChatConversation,
+        ChatFeedback,
+    )
+    from sqlalchemy import delete, select
+
+    try:
+        # Verify ownership
+        conv_result = await db.execute(
+            select(ChatConversation).where(
+                ChatConversation.id == conversation_id,
+                ChatConversation.user_id == current_user.id,
+            )
+        )
+        conv = conv_result.scalar_one_or_none()
+        if not conv:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+
+        # Delete feedback for messages in this conversation
+        msg_ids_result = await db.execute(
+            select(ChatMessageModel.id).where(
+                ChatMessageModel.conversation_id == conversation_id,
+                ChatMessageModel.user_id == current_user.id,
+            )
+        )
+        msg_ids = [row[0] for row in msg_ids_result.all()]
+        if msg_ids:
+            await db.execute(
+                delete(ChatFeedback).where(ChatFeedback.message_id.in_(msg_ids))
+            )
+
+        # Delete messages
+        await db.execute(
+            delete(ChatMessageModel).where(
+                ChatMessageModel.conversation_id == conversation_id,
+                ChatMessageModel.user_id == current_user.id,
+            )
+        )
+
+        # Delete conversation record
+        await db.execute(
+            delete(ChatConversation).where(
+                ChatConversation.id == conversation_id,
+                ChatConversation.user_id == current_user.id,
+            )
+        )
+
+        await db.commit()
+        return {"status": "deleted", "conversation_id": conversation_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Failed to delete conversation: {str(e)}"
+        )
 
 
 @router.get("/suggestions")
 async def get_suggestions(
-    context: str = Query("general", description="Context: general, assessment, document, pricing"),
-    current_user: User = Depends(get_current_user)
+    context: str = Query(
+        "general", description="Context: general, assessment, document, pricing"
+    ),
+    current_user: User = Depends(get_current_user),
 ):
     """Get suggested questions based on context."""
     suggestions = {
@@ -491,14 +634,11 @@ async def submit_feedback(
     rating: int = Query(..., ge=1, le=5),
     feedback: Optional[str] = None,
     current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """Submit feedback on a chat response."""
     chat_service = ChatService(db)
     await chat_service.save_feedback(
-        message_id=message_id,
-        user_id=current_user.id,
-        rating=rating,
-        feedback=feedback
+        message_id=message_id, user_id=current_user.id, rating=rating, feedback=feedback
     )
     return {"status": "success", "message": "Feedback saved"}
