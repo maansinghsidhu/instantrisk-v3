@@ -740,6 +740,7 @@ async def delete_assessment(
 
     # Delete all related records that reference this assessment
     # Many FK relationships don't have ON DELETE CASCADE, so we must clean up manually
+    # Use savepoints so a missing table doesn't poison the whole transaction
     from sqlalchemy import text
 
     aid = str(assessment.id)
@@ -764,14 +765,21 @@ async def delete_assessment(
     ]
     for table in related_tables:
         try:
+            nested = await db.begin_nested()
             await db.execute(
                 text(f"DELETE FROM {table} WHERE assessment_id = :aid"),
                 {"aid": aid},
             )
+            await nested.commit()
         except Exception:
-            pass  # Table may not exist or column name differs
+            await nested.rollback()
 
-    await db.delete(assessment)
+    # Expunge the assessment from session to prevent lazy-load cascades
+    # on stale relationship references, then delete by raw SQL
+    await db.execute(
+        text("DELETE FROM assessments WHERE id = :aid"),
+        {"aid": aid},
+    )
     await db.commit()
 
 
