@@ -738,18 +738,38 @@ async def delete_assessment(
             status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
         )
 
-    # Delete associated documents from DB (cascade doesn't cover all cases)
-    try:
-        from app.models.document import Document
+    # Delete all related records that reference this assessment
+    # Many FK relationships don't have ON DELETE CASCADE, so we must clean up manually
+    from sqlalchemy import text
 
-        doc_result = await db.execute(
-            select(Document).where(Document.assessment_id == assessment.id)
-        )
-        docs = doc_result.scalars().all()
-        for doc in docs:
-            await db.delete(doc)
-    except Exception:
-        pass  # Best effort — still delete the assessment
+    aid = str(assessment.id)
+    related_tables = [
+        "risk_monitoring_alerts",
+        "submission_shares",
+        "share_links",
+        "pricing_results",
+        "pricing_scenarios",
+        "sanctions_checks",
+        "document_generation_jobs",
+        "generated_documents",
+        "documents",
+        "document_extractions",
+        "assessment_vectors",
+        "chat_conversations",
+        "loss_runs",
+        "loss_run_entries",
+        "exposure_scenarios",
+        "exposure_loss_records",
+        "upload_sessions",
+    ]
+    for table in related_tables:
+        try:
+            await db.execute(
+                text(f"DELETE FROM {table} WHERE assessment_id = :aid"),
+                {"aid": aid},
+            )
+        except Exception:
+            pass  # Table may not exist or column name differs
 
     await db.delete(assessment)
     await db.commit()
