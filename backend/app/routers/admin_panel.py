@@ -105,6 +105,39 @@ async def _require_admin(current_user: User = Depends(get_current_user)) -> User
     return current_user
 
 
+# =============================================================================
+# Rate limiter (Fix #17)
+# =============================================================================
+#
+# Simple per-admin in-memory token bucket. Limits mutating admin endpoints
+# to 30 actions per minute per admin id. This is intentionally lightweight
+# (no Redis dependency) and is a soft control only - the real defence
+# against brute-force is the WAF in front of the ALB.
+_RATE_LIMIT_PER_MINUTE = 30
+_RATE_WINDOW_SECONDS = 60
+_rate_limit_buckets: dict = {}  # admin_id -> deque[float]
+
+
+def _check_rate_limit(admin_id) -> None:
+    """Token-bucket rate limiter. Raises 429 if the admin exceeds
+    ``_RATE_LIMIT_PER_MINUTE`` actions in the last ``_RATE_WINDOW_SECONDS``.
+    """
+    import time
+    from collections import deque
+    now = time.monotonic()
+    bucket = _rate_limit_buckets.setdefault(admin_id, deque())
+    # Drop entries outside the window
+    while bucket and (now - bucket[0]) > _RATE_WINDOW_SECONDS:
+        bucket.popleft()
+    if len(bucket) >= _RATE_LIMIT_PER_MINUTE:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Rate limit exceeded: max {_RATE_LIMIT_PER_MINUTE} "
+                   f"admin actions per {_RATE_WINDOW_SECONDS}s",
+            headers={"Retry-After": str(_RATE_WINDOW_SECONDS)},
+        )
+    bucket.append(now)
+
 async def _write_audit(
     db: AsyncSession,
     admin: User,
@@ -367,6 +400,7 @@ async def approve_user(
         )
         db.add(sub)
 
+    _check_rate_limit(current_user.id)
     await _write_audit(
         db, current_user, AdminAction.USER_APPROVE,
         target_user_id=user_uuid,
@@ -374,26 +408,27 @@ async def approve_user(
         ip_address=_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
-    # W3-20: also write the regulatory AuditLog (hash-chained, tamper-evident)
-    try:
-        await patch_write_audit_log(
-            db,
-            action="user.approve",
-            user_id=current_user.id,
-            user_email=current_user.email,
-            entity_type="user",
-            entity_id=str(user_uuid),
-            old_values={"approval_status": "pending", "is_active": False},
-            new_values={
-                "approval_status": "approved",
-                "is_active": True,
-                "subscription_tier": body.subscription_tier,
-            },
-            ip_address=_client_ip(request),
-            user_agent=request.headers.get("user-agent"),
-        )
-    except Exception as e:
-        logger.warning("audit_log writer failed (user.approve): %s", e)
+    # W3-20: also write the regulatory AuditLog (hash-chained, tamper-evident).
+    # Fix #18: no try/except — if the chain write fails, the whole
+    # transaction rolls back so the AdminAuditLog and AuditLog cannot
+    # diverge. Better to fail loudly than to silently desync the
+    # regulatory chain.
+    await patch_write_audit_log(
+        db,
+        action="user.approve",
+        user_id=current_user.id,
+        user_email=current_user.email,
+        entity_type="user",
+        entity_id=str(user_uuid),
+        old_values={"approval_status": "pending", "is_active": False},
+        new_values={
+            "approval_status": "approved",
+            "is_active": True,
+            "subscription_tier": body.subscription_tier,
+        },
+        ip_address=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
     await db.commit()
 
     return AdminActionResponse(
@@ -435,6 +470,7 @@ async def reject_user(
     user.rejection_reason = body.reason
     user.is_active = False
 
+    _check_rate_limit(current_user.id)
     await _write_audit(
         db, current_user, AdminAction.USER_REJECT,
         target_user_id=user_uuid,
@@ -442,26 +478,23 @@ async def reject_user(
         ip_address=_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
-    # W3-20: hash-chained regulatory audit log entry (consistent with approve).
-    try:
-        await patch_write_audit_log(
-            db,
-            action="user.reject",
-            user_id=current_user.id,
-            user_email=current_user.email,
-            entity_type="user",
-            entity_id=str(user_uuid),
-            old_values={"approval_status": "pending", "is_active": True},
-            new_values={
-                "approval_status": "rejected",
-                "is_active": False,
-                "rejection_reason": body.reason,
-            },
-            ip_address=_client_ip(request),
-            user_agent=request.headers.get("user-agent"),
-        )
-    except Exception as e:
-        logger.warning("audit_log writer failed (user.reject): %s", e)
+    # W3-20: hash-chained regulatory audit log entry. Fix #18: no try/except.
+    await patch_write_audit_log(
+        db,
+        action="user.reject",
+        user_id=current_user.id,
+        user_email=current_user.email,
+        entity_type="user",
+        entity_id=str(user_uuid),
+        old_values={"approval_status": "pending", "is_active": True},
+        new_values={
+            "approval_status": "rejected",
+            "is_active": False,
+            "rejection_reason": body.reason,
+        },
+        ip_address=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
     await db.commit()
 
     return AdminActionResponse(
@@ -526,6 +559,7 @@ async def change_tier(
         )
         db.add(sub)
 
+    _check_rate_limit(current_user.id)
     await _write_audit(
         db, current_user, AdminAction.TIER_CHANGE,
         target_user_id=user_uuid,
@@ -533,22 +567,19 @@ async def change_tier(
         ip_address=_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
-    # W3-20: hash-chained regulatory audit log entry.
-    try:
-        await patch_write_audit_log(
-            db,
-            action="user.tier_change",
-            user_id=current_user.id,
-            user_email=current_user.email,
-            entity_type="subscription",
-            entity_id=str(user_uuid),
-            old_values={"tier": old_tier},
-            new_values={"tier": body.subscription_tier, "reason": body.reason},
-            ip_address=_client_ip(request),
-            user_agent=request.headers.get("user-agent"),
-        )
-    except Exception as e:
-        logger.warning("audit_log writer failed (user.tier_change): %s", e)
+    # W3-20: hash-chained regulatory audit log entry. Fix #18: no try/except.
+    await patch_write_audit_log(
+        db,
+        action="user.tier_change",
+        user_id=current_user.id,
+        user_email=current_user.email,
+        entity_type="subscription",
+        entity_id=str(user_uuid),
+        old_values={"tier": old_tier},
+        new_values={"tier": body.subscription_tier, "reason": body.reason},
+        ip_address=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
     await db.commit()
 
     return AdminActionResponse(
@@ -591,6 +622,7 @@ async def deactivate_user(
     # Invalidate any outstanding JWTs for this user. Their `iat` is now
     # older than this timestamp, so get_current_user will reject them.
     user.token_invalidated_at = datetime.now(timezone.utc)
+    _check_rate_limit(current_user.id)
     await _write_audit(
         db, current_user, AdminAction.USER_DEACTIVATE,
         target_user_id=user_uuid,
@@ -599,25 +631,23 @@ async def deactivate_user(
         user_agent=request.headers.get("user-agent"),
     )
     # W3-20: hash-chained regulatory audit log entry.
-    try:
-        await patch_write_audit_log(
-            db,
-            action="user.deactivate",
-            user_id=current_user.id,
-            user_email=current_user.email,
-            entity_type="user",
-            entity_id=str(user_uuid),
-            old_values={"is_active": True, "token_invalidated_at": None},
-            new_values={
-                "is_active": False,
-                "token_invalidated_at": user.token_invalidated_at.isoformat(),
-                "reason": body.reason,
-            },
-            ip_address=_client_ip(request),
-            user_agent=request.headers.get("user-agent"),
-        )
-    except Exception as e:
-        logger.warning("audit_log writer failed (user.deactivate): %s", e)
+    # W3-20: hash-chained regulatory audit log entry. Fix #18: no try/except.
+    await patch_write_audit_log(
+        db,
+        action="user.deactivate",
+        user_id=current_user.id,
+        user_email=current_user.email,
+        entity_type="user",
+        entity_id=str(user_uuid),
+        old_values={"is_active": True, "token_invalidated_at": None},
+        new_values={
+            "is_active": False,
+            "token_invalidated_at": user.token_invalidated_at.isoformat(),
+            "reason": body.reason,
+        },
+        ip_address=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
     await db.commit()
 
     return AdminActionResponse(
@@ -647,10 +677,16 @@ async def reactivate_user(
         raise HTTPException(404, "User not found")
 
     user.is_active = True
-    # Reactivating the user also clears the invalidation timestamp so
-    # fresh tokens issued after this point are accepted again. The user
-    # must still log in to obtain a new JWT.
-    user.token_invalidated_at = None
+    # Fix #16: do NOT clear token_invalidated_at on reactivation. The
+    # reactivation flag is a monotonic "high-water mark": once a token
+    # has been invalidated, it stays invalid even if the user is
+    # reactivated. The user must obtain a fresh JWT (by logging in
+    # again) to receive a new iat. This prevents an attacker who
+    # captured a JWT during the deactivated window from regaining
+    # access after a reactivation.
+    #
+    # (No assignment here; the existing token_invalidated_at is kept.)
+    _check_rate_limit(current_user.id)
     await _write_audit(
         db, current_user, AdminAction.USER_REACTIVATE,
         target_user_id=user_uuid,
@@ -658,22 +694,19 @@ async def reactivate_user(
         ip_address=_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
-    # W3-20: hash-chained regulatory audit log entry.
-    try:
-        await patch_write_audit_log(
-            db,
-            action="user.reactivate",
-            user_id=current_user.id,
-            user_email=current_user.email,
-            entity_type="user",
-            entity_id=str(user_uuid),
-            old_values={"is_active": False},
-            new_values={"is_active": True, "reason": body.reason},
-            ip_address=_client_ip(request),
-            user_agent=request.headers.get("user-agent"),
-        )
-    except Exception as e:
-        logger.warning("audit_log writer failed (user.reactivate): %s", e)
+    # W3-20: hash-chained regulatory audit log entry. Fix #18: no try/except.
+    await patch_write_audit_log(
+        db,
+        action="user.reactivate",
+        user_id=current_user.id,
+        user_email=current_user.email,
+        entity_type="user",
+        entity_id=str(user_uuid),
+        old_values={"is_active": False},
+        new_values={"is_active": True, "reason": body.reason},
+        ip_address=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
     await db.commit()
 
     return AdminActionResponse(
