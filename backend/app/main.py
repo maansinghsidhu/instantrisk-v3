@@ -38,6 +38,7 @@ from app.routers import claims as claims_router
 from app.routers import claimsense, loss_runs
 from app.routers import admin
 from app.routers import admin_reset
+from app.routers import admin_panel
 from app.routers import training
 from app.routers import rapidrate
 from app.routers import investigation
@@ -993,7 +994,12 @@ app.include_router(
     loss_runs.router, prefix=f"{settings.api_prefix}/loss-runs", tags=["Loss Runs"]
 )
 app.include_router(admin.router, prefix=f"{settings.api_prefix}", tags=["Admin"])
-# Admin reset routes only available in development (requires ENABLE_ADMIN_RESET=true env var)
+app.include_router(
+    admin_panel.router,
+    prefix=f"{settings.api_prefix}",
+    tags=["Admin Panel"],
+)
+ # Admin reset routes only available in development (requires ENABLE_ADMIN_RESET=true env var)
 import os
 
 if (

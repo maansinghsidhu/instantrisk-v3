@@ -66,6 +66,9 @@ from app.models.sanctions import (
     ScreeningStatus,
 )
 
+# Admin Panel Model
+from app.models.admin import AdminAuditLog, AdminAction
+
 # Share Link Model
 from app.models.share_link import ShareLink
 
@@ -124,6 +127,9 @@ __all__ = [
     "SanctionsAlert",
     "ScreeningLevel",
     "ScreeningStatus",
+    # Admin Panel model
+    "AdminAuditLog",
+    "AdminAction",
     # Share Link model
     "ShareLink",
 ]

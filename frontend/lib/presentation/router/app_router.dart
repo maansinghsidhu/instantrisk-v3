@@ -11,7 +11,9 @@ import '../screens/auth/forgot_password_screen.dart';
 import '../screens/auth/pending_approval_screen.dart';
 import '../screens/auth/two_factor_verify_screen.dart';
 import '../screens/admin/user_approvals_screen.dart';
-
+import '../screens/admin/admin_dashboard_screen.dart';
+import '../screens/admin/admin_user_detail_screen.dart';
+import '../screens/admin/admin_audit_log_screen.dart';
 import '../screens/home/dashboard_screen.dart';
 import '../screens/home/document_intake_screen.dart';
 import '../screens/home/processing_screen.dart';
@@ -200,7 +202,27 @@ class AppRouter {
         },
       ),
 
-      ShellRoute(
+      GoRoute(
+        path: '/admin',
+        name: 'adminPanel',
+        builder: (context, state) => const AdminDashboardScreen(),
+        routes: [
+          GoRoute(
+            path: 'user/:userId',
+            name: 'adminUserDetail',
+            builder: (context, state) => AdminUserDetailScreen(
+              userId: state.pathParameters['userId']!,
+            ),
+          ),
+          GoRoute(
+            path: 'audit-log',
+            name: 'adminAuditLog',
+            builder: (context, state) => const AdminAuditLogScreen(),
+          ),
+        ],
+      ),
+
+       ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) => MainShell(child: child),
         routes: [

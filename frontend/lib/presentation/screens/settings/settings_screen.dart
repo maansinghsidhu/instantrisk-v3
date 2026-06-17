@@ -180,7 +180,15 @@ class SettingsScreen extends ConsumerWidget {
                     badge: _getPendingApprovalsBadge(),
                     onTap: () => context.go('/settings/approvals'),
                   ),
-                ],
+                  _buildSettingsItem(
+                    context,
+                    icon: Icons.admin_panel_settings,
+                    title: 'Admin Panel',
+                    subtitle: 'Users, billing, audit log',
+                    onTap: () => context.go('/admin'),
+                  ),
+                 ],
+               ]),
               ]),
               const SizedBox(height: 24),
 
