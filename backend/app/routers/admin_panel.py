@@ -580,6 +580,13 @@ async def deactivate_user(
     if not user:
         raise HTTPException(404, "User not found")
 
+    # Fix #14: only super-admins can deactivate other admins. Without
+    # this, any compromised admin can lock out every other admin.
+    if user.role == UserRole.ADMIN and not current_user.is_super_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only super-admins can deactivate other admins",
+        )
     user.is_active = False
     # Invalidate any outstanding JWTs for this user. Their `iat` is now
     # older than this timestamp, so get_current_user will reject them.
@@ -879,18 +886,34 @@ async def list_audit_log(
                     out[k] = v
         return out
 
+    # Fix #13: redact top-level PII fields, not just the details JSONB.
+    # - ip_address: mask last octet (e.g. 203.0.113.55 -> 203.0.113.0)
+    # - user_agent: keep first 40 chars so admins can spot unusual
+    #   clients but lose the rest (often contains device + browser ids)
+    # - admin_email / target_user_email: only returned to super-admins.
+    #   Non-super admins see the user's UUID but not the email address,
+    #   which avoids mass email enumeration by a compromised admin.
+    masked_ip = _mask_ip(e.ip_address)
+    redacted_ua = _redact_user_agent(e.user_agent)
+    if current_user.is_super_admin:
+        admin_email = email_map.get(e.admin_id)
+        target_email = email_map.get(e.target_user_id) if e.target_user_id else None
+    else:
+        admin_email = None
+        target_email = None
+
     return AdminAuditLogResponse(
         entries=[
             AdminAuditLogEntry(
                 id=str(e.id),
                 admin_id=str(e.admin_id),
-                admin_email=email_map.get(e.admin_id),
+                admin_email=admin_email,
                 target_user_id=str(e.target_user_id) if e.target_user_id else None,
-                target_user_email=email_map.get(e.target_user_id) if e.target_user_id else None,
+                target_user_email=target_email,
                 action=e.action,
                 details=_redact(e.details),
-                ip_address=e.ip_address,
-                user_agent=e.user_agent,
+                ip_address=masked_ip,
+                user_agent=redacted_ua,
                 created_at=e.created_at,
             )
             for e in entries
@@ -899,3 +922,38 @@ async def list_audit_log(
         limit=limit,
         offset=offset,
     )
+
+
+def _mask_ip(ip: Optional[str]) -> Optional[str]:
+    """Mask the last octet of an IPv4 address (or last 80 bits of IPv6)
+    so the audit log captures which /24 (or /48) made the change, not
+    the exact device IP. Returns None unchanged.
+    """
+    if not ip:
+        return ip
+    try:
+        parsed = ipaddress.ip_address(ip)
+    except ValueError:
+        return None  # invalid -> redact entirely
+    if isinstance(parsed, ipaddress.IPv4Address):
+        # 203.0.113.55 -> 203.0.113.0
+        parts = ip.split(".")
+        return ".".join(parts[:3]) + ".0"
+    # IPv6: zero out the last 80 bits -> keep only the /48 prefix
+    parts = ip.split(":")
+    if len(parts) >= 3:
+        return ":".join(parts[:3]) + ":0:0:0:0:0:0"
+    return ip  # too short to mask, return as-is
+
+
+def _redact_user_agent(ua: Optional[str], keep: int = 40) -> Optional[str]:
+    """Keep the first `keep` chars of a user agent string and replace
+    the rest with an ellipsis. The first 40 chars of a typical UA
+    identify the family (Chrome / Safari / curl / Python-urllib etc.)
+    but not the full version + device fingerprint.
+    """
+    if ua is None:
+        return None
+    if len(ua) <= keep:
+        return ua
+    return ua[:keep] + "..."

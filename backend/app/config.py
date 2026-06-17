@@ -41,9 +41,12 @@ class Settings(BaseSettings):
 
     # Trusted proxies for X-Forwarded-For / X-Real-IP. Only requests
     # arriving from these IPs/CIDRs are allowed to override the client
-    # IP. Set to [] if the app is exposed directly to the internet.
+    # IP. Defaults to the InstantRisk ALB's subnets (10.0.101.0/24,
+    # 10.0.102.0/24) plus loopback. Broad ranges like 10.0.0.0/8 let
+    # any host in the VPC forge the captured client IP.
     trusted_proxies: List[str] = [
-        "10.0.0.0/8",      # AWS VPC private (ALB, internal services)
+        "10.0.101.0/24",   # ALB subnet, us-east-1a
+        "10.0.102.0/24",   # ALB subnet, us-east-1b
         "127.0.0.1/32",    # loopback (health checks, ECS exec)
     ]
     postgres_host: str = "localhost"

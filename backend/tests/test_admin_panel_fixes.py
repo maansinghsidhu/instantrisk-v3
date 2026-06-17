@@ -28,11 +28,9 @@ def test_client_ip_uses_xff_when_peer_is_trusted():
     mod._TRUSTED_PROXIES_CACHE = None
 
     request = MagicMock()
-    request.client.host = "10.0.5.7"  # AWS VPC private, in default trust list
-    request.headers = {"x-forwarded-for": "203.0.113.55, 10.0.5.7"}
+    request.client.host = "10.0.101.5"  # ALB subnet, in default trust list
+    request.headers = {"x-forwarded-for": "203.0.113.55, 10.0.101.5"}
     assert _client_ip(request) == "203.0.113.55"
-
-
 def test_client_ip_ignores_xff_when_peer_is_untrusted():
     """When the direct peer is NOT in the trusted range, XFF is ignored."""
     from app.routers.admin_panel import _client_ip

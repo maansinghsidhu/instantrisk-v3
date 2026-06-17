@@ -95,7 +95,10 @@ class User(Base):
     syndicate_id = Column(Integer, ForeignKey("syndicates.id"), nullable=True)
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
-
+    # A super-admin can deactivate / manage other admins. Without this
+    # flag, any admin could lock out every other admin (admin-on-admin
+    # DoS). First admin to set this flag becomes the platform owner.
+    is_super_admin = Column(Boolean, default=False, nullable=False)
     # Account approval workflow
     approval_status = Column(
         Enum(
