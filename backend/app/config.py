@@ -97,12 +97,18 @@ class Settings(BaseSettings):
     S3_DOCUMENTS_BUCKET: str = "instantrisk-documents-995306061991"
     S3_RAPIDRATE_BUCKET: str = "instantrisk-rapidrate-995306061991"
     S3_REGION: str = "us-east-1"
+    # Pricing for billing summary MRR calculation. Override per environment
+    # via TIER_PRICE_USD_TRIAL / TIER_PRICE_USD_BASIC / TIER_PRICE_USD_PREMIUM
+    # env vars. Pydantic's JSON parsing is used so the env value can be
+    # either a JSON object {"trial": 0, "basic": 99, "premium": 499} or
+    # three individual variables.
+    tier_price_usd: dict = {
+        "trial": 0,
+        "basic": 99,
+        "premium": 499,
+    }
 
     # RapidRate Lambda Settings
-    RAPIDRATE_LAMBDA_NAME: str = "instantrisk-rapidrate"
-    RAPIDRATE_LAMBDA_REGION: str = "us-east-1"
-
-    # JWT Settings
     jwt_secret_key: str = ""
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30

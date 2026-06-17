@@ -79,12 +79,9 @@ class AdminUserUsage(BaseModel):
 # Billing
 # =============================================================================
 
-TIER_PRICE_USD = {
-    SubscriptionTier.TRIAL: 0,
-    SubscriptionTier.BASIC: 99,
-    SubscriptionTier.PREMIUM: 499,
-}
-
+# Tier pricing is now sourced from app.config.Settings.tier_price_usd
+# (overrideable via TIER_PRICE_USD_* env vars). Previously the dict was
+# hardcoded here. Fix #19: move pricing out of the schema and into config.
 
 class AdminBillingSummary(BaseModel):
     """Platform-wide billing rollup."""

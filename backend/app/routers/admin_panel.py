@@ -38,8 +38,9 @@ from app.schemas.admin_panel import (
     AdminUserUsage, AdminBillingSummary, AdminAuditLogEntry,
     AdminAuditLogResponse, AdminApproveRequest, AdminRejectRequest,
     AdminTierChangeRequest, AdminDeactivateRequest, AdminActionResponse,
-    AdminStats, TIER_PRICE_USD,
+    AdminStats,
 )
+from app.config import get_settings
 from app.patches.decision_log_writer import write_audit_log as patch_write_audit_log
 logger = logging.getLogger("instantrisk.admin_panel")
 
@@ -537,6 +538,23 @@ async def change_tier(
     if not user:
         raise HTTPException(404, "User not found")
 
+    # Fix #21: do not allow tier changes on non-approved or inactive
+    # users. This prevents an admin from re-approving a previously
+    # rejected user by changing their tier alone (bypassing the
+    # approve_user flow and its audit semantics). To give a rejected
+    # user access, use /approve first.
+    if user.approval_status != ApprovalStatus.APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot change tier: user approval_status is "
+                   f"'{user.approval_status.value}', must be 'approved'",
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot change tier: user is not active",
+        )
+
     sub_result = await db.execute(
         select(Subscription).where(Subscription.user_id == user_uuid)
     )
@@ -628,17 +646,12 @@ async def deactivate_user(
         target_user_id=user_uuid,
         details={"reason": body.reason},
         ip_address=_client_ip(request),
-        user_agent=request.headers.get("user-agent"),
     )
-    # W3-20: hash-chained regulatory audit log entry.
     # W3-20: hash-chained regulatory audit log entry. Fix #18: no try/except.
     await patch_write_audit_log(
         db,
         action="user.deactivate",
-        user_id=current_user.id,
         user_email=current_user.email,
-        entity_type="user",
-        entity_id=str(user_uuid),
         old_values={"is_active": True, "token_invalidated_at": None},
         new_values={
             "is_active": False,
@@ -815,8 +828,10 @@ async def billing_summary(
             users_by_status[st.value] = count or 0
 
     mrr = 0
+    settings = get_settings()
+    mrr = 0
     for tier_value, count in users_by_tier.items():
-        mrr += TIER_PRICE_USD.get(SubscriptionTier(tier_value), 0) * count
+        mrr += settings.tier_price_usd.get(tier_value, 0) * count
     arr = mrr * 12
 
     total_users = await db.scalar(select(func.count(User.id)))
