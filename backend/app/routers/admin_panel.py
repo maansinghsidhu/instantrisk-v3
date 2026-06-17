@@ -39,7 +39,7 @@ from app.schemas.admin_panel import (
     AdminTierChangeRequest, AdminDeactivateRequest, AdminActionResponse,
     AdminStats, TIER_PRICE_USD,
 )
-
+from app.patches.decision_log_writer import write_audit_log as patch_write_audit_log
 logger = logging.getLogger("instantrisk.admin_panel")
 
 router = APIRouter(prefix="/admin/panel", tags=["Admin Panel"])
@@ -326,6 +326,26 @@ async def approve_user(
         ip_address=_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
+    # W3-20: also write the regulatory AuditLog (hash-chained, tamper-evident)
+    try:
+        await patch_write_audit_log(
+            db,
+            action="user.approve",
+            user_id=current_user.id,
+            user_email=current_user.email,
+            entity_type="user",
+            entity_id=str(user_uuid),
+            old_values={"approval_status": "pending", "is_active": False},
+            new_values={
+                "approval_status": "approved",
+                "is_active": True,
+                "subscription_tier": body.subscription_tier,
+            },
+            ip_address=_client_ip(request),
+            user_agent=request.headers.get("user-agent"),
+        )
+    except Exception as e:
+        logger.warning("audit_log writer failed (user.approve): %s", e)
     await db.commit()
 
     return AdminActionResponse(

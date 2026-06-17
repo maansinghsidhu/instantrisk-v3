@@ -67,7 +67,11 @@ from app.models.sanctions import (
 )
 
 # Admin Panel Model
+# Admin Panel Model
 from app.models.admin import AdminAuditLog, AdminAction
+
+# Decision Log models (W3-19 / W3-20 — re-added after Lloyd's removal)
+from app.models.decision_log import AIDecisionLog, AuditLog
 
 # Share Link Model
 from app.models.share_link import ShareLink
@@ -127,12 +131,15 @@ __all__ = [
     "SanctionsAlert",
     "ScreeningLevel",
     "ScreeningStatus",
+    # Decision log models (W3-19 / W3-20)
+    "AIDecisionLog",
+    "AuditLog",
     # Admin Panel model
     "AdminAuditLog",
     "AdminAction",
     # Share Link model
     "ShareLink",
-]
+ ]
 
 from app.models.chat import ChatMessage, ChatConversation, ChatFeedback
 

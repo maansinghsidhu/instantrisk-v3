@@ -41,25 +41,11 @@ from app.models.reference_document import ReferenceDocument
 from app.models.generated_document import GeneratedDocument, DocumentGenerationJob
 from app.models.upload_session import UploadSession
 
-# V3 Lloyd's Market Models
-from app.models.lloyds import (
-    UniqueMarketReference,
-    SubscriptionPlacement,
-    SyndicateLine,
-    PlacementActivityLog,
-    ExposureSnapshot,
-    ExposureAggregate,
-    EventAccumulation,
-    DataQualityReport,
-    PricingModel,
-    PricingResult,
-    Quote,
-    ComplianceSubmission,
-    ComplianceRule,
-    AuditLog,
-    AIDecisionLog,
-    IntegrationConnector,
-    IntegrationSyncLog,
+# Pricing models (extracted from removed Lloyd's system)
+from app.models.pricing_models import PricingModel, PricingResult, Quote
+
+# Decision logs (re-added via W3-19/W3-20 patches; see migration 106)
+from app.models.decision_log import AuditLog, AIDecisionLog
 )
 
 # V3 RBAC Models
