@@ -39,7 +39,13 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
     ]
 
-    # Database Settings
+    # Trusted proxies for X-Forwarded-For / X-Real-IP. Only requests
+    # arriving from these IPs/CIDRs are allowed to override the client
+    # IP. Set to [] if the app is exposed directly to the internet.
+    trusted_proxies: List[str] = [
+        "10.0.0.0/8",      # AWS VPC private (ALB, internal services)
+        "127.0.0.1/32",    # loopback (health checks, ECS exec)
+    ]
     postgres_host: str = "localhost"
     postgres_port: int = 5432
     postgres_user: str = "instantrisk_admin"

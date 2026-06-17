@@ -218,45 +218,46 @@ async def write_audit_log(
 async def verify_chain(db: AsyncSession, model: Type[Any]) -> Tuple[bool, List[str]]:
     """Walk the entire log and verify that every ``prev_hash`` is correct.
 
+    The verification rule mirrors the writer exactly: for each row at
+    position i, ``rows[i].prev_hash`` must equal
+    ``compute_row_hash(rows[i-1].prev_hash, rows[i-1].id,
+    rows[i-1].timestamp, rows[i-1].input_hash)``. For the first row
+    (i == 0), ``prev_hash`` must equal ``GENESIS_HASH``.
+
     Returns ``(True, [])`` if the chain is intact, otherwise
     ``(False, [error, ...])`` with the first-detected break.
     """
     result = await db.execute(select(model).order_by(model.id))
     rows = result.scalars().all()
     errors: List[str] = []
-    expected_prev = GENESIS_HASH
-    for i, row in enumerate(rows):
-        actual = row.prev_hash or GENESIS_HASH
-        if actual != expected_prev:
+    if not rows:
+        return True, errors
+    # Row 0 must point at the genesis.
+    first = rows[0]
+    if (first.prev_hash or "") != GENESIS_HASH:
+        errors.append(
+            f"row[0] id={first.id} prev_hash mismatch: "
+            f"expected GENESIS_HASH ({GENESIS_HASH[:12]}..) "
+            f"got {(first.prev_hash or '')[:12]}.."
+        )
+        return False, errors
+    for i in range(1, len(rows)):
+        prev_row = rows[i - 1]
+        cur_row = rows[i]
+        # The writer stored cur_row.prev_hash as compute_row_hash(prev_row's metadata).
+        expected = compute_row_hash(
+            prev_hash=prev_row.prev_hash or GENESIS_HASH,
+            prev_pk=prev_row.id,
+            prev_ts=prev_row.timestamp,
+            input_hash=getattr(prev_row, "input_hash", "") or "",
+        )
+        actual = cur_row.prev_hash or ""
+        if actual != expected:
             errors.append(
-                f"row[{i}] id={row.id} prev_hash mismatch: "
-                f"expected {expected_prev[:12]}.. got {actual[:12]}.."
+                f"row[{i}] id={cur_row.id} prev_hash mismatch: "
+                f"expected {expected[:12]}.. got {actual[:12]}.."
             )
             return False, errors
-        # Advance by THIS row's hash. The next row's prev_hash must
-        # equal the value this row advertised as its own hash; we
-        # approximate "this row's own hash" by re-hashing its canonical
-        # material.
-        if hasattr(row, "agent_name"):
-            material = {
-                "agent": row.agent_name,
-                "decision": row.decision_type,
-                "input": row.input_data,
-                "input_hash": row.input_hash or "",
-                "prev": expected_prev,
-            }
-        else:
-            material = {
-                "action": row.action,
-                "entity_type": row.entity_type,
-                "entity_id": row.entity_id,
-                "input_hash": row.input_hash or "",
-                "prev": expected_prev,
-            }
-        row_hash = hashlib.sha256(
-            json.dumps(material, sort_keys=True, default=str, separators=(",", ":")).encode("utf-8")
-        ).hexdigest()
-        expected_prev = row_hash
     return True, errors
 
 

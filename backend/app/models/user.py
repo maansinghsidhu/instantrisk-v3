@@ -137,8 +137,14 @@ class User(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
     last_login = Column(DateTime(timezone=True), nullable=True)
-
-    # Broker-specific: default commission rate (percentage, e.g. 15.0 = 15%)
+    # If set, all JWTs with iat < this value are rejected. The deactivation
+    # flow sets this; the reactivation flow clears it. Checked in
+    # `app.core.security.get_current_user`.
+    token_invalidated_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="All JWTs issued before this timestamp are invalid.",
+    )
     commission_rate = Column(
         Float, nullable=True, comment="Default commission rate % for broker"
     )

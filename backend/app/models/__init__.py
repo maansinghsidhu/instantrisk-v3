@@ -66,8 +66,7 @@ from app.models.sanctions import (
     ScreeningStatus,
 )
 
-# Admin Panel Model
-# Admin Panel Model
+# Admin Panel models (W3-21 / admin panel)
 from app.models.admin import AdminAuditLog, AdminAction
 
 # Decision Log models (W3-19 / W3-20 — re-added after Lloyd's removal)

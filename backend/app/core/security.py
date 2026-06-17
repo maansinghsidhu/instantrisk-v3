@@ -239,6 +239,18 @@ async def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN, detail="User account is deactivated"
         )
 
+    # Reject tokens issued before the user was deactivated/revoked.
+    if user.token_invalidated_at is not None:
+        iat = payload.get("iat")
+        if iat is not None:
+            iat_dt = datetime.fromtimestamp(iat, tz=timezone.utc)
+            if iat_dt < user.token_invalidated_at:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token has been revoked by user state change",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
     return user
 
 

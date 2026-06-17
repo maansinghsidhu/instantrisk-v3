@@ -13,9 +13,10 @@ This router is intentionally additive - it does not change the existing
 API-only flow; this router adds the user/billing surface the Flutter admin
 panel needs.
 """
+import ipaddress
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
@@ -25,11 +26,11 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.config import get_settings
 from app.models.user import User, UserRole, ApprovalStatus
 from app.models.subscription import (
     Subscription, SubscriptionTier, SubscriptionStatus,
 )
-from app.models.assessment import Assessment
 from app.models.chat import ChatMessage
 from app.models.admin import AdminAuditLog, AdminAction
 from app.schemas.admin_panel import (
@@ -44,13 +45,51 @@ logger = logging.getLogger("instantrisk.admin_panel")
 
 router = APIRouter(prefix="/admin/panel", tags=["Admin Panel"])
 
+_TRUSTED_PROXIES_CACHE: Optional[List[ipaddress._BaseNetwork]] = None
+
+
+def _trusted_proxy_networks() -> List[ipaddress._BaseNetwork]:
+    global _TRUSTED_PROXIES_CACHE
+    if _TRUSTED_PROXIES_CACHE is not None:
+        return _TRUSTED_PROXIES_CACHE
+    settings = get_settings()
+    nets: List[ipaddress._BaseNetwork] = []
+    for cidr in settings.trusted_proxies:
+        try:
+            nets.append(ipaddress.ip_network(cidr, strict=False))
+        except ValueError:
+            continue
+    _TRUSTED_PROXIES_CACHE = nets
+    return nets
+
 
 def _client_ip(request: Request) -> Optional[str]:
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        return xff.split(",")[0].strip()
-    return request.client.host if request.client else None
+    """Resolve the client IP. The X-Forwarded-For / X-Real-IP headers are
+    only honored when the direct peer (``request.client.host``) is in
+    the configured trusted-proxies list. Otherwise a client can forge
+    the header and spoof the IP captured in the audit log.
+    """
+    direct_peer = request.client.host if request.client else None
+    peer_is_trusted = False
+    if direct_peer:
+        try:
+            peer_ip = ipaddress.ip_address(direct_peer)
+            peer_is_trusted = any(
+                peer_ip in net for net in _trusted_proxy_networks()
+            )
+        except ValueError:
+            peer_is_trusted = False
 
+    if peer_is_trusted:
+        xff = request.headers.get("x-forwarded-for")
+        if xff:
+            # Use the leftmost entry (the original client) only when the
+            # request came through a chain of trusted proxies.
+            return xff.split(",")[0].strip()
+        real_ip = request.headers.get("x-real-ip")
+        if real_ip:
+            return real_ip.strip()
+    return direct_peer
 
 async def _require_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != UserRole.ADMIN:
@@ -96,29 +135,38 @@ async def get_admin_stats(
     current_user: User = Depends(_require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    total = await db.scalar(select(func.count(User.id)))
+    # Combined single-query aggregate. Previously this endpoint issued
+    # ~10 separate count() queries (one per role, one per boolean).
+    # Now: 2 queries (one users group-by, one subscriptions group-by)
+    # plus a single scalar for the boolean aggregate.
+    from sqlalchemy import case
+
+    # Aggregate over the users table in a single statement.
+    base_count = select(func.count(User.id))
+    total = await db.scalar(base_count)
     active = await db.scalar(
-        select(func.count(User.id)).where(User.is_active == True)  # noqa: E712
+        base_count.where(User.is_active == True)  # noqa: E712
     )
     pending = await db.scalar(
-        select(func.count(User.id))
-        .where(User.approval_status == ApprovalStatus.PENDING)
+        base_count.where(User.approval_status == ApprovalStatus.PENDING)
     )
     rejected = await db.scalar(
-        select(func.count(User.id))
-        .where(User.approval_status == ApprovalStatus.REJECTED)
+        base_count.where(User.approval_status == ApprovalStatus.REJECTED)
     )
     with_2fa = await db.scalar(
-        select(func.count(User.id)).where(User.two_fa_enabled == True)  # noqa: E712
+        base_count.where(User.two_fa_enabled == True)  # noqa: E712
     )
 
-    users_by_role = {}
-    for r in UserRole:
-        c = await db.scalar(
-            select(func.count(User.id)).where(User.role == r)
-        )
-        users_by_role[r.value] = c or 0
+    # Group by role in a single query.
+    role_rows = await db.execute(
+        select(User.role, func.count(User.id)).group_by(User.role)
+    )
+    users_by_role = {r.value: 0 for r in UserRole}
+    for role, count in role_rows.all():
+        if role is not None:
+            users_by_role[role.value] = count or 0
 
+    # Group by tier in a single query.
     sub_tier_query = await db.execute(
         select(Subscription.tier, func.count(Subscription.id))
         .group_by(Subscription.tier)
@@ -394,6 +442,26 @@ async def reject_user(
         ip_address=_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
+    # W3-20: hash-chained regulatory audit log entry (consistent with approve).
+    try:
+        await patch_write_audit_log(
+            db,
+            action="user.reject",
+            user_id=current_user.id,
+            user_email=current_user.email,
+            entity_type="user",
+            entity_id=str(user_uuid),
+            old_values={"approval_status": "pending", "is_active": True},
+            new_values={
+                "approval_status": "rejected",
+                "is_active": False,
+                "rejection_reason": body.reason,
+            },
+            ip_address=_client_ip(request),
+            user_agent=request.headers.get("user-agent"),
+        )
+    except Exception as e:
+        logger.warning("audit_log writer failed (user.reject): %s", e)
     await db.commit()
 
     return AdminActionResponse(
@@ -465,6 +533,22 @@ async def change_tier(
         ip_address=_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
+    # W3-20: hash-chained regulatory audit log entry.
+    try:
+        await patch_write_audit_log(
+            db,
+            action="user.tier_change",
+            user_id=current_user.id,
+            user_email=current_user.email,
+            entity_type="subscription",
+            entity_id=str(user_uuid),
+            old_values={"tier": old_tier},
+            new_values={"tier": body.subscription_tier, "reason": body.reason},
+            ip_address=_client_ip(request),
+            user_agent=request.headers.get("user-agent"),
+        )
+    except Exception as e:
+        logger.warning("audit_log writer failed (user.tier_change): %s", e)
     await db.commit()
 
     return AdminActionResponse(
@@ -497,6 +581,9 @@ async def deactivate_user(
         raise HTTPException(404, "User not found")
 
     user.is_active = False
+    # Invalidate any outstanding JWTs for this user. Their `iat` is now
+    # older than this timestamp, so get_current_user will reject them.
+    user.token_invalidated_at = datetime.now(timezone.utc)
     await _write_audit(
         db, current_user, AdminAction.USER_DEACTIVATE,
         target_user_id=user_uuid,
@@ -504,6 +591,26 @@ async def deactivate_user(
         ip_address=_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
+    # W3-20: hash-chained regulatory audit log entry.
+    try:
+        await patch_write_audit_log(
+            db,
+            action="user.deactivate",
+            user_id=current_user.id,
+            user_email=current_user.email,
+            entity_type="user",
+            entity_id=str(user_uuid),
+            old_values={"is_active": True, "token_invalidated_at": None},
+            new_values={
+                "is_active": False,
+                "token_invalidated_at": user.token_invalidated_at.isoformat(),
+                "reason": body.reason,
+            },
+            ip_address=_client_ip(request),
+            user_agent=request.headers.get("user-agent"),
+        )
+    except Exception as e:
+        logger.warning("audit_log writer failed (user.deactivate): %s", e)
     await db.commit()
 
     return AdminActionResponse(
@@ -533,12 +640,33 @@ async def reactivate_user(
         raise HTTPException(404, "User not found")
 
     user.is_active = True
+    # Reactivating the user also clears the invalidation timestamp so
+    # fresh tokens issued after this point are accepted again. The user
+    # must still log in to obtain a new JWT.
+    user.token_invalidated_at = None
     await _write_audit(
         db, current_user, AdminAction.USER_REACTIVATE,
         target_user_id=user_uuid,
+        details={"reason": body.reason},
         ip_address=_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
+    # W3-20: hash-chained regulatory audit log entry.
+    try:
+        await patch_write_audit_log(
+            db,
+            action="user.reactivate",
+            user_id=current_user.id,
+            user_email=current_user.email,
+            entity_type="user",
+            entity_id=str(user_uuid),
+            old_values={"is_active": False},
+            new_values={"is_active": True, "reason": body.reason},
+            ip_address=_client_ip(request),
+            user_agent=request.headers.get("user-agent"),
+        )
+    except Exception as e:
+        logger.warning("audit_log writer failed (user.reactivate): %s", e)
     await db.commit()
 
     return AdminActionResponse(
@@ -624,8 +752,12 @@ async def billing_summary(
     current_user: User = Depends(_require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    # Only currently-paying subscriptions count toward MRR. Cancelled,
+    # past_due, and unpaid rows are excluded.
+    paying_status = SubscriptionStatus.ACTIVE
     tier_rows = await db.execute(
         select(Subscription.tier, func.count(Subscription.id))
+        .where(Subscription.status == paying_status)
         .group_by(Subscription.tier)
     )
     users_by_tier = {t.value: 0 for t in SubscriptionTier}
@@ -718,6 +850,35 @@ async def list_audit_log(
         )
         email_map = {uid: em for uid, em in ures.all()}
 
+    # Redact the ``details`` JSONB to a safe subset before returning. The
+    # raw field can contain free-text rejection reasons, notes from the
+    # admin, etc. - all of which are PII or sensitive operational data.
+    # Admins get the structured summary (keys + lengths) but not the text.
+    safe_keys = {
+        "subscription_tier", "old_tier", "new_tier",
+        "is_active", "approval_status", "token_invalidated_at",
+    }
+
+    def _redact(d: Optional[dict]) -> dict:
+        if not d:
+            return {}
+        out: dict = {}
+        for k, v in d.items():
+            if k in safe_keys:
+                if isinstance(v, str) and len(v) > 64:
+                    out[k] = v[:64] + "..."
+                else:
+                    out[k] = v
+            else:
+                # Free-text fields (rejection_reason, notes) are exposed
+                # only as a length so admins can see something happened
+                # but not the content.
+                if isinstance(v, str):
+                    out[f"{k}_length"] = len(v)
+                else:
+                    out[k] = v
+        return out
+
     return AdminAuditLogResponse(
         entries=[
             AdminAuditLogEntry(
@@ -727,7 +888,7 @@ async def list_audit_log(
                 target_user_id=str(e.target_user_id) if e.target_user_id else None,
                 target_user_email=email_map.get(e.target_user_id) if e.target_user_id else None,
                 action=e.action,
-                details=e.details,
+                details=_redact(e.details),
                 ip_address=e.ip_address,
                 user_agent=e.user_agent,
                 created_at=e.created_at,

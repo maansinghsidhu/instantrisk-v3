@@ -275,8 +275,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       leading: CircleAvatar(
         backgroundColor: isActive ? Colors.green[100] : Colors.grey[300],
         child: Text(
-          (u['full_name'] as String? ?? '?').substring(0, 1).toUpperCase(),
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          (() {
+            final n = u['full_name'] as String?;
+            return (n != null && n.isNotEmpty) ? n.substring(0, 1).toUpperCase() : '?';
+          })(),
         ),
       ),
       title: Text(u['full_name']?.toString() ?? '?', style: const TextStyle(fontWeight: FontWeight.bold)),

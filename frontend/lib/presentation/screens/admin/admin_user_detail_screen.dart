@@ -400,29 +400,42 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
     required String hint,
     bool required = true,
   }) async {
-    final controller = TextEditingController();
+    // The dialog body uses a StatefulBuilder so the TextEditingController
+    // can be disposed in dispose(). Previously the controller was created
+    // inline in the dialog builder and never disposed, leaking one
+    // controller per reject/deactivate action.
     return showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(labelText: label, hintText: hint),
-          maxLines: 3,
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              final v = controller.text.trim();
-              if (required && v.isEmpty) return;
-              Navigator.pop(ctx, v);
-            },
-            child: const Text('Confirm'),
+      builder: (ctx) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          title: Text(title),
+          content: TextField(
+            controller: controller,
+            decoration: InputDecoration(labelText: label, hintText: hint),
+            maxLines: 3,
+            autofocus: true,
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                controller.dispose();
+                Navigator.pop(ctx);
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final v = controller.text.trim();
+                if (required && v.isEmpty) return;
+                controller.dispose();
+                Navigator.pop(ctx, v);
+              },
+              child: const Text('Confirm'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -4,11 +4,11 @@ InstantRisk V3 - Admin Panel Schemas
 Pydantic schemas for the admin panel API: user list/detail, usage,
 billing summary, audit log, and admin actions.
 """
-from datetime import datetime
+from datetime import datetime, timezone
+
 from typing import List, Optional, Dict, Any
 
 from pydantic import BaseModel, Field, ConfigDict
-
 from app.models.subscription import SubscriptionTier, SubscriptionStatus
 from app.models.user import UserRole, ApprovalStatus
 
@@ -95,8 +95,7 @@ class AdminBillingSummary(BaseModel):
     annual_recurring_revenue_usd: int
     trialing_users: int
     pending_payment_failures: int
-    generated_at: datetime = Field(default_factory=lambda: datetime.utcnow())
-
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 # =============================================================================
 # Audit log
@@ -169,4 +168,4 @@ class AdminStats(BaseModel):
     users_with_2fa: int
     users_by_role: Dict[str, int]
     users_by_tier: Dict[str, int]
-    generated_at: datetime = Field(default_factory=lambda: datetime.utcnow)
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

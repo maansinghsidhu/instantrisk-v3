@@ -25,7 +25,12 @@ def db_session():
 
     async def fake_execute(stmt):
         result = MagicMock()
+        # The writer uses scalar_one_or_none() to fetch the latest row.
+        # verify_chain uses scalars().all() to walk the entire chain.
         result.scalar_one_or_none = lambda: (written[-1] if written else None)
+        result.scalars = MagicMock(
+            return_value=MagicMock(all=lambda: list(written))
+        )
         return result
 
     session.execute = fake_execute
@@ -138,3 +143,66 @@ async def test_compute_input_hash_deterministic():
 async def test_compute_input_hash_distinct_for_different_data():
     from app.patches.decision_log_writer import compute_input_hash
     assert compute_input_hash({"x": 1}) != compute_input_hash({"x": 2})
+
+
+@pytest.mark.asyncio
+async def test_verify_chain_intact_for_ai_decision_log(db_session):
+    """verify_chain must accept a 3-row chain written by write_ai_decision_log.
+
+    Regression test for the bug the PR-Agent review caught: the verifier
+    used a different hash formula than the writer, so the chain was never
+    actually verifiable.
+    """
+    from app.patches.decision_log_writer import (
+        write_ai_decision_log,
+        verify_chain,
+    )
+
+    class _MockAIDecisionLog:
+        pass
+
+    # Write 3 rows using the real writer against the mocked session.
+    await write_ai_decision_log(
+        db_session, agent_name="underwriter", decision_type="d1", input_data={"i": 1}
+    )
+    await write_ai_decision_log(
+        db_session, agent_name="underwriter", decision_type="d2", input_data={"i": 2}
+    )
+    await write_ai_decision_log(
+        db_session, agent_name="underwriter", decision_type="d3", input_data={"i": 3}
+    )
+
+    # For verify_chain, model needs an .id and .prev_hash attribute. The
+    # writer's session mock stamped those onto the mock objects. So we
+    # return the written list directly as the "model" type.
+    ok, errors = await verify_chain(db_session, type(db_session._written[0]))
+    assert ok is True, f"chain not valid: {errors}"
+    assert errors == []
+
+
+@pytest.mark.asyncio
+async def test_verify_chain_intact_for_audit_log(db_session):
+    from app.patches.decision_log_writer import write_audit_log, verify_chain
+
+    await write_audit_log(db_session, action="user.approve", entity_id="u-1")
+    await write_audit_log(db_session, action="user.reject", entity_id="u-2")
+
+    ok, errors = await verify_chain(db_session, type(db_session._written[0]))
+    assert ok is True, f"chain not valid: {errors}"
+    assert errors == []
+
+
+@pytest.mark.asyncio
+async def test_verify_chain_detects_tampered_row(db_session):
+    """If a row's prev_hash is altered, verify_chain must report a break."""
+    from app.patches.decision_log_writer import write_audit_log, verify_chain
+
+    await write_audit_log(db_session, action="user.approve", entity_id="u-1")
+    await write_audit_log(db_session, action="user.reject", entity_id="u-2")
+    # Tamper with the second row's prev_hash.
+    db_session._written[1].prev_hash = "0" * 64
+    ok, errors = await verify_chain(db_session, type(db_session._written[0]))
+    assert ok is False
+    assert len(errors) == 1
+    assert "row[1]" in errors[0]
+    assert "mismatch" in errors[0]
