@@ -19,6 +19,11 @@ def db_session():
     session = MagicMock()
     session.add = MagicMock()
     session.commit = AsyncMock()
+    # Fix #31 (8th pr-agent): the writer now calls db.flush() instead of
+    # db.commit() so the caller owns the transaction boundary. The fixture
+    # must mock .flush as awaitable or the test crashes with
+    # "object MagicMock can't be used in 'await' expression".
+    session.flush = AsyncMock()
     session.refresh = AsyncMock(side_effect=lambda obj: setattr(obj, "_refreshed", True))
 
     written: list = []
