@@ -425,7 +425,7 @@ async def approve_user(
         )
         db.add(sub)
 
-    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation
+    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation
     await _write_audit(
         db, current_user, AdminAction.USER_APPROVE,
         target_user_id=user_uuid,
@@ -495,7 +495,7 @@ async def reject_user(
     user.rejection_reason = body.reason
     user.is_active = False
 
-    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation
+    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation
     await _write_audit(
         db, current_user, AdminAction.USER_REJECT,
         target_user_id=user_uuid,
@@ -601,7 +601,7 @@ async def change_tier(
         )
         db.add(sub)
 
-    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation
+    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation
     await _write_audit(
         db, current_user, AdminAction.TIER_CHANGE,
         target_user_id=user_uuid,
@@ -664,7 +664,7 @@ async def deactivate_user(
     # Invalidate any outstanding JWTs for this user. Their `iat` is now
     # older than this timestamp, so get_current_user will reject them.
     user.token_invalidated_at = datetime.now(timezone.utc)
-    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation
+    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation
     await _write_audit(
         db, current_user, AdminAction.USER_DEACTIVATE,
         target_user_id=user_uuid,
@@ -713,7 +713,7 @@ async def reactivate_user(
     if not user:
         raise HTTPException(404, "User not found")
 
-    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): BEFORE any state mutation
+    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation
     user.is_active = True
     # Fix #16: do NOT clear token_invalidated_at on reactivation. The
     # reactivation flag is a monotonic "high-water mark": once a token
