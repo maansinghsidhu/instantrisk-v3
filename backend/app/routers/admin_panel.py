@@ -128,22 +128,31 @@ _rate_limit_lock = _threading.Lock()
 def _check_rate_limit(admin_id) -> None:
     """Token-bucket rate limiter. Raises 429 if the admin exceeds
     ``_RATE_LIMIT_PER_MINUTE`` actions in the last ``_RATE_WINDOW_SECONDS``.
+
+    Fix #28 (7th pr-agent): the previous version declared
+    ``_rate_limit_lock`` but never acquired it. The bucket dict was
+    not thread-safe despite the comment claiming otherwise. Now the
+    entire check + bucket update runs under the lock.
+
+    Fix #24 (5th pr-agent): callers MUST invoke this before any state
+    mutation. The 429 raises but does not roll back partial writes.
     """
     import time
     from collections import deque
     now = time.monotonic()
-    bucket = _rate_limit_buckets.setdefault(admin_id, deque())
-    # Drop entries outside the window
-    while bucket and (now - bucket[0]) > _RATE_WINDOW_SECONDS:
-        bucket.popleft()
-    if len(bucket) >= _RATE_LIMIT_PER_MINUTE:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Rate limit exceeded: max {_RATE_LIMIT_PER_MINUTE} "
-                   f"admin actions per {_RATE_WINDOW_SECONDS}s",
-            headers={"Retry-After": str(_RATE_WINDOW_SECONDS)},
-        )
-    bucket.append(now)
+    with _rate_limit_lock:
+        bucket = _rate_limit_buckets.setdefault(admin_id, deque())
+        # Drop entries outside the window
+        while bucket and (now - bucket[0]) > _RATE_WINDOW_SECONDS:
+            bucket.popleft()
+        if len(bucket) >= _RATE_LIMIT_PER_MINUTE:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Rate limit exceeded: max {_RATE_LIMIT_PER_MINUTE} "
+                       f"admin actions per {_RATE_WINDOW_SECONDS}s",
+                headers={"Retry-After": str(_RATE_WINDOW_SECONDS)},
+            )
+        bucket.append(now)
 
 async def _write_audit(
     db: AsyncSession,

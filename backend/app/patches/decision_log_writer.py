@@ -51,8 +51,6 @@ __all__ = [
     "write_ai_decision_log",
     "write_audit_log",
     "verify_chain",
-    "apply",
-    "revert",
 ]
 
 
@@ -260,23 +258,6 @@ async def verify_chain(db: AsyncSession, model: Type[Any]) -> Tuple[bool, List[s
             return False, errors
     return True, errors
 
-
-# ---------------------------------------------------------------------------
-# apply() / revert() lifecycle
-# ---------------------------------------------------------------------------
-_APPLIED = False
-
-
-def apply(app: Any = None) -> Dict[str, Any]:
-    """Mark the patch as applied. The patch is a library, called by agent
-    code; this is a no-op lifecycle hook for the runbook operator."""
-    global _APPLIED
-    _APPLIED = True
-    return {"applied": True, "scope": "library"}
-
-
-def revert(app: Any = None) -> Dict[str, Any]:
-    """Mark the patch as reverted. Idempotent."""
-    global _APPLIED
-    _APPLIED = False
-    return {"reverted": True}
+# Fix #29 (7th pr-agent): removed the previous apply() / revert() stubs
+# which were no-ops that toggled a private _APPLIED flag. They were not
+# consumed anywhere in the codebase and just confused the runbook.

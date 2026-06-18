@@ -48,16 +48,6 @@ def db_session():
     return session
 
 
-def test_apply_revert():
-    from app.patches import decision_log_writer
-    state1 = decision_log_writer.apply()
-    state2 = decision_log_writer.apply()
-    state3 = decision_log_writer.revert()
-    assert state1 == {"applied": True, "scope": "library"}
-    assert state2 == {"applied": True, "scope": "library"}
-    assert state3 == {"reverted": True}
-
-
 @pytest.mark.asyncio
 async def test_ai_decision_log_genesis_row(db_session):
     from app.patches.decision_log_writer import write_ai_decision_log, GENESIS_HASH
