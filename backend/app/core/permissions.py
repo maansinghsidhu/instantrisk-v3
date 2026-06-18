@@ -5,6 +5,7 @@ This module provides utilities and FastAPI dependencies for permission checking
 that can be used across the application to protect routes.
 """
 
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import Callable, List, Optional, Union
 from fastapi import Depends, HTTPException, status
@@ -18,6 +19,11 @@ from app.models.user import User, UserRole
 from app.models.rbac import (
     Permission, Role, Team, TeamMembership, UserPermissionCache
 )
+
+# 5 minutes — matches runbook W3-36; closes audit D4.13.
+# Hardcoded to avoid expanding the config surface; promote to settings only
+# if a deployment needs to tune it.
+PERMISSION_CACHE_TTL_SECONDS = 5 * 60
 
 
 async def get_user_permissions(
@@ -88,12 +94,17 @@ async def check_permission(
     if user.role == UserRole.ADMIN:
         return True
 
-    # Check permission cache first
+    # Check permission cache first, honouring TTL.
+    # Rows older than PERMISSION_CACHE_TTL_SECONDS are treated as misses so
+    # that stale grants (e.g. after a user is removed from a team) lose
+    # force on the very next call, not the next deploy. See audit D4.13.
+    _cache_cutoff = datetime.now(timezone.utc) - timedelta(seconds=PERMISSION_CACHE_TTL_SECONDS)
     cache_result = await db.execute(
         select(UserPermissionCache).where(
             and_(
                 UserPermissionCache.user_id == user.id,
-                UserPermissionCache.permission_name == permission_name
+                UserPermissionCache.permission_name == permission_name,
+                UserPermissionCache.cached_at > _cache_cutoff,
             )
         )
     )
@@ -390,6 +401,68 @@ async def refresh_user_permission_cache(
                     db.add(cache_entry)
 
     await db.commit()
+
+
+async def clear_user_permission_cache(user_id, db: AsyncSession) -> int:
+    """
+    Delete every `UserPermissionCache` row for `user_id`.
+
+    Use after any change that affects a single user's effective permissions:
+    add/remove/soft-delete team membership, change of role on a membership,
+    or any future per-user override. The next `check_permission` call
+    re-derives from `team_memberships` and re-warms the cache.
+
+    Args:
+        user_id: The user whose cache should be wiped.
+        db: Database session.
+
+    Returns:
+        Number of cache rows deleted (0 if the user had no cached rows).
+    """
+    from sqlalchemy import delete
+
+    result = await db.execute(
+        delete(UserPermissionCache).where(UserPermissionCache.user_id == user_id)
+    )
+    await db.commit()
+    return result.rowcount or 0
+
+
+async def clear_permission_cache_for_role(role_id, db: AsyncSession) -> int:
+    """
+    Delete `UserPermissionCache` rows for every user holding `role_id`.
+
+    Use after a role's permission set changes (a permission was added or
+    revoked from the role, the role's `is_active` flag flipped, etc.) so
+    every holder re-derives on the next call.
+
+    Args:
+        role_id: The role whose holders' caches should be wiped.
+        db: Database session.
+
+    Returns:
+        Number of cache rows deleted across all holders (0 if no active
+        holder or no rows were cached).
+    """
+    from sqlalchemy import delete, select
+
+    user_ids_result = await db.execute(
+        select(TeamMembership.user_id).where(
+            and_(
+                TeamMembership.role_id == role_id,
+                TeamMembership.is_active == True,  # noqa: E712
+            )
+        )
+    )
+    user_ids = [row[0] for row in user_ids_result.all()]
+    if not user_ids:
+        return 0
+
+    result = await db.execute(
+        delete(UserPermissionCache).where(UserPermissionCache.user_id.in_(user_ids))
+    )
+    await db.commit()
+    return result.rowcount or 0
 
 
 async def clear_all_permission_cache(db: AsyncSession) -> None:

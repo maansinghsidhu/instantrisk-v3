@@ -8,7 +8,7 @@ This module provides API endpoints for team management and role-based access con
 - Permission checking utilities
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy import select, func, and_, or_
@@ -17,6 +17,11 @@ from sqlalchemy.orm import selectinload, joinedload
 
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.permissions import (
+    PERMISSION_CACHE_TTL_SECONDS,
+    clear_permission_cache_for_role,
+    clear_user_permission_cache,
+)
 from app.models.user import User, UserRole
 from app.models.syndicate import Syndicate
 from app.models.rbac import (
@@ -61,12 +66,17 @@ async def check_user_permission(
     if user.role == UserRole.ADMIN:
         return True
 
-    # Check permission cache first (for performance)
+    # Check permission cache first, honouring TTL.
+    # Rows older than PERMISSION_CACHE_TTL_SECONDS are treated as misses so
+    # that stale grants lose force on the very next call, not the next
+    # deploy. See audit D4.13. Mirrors the filter in app.core.permissions.
+    _cache_cutoff = datetime.now(timezone.utc) - timedelta(seconds=PERMISSION_CACHE_TTL_SECONDS)
     cache_result = await db.execute(
         select(UserPermissionCache).where(
             and_(
                 UserPermissionCache.user_id == user.id,
-                UserPermissionCache.permission_name == permission_name
+                UserPermissionCache.permission_name == permission_name,
+                UserPermissionCache.cached_at > _cache_cutoff,
             )
         )
     )
@@ -405,6 +415,10 @@ async def create_role(
     db.add(role)
     await db.commit()
     await db.refresh(role)
+    # Role created — invalidate caches for any future holder. New role has
+    # no holders yet, but keeping the call here keeps the contract uniform
+    # with update_role and delete_role.
+    await clear_permission_cache_for_role(role.id, db)
 
     return role
 
@@ -494,6 +508,9 @@ async def update_role(
 
     await db.commit()
     await db.refresh(role)
+    # Role's permission set may have changed — wipe caches for every holder
+    # so the next check_permission call re-derives from current state.
+    await clear_permission_cache_for_role(role.id, db)
 
     return role
 
@@ -545,6 +562,9 @@ async def delete_role(
 
     await db.delete(role)
     await db.commit()
+    # No holders to wipe (we reject delete_role when active memberships exist
+    # above), but the call is cheap and keeps the contract uniform.
+    await clear_permission_cache_for_role(role_id, db)
 
 
 # =============================================================================
@@ -1036,6 +1056,10 @@ async def add_team_member(
     db.add(membership)
     await db.commit()
     await db.refresh(membership)
+    # Membership added — wipe the new member's cache so their newly granted
+    # permissions (and any revocations from this team) take effect on the
+    # very next call.
+    await clear_user_permission_cache(membership.user_id, db)
 
     return {
         "id": membership.id,
@@ -1133,8 +1157,8 @@ async def update_team_member(
         )
         .where(TeamMembership.id == membership.id)
     )
-    membership = result.scalar_one()
-
+    # Role/lead/active flags may have changed — wipe the member's cache.
+    await clear_user_permission_cache(membership.user_id, db)
     return {
         "id": membership.id,
         "user_id": membership.user_id,
@@ -1198,6 +1222,9 @@ async def remove_team_member(
     membership.end_date = datetime.now(timezone.utc)
 
     await db.commit()
+    # Soft-delete only — the underlying row stays, but any permission that
+    # flowed through this membership is gone, so wipe the user's cache.
+    await clear_user_permission_cache(user_id, db)
 
 
 # =============================================================================
