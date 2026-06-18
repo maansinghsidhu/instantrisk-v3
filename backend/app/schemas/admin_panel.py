@@ -40,6 +40,12 @@ class AdminUserDetail(AdminUserSummary):
     """Full user row for the detail view."""
     rejection_reason: Optional[str] = None
     approved_by: Optional[str] = None
+    # Fix #27 (6th pr-agent): the schema mirrors the User model's
+    # approved_by / approved_at fields. For rejections we set
+    # approved_by but the field name is misleading. Frontend
+    # consumers should treat the user as approved ONLY when
+    # approval_status == 'approved'; the moderator field exists
+    # for traceability but does not imply approval.
     syndicate_id: Optional[int] = None
     commission_rate: Optional[float] = None
     preferred_language: Optional[str] = None
