@@ -189,7 +189,6 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                  ],
                ]),
-              ]),
               const SizedBox(height: 24),
 
               // App Settings Section
