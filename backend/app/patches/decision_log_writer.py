@@ -142,7 +142,13 @@ async def write_ai_decision_log(
     setattr(row, "input_hash", input_hash)
 
     db.add(row)
-    await db.commit()
+    # Fix #31 (8th pr-agent): the previous version called db.commit()
+    # here which committed the caller's open transaction. That broke
+    # atomicity: if a subsequent caller-side write failed, the
+    # regulatory AuditLog row would already be persisted while the
+    # user mutation was not. The helper now flushes only; the caller
+    # owns the transaction boundary.
+    await db.flush()
     await db.refresh(row)
     logger.info(
         "ai_decision_log row=%s agent=%s decision=%s prev_hash=%s..",
@@ -204,7 +210,9 @@ async def write_audit_log(
     setattr(row, "input_hash", input_hash)
 
     db.add(row)
-    await db.commit()
+    # Fix #31 (8th pr-agent): see write_ai_decision_log. Use flush() so
+    # the caller owns the transaction boundary.
+    await db.flush()
     await db.refresh(row)
     logger.info(
         "audit_log row=%s action=%s prev_hash=%s..",
