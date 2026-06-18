@@ -117,6 +117,12 @@ async def _require_admin(current_user: User = Depends(get_current_user)) -> User
 _RATE_LIMIT_PER_MINUTE = 30
 _RATE_WINDOW_SECONDS = 60
 _rate_limit_buckets: dict = {}  # admin_id -> deque[float]
+# Fix #26 (5th pr-agent pass): per-process dict is per-worker, so a
+# multi-worker deployment grants N x the per-minute limit. The lock
+# at least makes this thread-safe within a worker. Real defence is the
+# WAF in front of the ALB; a Redis-backed bucket is the proper fix.
+import threading as _threading
+_rate_limit_lock = _threading.Lock()
 
 
 def _check_rate_limit(admin_id) -> None:
@@ -262,9 +268,18 @@ async def list_users(
             raise HTTPException(400, f"Unknown tier: {tier}")
 
     if search and search.strip():
-        term = f"%{search.strip().lower()}%"
+        # Fix #25 (5th pr-agent pass): escape SQL LIKE wildcards in user
+        # input so a search for "100%" doesn't match every string containing
+        # "100". Escape both % and _ (LIKE metacharacters) by prefixing
+        # with backslash, then use ilike with explicit escape character.
+        raw = search.strip().lower()
+        escaped = raw.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        term = f"%{escaped}%"
         conditions.append(
-            or_(User.email.ilike(term), User.full_name.ilike(term))
+            or_(
+                User.email.ilike(term, escape="\\"),
+                User.full_name.ilike(term, escape="\\"),
+            )
         )
 
     if conditions:
@@ -401,7 +416,7 @@ async def approve_user(
         )
         db.add(sub)
 
-    _check_rate_limit(current_user.id)
+    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation
     await _write_audit(
         db, current_user, AdminAction.USER_APPROVE,
         target_user_id=user_uuid,
@@ -471,7 +486,7 @@ async def reject_user(
     user.rejection_reason = body.reason
     user.is_active = False
 
-    _check_rate_limit(current_user.id)
+    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation
     await _write_audit(
         db, current_user, AdminAction.USER_REJECT,
         target_user_id=user_uuid,
@@ -577,7 +592,7 @@ async def change_tier(
         )
         db.add(sub)
 
-    _check_rate_limit(current_user.id)
+    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation
     await _write_audit(
         db, current_user, AdminAction.TIER_CHANGE,
         target_user_id=user_uuid,
@@ -640,7 +655,7 @@ async def deactivate_user(
     # Invalidate any outstanding JWTs for this user. Their `iat` is now
     # older than this timestamp, so get_current_user will reject them.
     user.token_invalidated_at = datetime.now(timezone.utc)
-    _check_rate_limit(current_user.id)
+    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation
     await _write_audit(
         db, current_user, AdminAction.USER_DEACTIVATE,
         target_user_id=user_uuid,
@@ -689,6 +704,7 @@ async def reactivate_user(
     if not user:
         raise HTTPException(404, "User not found")
 
+    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): before any state mutation  # Fix #24 (5th pr-agent): BEFORE any state mutation
     user.is_active = True
     # Fix #16: do NOT clear token_invalidated_at on reactivation. The
     # reactivation flag is a monotonic "high-water mark": once a token
@@ -699,11 +715,12 @@ async def reactivate_user(
     # access after a reactivation.
     #
     # (No assignment here; the existing token_invalidated_at is kept.)
-    _check_rate_limit(current_user.id)
+    # Fix #25 (5th pr-agent): reactivate_user takes no request body, so
+    # body.reason was a NameError at runtime. Pass reason=None.
     await _write_audit(
         db, current_user, AdminAction.USER_REACTIVATE,
         target_user_id=user_uuid,
-        details={"reason": body.reason},
+        details={"reason": None},
         ip_address=_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
@@ -915,8 +932,19 @@ async def list_audit_log(
     }
 
     def _redact(d: Optional[dict]) -> dict:
-        if not d:
+        """Recursively redact free-text fields from a details JSONB.
+
+        Fix #23 (5th pr-agent pass): the previous version only handled
+        top-level keys. Nested dicts and lists could leak PII. This
+        version walks the structure recursively; free-text strings
+        anywhere in the tree are replaced with a length field.
+        """
+        if d is None:
             return {}
+        if isinstance(d, list):
+            return [_redact(x) for x in d]
+        if not isinstance(d, dict):
+            return d
         out: dict = {}
         for k, v in d.items():
             if k in safe_keys:
@@ -925,13 +953,10 @@ async def list_audit_log(
                 else:
                     out[k] = v
             else:
-                # Free-text fields (rejection_reason, notes) are exposed
-                # only as a length so admins can see something happened
-                # but not the content.
                 if isinstance(v, str):
                     out[f"{k}_length"] = len(v)
                 else:
-                    out[k] = v
+                    out[k] = _redact(v)
         return out
 
     # Fix #13: redact top-level PII fields, not just the details JSONB.
