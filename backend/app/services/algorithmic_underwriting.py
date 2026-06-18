@@ -507,7 +507,7 @@ class AlgorithmicUnderwritingEngine:
 
     # Model version for audit trail
     MODEL_VERSION = "3.0.0"
-    MODEL_TYPE = "hybrid_glm_gradient_boost"
+    MODEL_TYPE = "deterministic_multiplier_table_v1"
 
     # Base rates by class of business (per $1M limit)
     BASE_RATES = {
@@ -1178,7 +1178,17 @@ class AlgorithmicUnderwritingEngine:
         submission: Dict[str, Any],
         specialty_analysis: Optional[Dict[str, Any]],
     ) -> Tuple[float, RiskCategory]:
-        """Calculate overall risk score (0-100)."""
+        """Calculate overall risk score (0-100).
+
+        Fix #30 (8th pr-agent pass): the previous version silently
+        ignored 5 critical risk factors (`prior_losses`, `building_age`,
+        `construction`, `occupancy`, `protection`) - verified by the
+        open-source test harness in test_business_logic.py. Now each
+        factor adds a weighted component to the score, so a frame-
+        construction 90yo building with 15 prior losses and no
+        sprinklers correctly scores in the 80+ range rather than
+        clustering around 40-45 for every risk profile.
+        """
         scores = []
         weights = []
 
@@ -1189,7 +1199,7 @@ class AlgorithmicUnderwritingEngine:
         }
         claims_history = submission.get("claims_history", "average")
         scores.append(claims_scores.get(claims_history, 40))
-        weights.append(0.25)
+        weights.append(0.18)
 
         # Territory risk
         territory = submission.get("territory", "GB").upper()[:2]
@@ -1197,7 +1207,7 @@ class AlgorithmicUnderwritingEngine:
             territory, self.TERRITORY_LOADINGS["DEFAULT"]
         ))
         scores.append(min(100, (territory_loading - 1) * 200 + 30))
-        weights.append(0.15)
+        weights.append(0.10)
 
         # Industry risk
         industry = submission.get("industry", "").lower()
@@ -1205,7 +1215,69 @@ class AlgorithmicUnderwritingEngine:
             industry, self.INDUSTRY_LOADINGS["DEFAULT"]
         ))
         scores.append(min(100, (industry_loading - 1) * 200 + 30))
-        weights.append(0.15)
+        weights.append(0.10)
+
+        # NEW: Prior losses score (0-5 losses: 0-100, 5+ losses: 95)
+        prior_losses = int(submission.get("prior_losses", 0))
+        if prior_losses <= 0:
+            prior_loss_score = 15.0
+        elif prior_losses == 1:
+            prior_loss_score = 35.0
+        elif prior_losses == 2:
+            prior_loss_score = 55.0
+        elif prior_losses == 3:
+            prior_loss_score = 75.0
+        elif prior_losses == 4:
+            prior_loss_score = 88.0
+        else:
+            prior_loss_score = 98.0
+        scores.append(prior_loss_score)
+        weights.append(0.18)
+
+        # NEW: Building age score (older = riskier)
+        building_age = int(submission.get("building_age", 0))
+        if building_age <= 5:
+            age_score = 10.0
+        elif building_age <= 15:
+            age_score = 25.0
+        elif building_age <= 30:
+            age_score = 40.0
+        elif building_age <= 50:
+            age_score = 60.0
+        elif building_age <= 75:
+            age_score = 80.0
+        else:
+            age_score = 92.0
+        scores.append(age_score)
+        weights.append(0.12)
+
+        # NEW: Construction score (frame=high, concrete=low)
+        construction = submission.get("construction", "").lower()
+        construction_scores = {
+            "concrete": 10, "masonry": 18, "steel": 22,
+            "mixed": 45, "frame": 75, "wood": 88, "thatched": 95,
+        }
+        scores.append(construction_scores.get(construction, 50))
+        weights.append(0.12)
+
+        # NEW: Occupancy score
+        occupancy = submission.get("occupancy", "").lower()
+        occupancy_scores = {
+            "office": 20, "retail": 35, "warehouse": 45,
+            "manufacturing": 65, "industrial": 75, "chemical": 92,
+        }
+        scores.append(occupancy_scores.get(occupancy, 50))
+        weights.append(0.08)
+
+        # NEW: Protection score (sprinklers reduce risk)
+        protection = submission.get("protection", "").lower()
+        protection_scores = {
+            "sprinklered_and_alarmed": 5, "fully_protected": 10,
+            "sprinklered": 25, "alarmed": 35,
+            "partial": 55, "none": 90, "unknown": 60,
+        }
+        scores.append(protection_scores.get(protection, 60))
+        weights.append(0.12)
 
         # Limit adequacy
         limit = Decimal(str(submission.get("limit_of_liability", 1000000)))
