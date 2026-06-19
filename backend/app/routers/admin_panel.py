@@ -15,6 +15,9 @@ panel needs.
 """
 import ipaddress
 import logging
+from collections import deque
+import threading as _threading
+import time
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 from uuid import UUID
@@ -33,6 +36,9 @@ from app.models.subscription import (
 )
 from app.models.chat import ChatMessage
 from app.models.admin import AdminAuditLog, AdminAction
+from app.models.assessment import Assessment
+from app.models.generated_document import GeneratedDocument
+from app.models.feature_limits import get_tier_limits
 from app.schemas.admin_panel import (
     AdminUserSummary, AdminUserDetail, AdminUserListResponse,
     AdminUserUsage, AdminBillingSummary, AdminAuditLogEntry,
@@ -40,10 +46,9 @@ from app.schemas.admin_panel import (
     AdminTierChangeRequest, AdminDeactivateRequest, AdminActionResponse,
     AdminStats,
 )
-from app.config import get_settings
 from app.patches.decision_log_writer import write_audit_log as patch_write_audit_log
-logger = logging.getLogger("instantrisk.admin_panel")
 
+logger = logging.getLogger("instantrisk.admin_panel")
 router = APIRouter(prefix="/admin/panel", tags=["Admin Panel"])
 
 _TRUSTED_PROXIES_CACHE: Optional[List[ipaddress._BaseNetwork]] = None
@@ -137,8 +142,6 @@ def _check_rate_limit(admin_id) -> None:
     Fix #24 (5th pr-agent): callers MUST invoke this before any state
     mutation. The 429 raises but does not roll back partial writes.
     """
-    import time
-    from collections import deque
     now = time.monotonic()
     with _rate_limit_lock:
         bucket = _rate_limit_buckets.setdefault(admin_id, deque())
@@ -188,7 +191,6 @@ async def get_admin_stats(
     # ~10 separate count() queries (one per role, one per boolean).
     # Now: 2 queries (one users group-by, one subscriptions group-by)
     # plus a single scalar for the boolean aggregate.
-    from sqlalchemy import case
 
     # Aggregate over the users table in a single statement.
     base_count = select(func.count(User.id))
@@ -400,6 +402,12 @@ async def approve_user(
     if user.approval_status != ApprovalStatus.PENDING:
         raise HTTPException(400, f"User is {user.approval_status.value}, not pending")
 
+    # pr-agent fix (10th pass): rate limit must run BEFORE any state
+    # mutation. The previous fix #24 placement (after the mutation block)
+    # meant a rate-limited admin still changed platform state; only
+    # subsequent calls in the same minute were blocked.
+    _check_rate_limit(current_user.id)
+
     user.approval_status = ApprovalStatus.APPROVED
     user.approved_by = current_user.id
     user.approved_at = datetime.now(timezone.utc)
@@ -425,7 +433,6 @@ async def approve_user(
         )
         db.add(sub)
 
-    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation
     await _write_audit(
         db, current_user, AdminAction.USER_APPROVE,
         target_user_id=user_uuid,
@@ -489,13 +496,15 @@ async def reject_user(
     if user.approval_status != ApprovalStatus.PENDING:
         raise HTTPException(400, f"User is {user.approval_status.value}, not pending")
 
+    # pr-agent fix (10th pass): rate limit BEFORE mutation. See approve_user.
+    _check_rate_limit(current_user.id)
+
     user.approval_status = ApprovalStatus.REJECTED
     user.approved_by = current_user.id
     user.approved_at = datetime.now(timezone.utc)
     user.rejection_reason = body.reason
     user.is_active = False
 
-    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation
     await _write_audit(
         db, current_user, AdminAction.USER_REJECT,
         target_user_id=user_uuid,
@@ -579,6 +588,9 @@ async def change_tier(
             detail="Cannot change tier: user is not active",
         )
 
+    # pr-agent fix (10th pass): rate limit BEFORE mutation. See approve_user.
+    _check_rate_limit(current_user.id)
+
     sub_result = await db.execute(
         select(Subscription).where(Subscription.user_id == user_uuid)
     )
@@ -601,7 +613,6 @@ async def change_tier(
         )
         db.add(sub)
 
-    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation
     await _write_audit(
         db, current_user, AdminAction.TIER_CHANGE,
         target_user_id=user_uuid,
@@ -660,21 +671,26 @@ async def deactivate_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only super-admins can deactivate other admins",
         )
+
+    # pr-agent fix (10th pass): rate limit BEFORE mutation. See approve_user.
+    _check_rate_limit(current_user.id)
+
     user.is_active = False
     # Invalidate any outstanding JWTs for this user. Their `iat` is now
     # older than this timestamp, so get_current_user will reject them.
     user.token_invalidated_at = datetime.now(timezone.utc)
-    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation
     await _write_audit(
         db, current_user, AdminAction.USER_DEACTIVATE,
         target_user_id=user_uuid,
         details={"reason": body.reason},
         ip_address=_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
     )
     # W3-20: hash-chained regulatory audit log entry. Fix #18: no try/except.
     await patch_write_audit_log(
         db,
         action="user.deactivate",
+        user_id=current_user.id,
         user_email=current_user.email,
         old_values={"is_active": True, "token_invalidated_at": None},
         new_values={
@@ -713,7 +729,9 @@ async def reactivate_user(
     if not user:
         raise HTTPException(404, "User not found")
 
-    _check_rate_limit(current_user.id)  # Fix #24 (5th pr-agent): before any state mutation
+    # pr-agent fix (10th pass): rate limit BEFORE mutation. See approve_user.
+    _check_rate_limit(current_user.id)
+
     user.is_active = True
     # Fix #16: do NOT clear token_invalidated_at on reactivation. The
     # reactivation flag is a monotonic "high-water mark": once a token
@@ -724,8 +742,11 @@ async def reactivate_user(
     # access after a reactivation.
     #
     # (No assignment here; the existing token_invalidated_at is kept.)
-    # Fix #25 (5th pr-agent): reactivate_user takes no request body, so
-    # body.reason was a NameError at runtime. Pass reason=None.
+    # pr-agent fix (10th pass): the previous Fix #25 patched _write_audit
+    # to pass reason=None, but the W3-20 chained-log call below still
+    # dereferenced the request-body parameter. reactivate_user takes
+    # no body parameter, so the original reference was a NameError at
+    # runtime. Pass reason=None on both audit-log writes.
     await _write_audit(
         db, current_user, AdminAction.USER_REACTIVATE,
         target_user_id=user_uuid,
@@ -742,7 +763,7 @@ async def reactivate_user(
         entity_type="user",
         entity_id=str(user_uuid),
         old_values={"is_active": False},
-        new_values={"is_active": True, "reason": body.reason},
+        new_values={"is_active": True, "reason": None},
         ip_address=_client_ip(request),
         user_agent=request.headers.get("user-agent"),
     )
@@ -781,21 +802,9 @@ async def get_user_usage(
     if not user:
         raise HTTPException(404, "User not found")
 
-    sub = user.subscription
-    tier = sub.tier if sub else SubscriptionTier.TRIAL
-
-    from app.models.feature_limits import get_tier_limits
     limits = get_tier_limits(tier)
 
     monthly_assessments = sub.monthly_assessments_used if sub else 0
-    monthly_documents = sub.monthly_documents_generated if sub else 0
-    monthly_chat = sub.monthly_chat_messages_used if sub else 0
-
-    lifetime_assessments = await db.scalar(
-        select(func.count(Assessment.id)).where(Assessment.created_by == user_uuid)
-    )
-    # GeneratedDocument has no created_by; count via Assessment join
-    from app.models.generated_document import GeneratedDocument
     lifetime_documents = await db.scalar(
         select(func.count(GeneratedDocument.id))
         .join(Assessment, Assessment.id == GeneratedDocument.assessment_id)
@@ -853,7 +862,6 @@ async def billing_summary(
         if st:
             users_by_status[st.value] = count or 0
 
-    mrr = 0
     settings = get_settings()
     mrr = 0
     for tier_value, count in users_by_tier.items():
@@ -975,27 +983,30 @@ async def list_audit_log(
     # - admin_email / target_user_email: only returned to super-admins.
     #   Non-super admins see the user's UUID but not the email address,
     #   which avoids mass email enumeration by a compromised admin.
-    masked_ip = _mask_ip(e.ip_address)
-    redacted_ua = _redact_user_agent(e.user_agent)
-    if current_user.is_super_admin:
-        admin_email = email_map.get(e.admin_id)
-        target_email = email_map.get(e.target_user_id) if e.target_user_id else None
-    else:
-        admin_email = None
-        target_email = None
-
+    #
+    # pr-agent fix: previously these assignments were hoisted above the
+    # list comprehension with `e` referenced outside its scope (NameError
+    # at runtime), AND because the assignments ran once outside the loop,
+    # every returned entry would share the last entry's ip_address /
+    # user_agent. Moving them inside the comprehension gives each entry
+    # its own masked values.
+    is_super_admin = current_user.is_super_admin
     return AdminAuditLogResponse(
         entries=[
             AdminAuditLogEntry(
                 id=str(e.id),
                 admin_id=str(e.admin_id),
-                admin_email=admin_email,
+                admin_email=email_map.get(e.admin_id) if is_super_admin else None,
                 target_user_id=str(e.target_user_id) if e.target_user_id else None,
-                target_user_email=target_email,
+                target_user_email=(
+                    email_map.get(e.target_user_id)
+                    if is_super_admin and e.target_user_id
+                    else None
+                ),
                 action=e.action,
                 details=_redact(e.details),
-                ip_address=masked_ip,
-                user_agent=redacted_ua,
+                ip_address=_mask_ip(e.ip_address),
+                user_agent=_redact_user_agent(e.user_agent),
                 created_at=e.created_at,
             )
             for e in entries
@@ -1021,10 +1032,13 @@ def _mask_ip(ip: Optional[str]) -> Optional[str]:
         # 203.0.113.55 -> 203.0.113.0
         parts = ip.split(".")
         return ".".join(parts[:3]) + ".0"
-    # IPv6: zero out the last 80 bits -> keep only the /48 prefix
+    # IPv6: zero out the last 80 bits -> keep only the /48 prefix.
+    # pr-agent fix (10th pass): the previous version appended ":0:0:0:0:0:0"
+    # (6 zero hextets) after the first 3, producing 9 hextets total — an
+    # invalid IPv6 address. A valid IPv6 has exactly 8 hextets.
     parts = ip.split(":")
     if len(parts) >= 3:
-        return ":".join(parts[:3]) + ":0:0:0:0:0:0"
+        return ":".join(parts[:3]) + ":0:0:0:0:0"
     return ip  # too short to mask, return as-is
 
 

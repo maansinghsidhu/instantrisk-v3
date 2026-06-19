@@ -141,12 +141,20 @@ class User(Base):
     )
     last_login = Column(DateTime(timezone=True), nullable=True)
     # If set, all JWTs with iat < this value are rejected. The deactivation
-    # flow sets this; the reactivation flow clears it. Checked in
-    # `app.core.security.get_current_user`.
+    # flow sets this; the reactivation flow DELIBERATELY DOES NOT CLEAR it.
+    # This is a monotonic high-water-mark: once a token has been invalidated
+    # (e.g. because the user was deactivated), it stays invalid even if the
+    # user is reactivated. The user must obtain a fresh JWT (by logging in
+    # again) to receive a new iat. This prevents an attacker who captured
+    # a JWT during the deactivated window from regaining access after a
+    # reactivation. Checked in `app.core.security.get_current_user`.
     token_invalidated_at = Column(
         DateTime(timezone=True),
         nullable=True,
-        comment="All JWTs issued before this timestamp are invalid.",
+        comment=(
+            "Monotonic high-water-mark. JWTs with iat < this are rejected. "
+            "Set on deactivation; never cleared on reactivation."
+        ),
     )
     commission_rate = Column(
         Float, nullable=True, comment="Default commission rate % for broker"
