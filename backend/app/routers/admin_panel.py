@@ -827,7 +827,7 @@ async def get_user_usage(
         subscription_tier=tier.value,
         monthly_assessments_used=monthly_assessments,
         monthly_documents_generated=monthly_documents,
-        monthly_chat_messages_used=monthly_chat,
+        monthly_chat_messages_used=monthly_chat_messages,
         monthly_assessments_limit=limits.get("monthly_assessments", 0),
         monthly_documents_limit=limits.get("monthly_documents", 0),
         monthly_chat_messages_limit=limits.get("monthly_chat_messages", 0),
