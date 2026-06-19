@@ -116,7 +116,13 @@ class AppRouter {
       final isPublicRoute = _isPublicRoute(location) || _isPublicRoute(path);
 
       if (!isLoggedIn && !isPublicRoute) {
-        return '/welcome';
+        // Preserve the originally requested path so the login screen can
+        // redirect back to it after the user authenticates. Without this,
+        // /admin (and every other protected route) silently drops the user
+        // on /welcome after login instead of returning them to where they
+        // were trying to go. URL-encoded so paths with query strings /
+        // fragments survive the round-trip.
+        return '/welcome?next=${Uri.encodeComponent(path)}';
       }
 
       if (isLoggedIn && (location == '/welcome' || location == '/login' || location == '/register')) {

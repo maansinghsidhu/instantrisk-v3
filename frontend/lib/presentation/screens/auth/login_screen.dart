@@ -106,9 +106,14 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result['success'] == true) {
         // Pre-fetch documents data in background for instant loading
         documentsPrefetchService.prefetch();
-
         if (mounted) {
-          context.go('/home');
+          // If the router sent us here with a ?next= parameter (typically
+          // because the user tried to reach a protected route like /admin
+          // while signed out), respect it — otherwise the deep link is lost
+          // and the user lands on /home instead of where they were trying
+          // to go. Falls back to /home on direct visits to /welcome.
+          final next = GoRouterState.of(context).uri.queryParameters['next'];
+          context.go(_safeRedirectTarget(next));
         }
       } else if (result['requires_2fa'] == true) {
         // 2FA is required - redirect to 2FA verification screen
@@ -463,4 +468,16 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+}
+
+/// Validates a post-login redirect target. Only accepts relative paths
+/// that start with '/'. Rejects anything else (absolute URLs, protocol-
+/// relative paths, javascript:, data:, etc.) so a crafted deep link
+/// cannot bounce the user to an external site.
+String _safeRedirectTarget(String? raw) {
+  if (raw == null || raw.isEmpty) return '/home';
+  final decoded = Uri.decodeComponent(raw);
+  if (!decoded.startsWith('/')) return '/home';
+  if (decoded.startsWith('//')) return '/home';
+  return decoded;
 }
