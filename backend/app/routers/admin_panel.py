@@ -802,9 +802,12 @@ async def get_user_usage(
     if not user:
         raise HTTPException(404, "User not found")
 
+    sub = user.subscription
+    tier = sub.tier if sub else SubscriptionTier.TRIAL
     limits = get_tier_limits(tier)
-
-    monthly_assessments = sub.monthly_assessments_used if sub else 0
+    lifetime_assessments = await db.scalar(
+        select(func.count(Assessment.id)).where(Assessment.created_by == user_uuid)
+    )
     lifetime_documents = await db.scalar(
         select(func.count(GeneratedDocument.id))
         .join(Assessment, Assessment.id == GeneratedDocument.assessment_id)
@@ -813,6 +816,10 @@ async def get_user_usage(
     lifetime_chat = await db.scalar(
         select(func.count(ChatMessage.id)).where(ChatMessage.user_id == user_uuid)
     )
+
+    monthly_assessments = sub.monthly_assessments_used if sub else 0
+    monthly_documents = sub.monthly_documents_generated if sub else 0
+    monthly_chat_messages = sub.monthly_chat_messages_used if sub else 0
 
     return AdminUserUsage(
         user_id=user_id,
