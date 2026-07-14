@@ -29,13 +29,14 @@ class WelcomeScreen extends StatelessWidget {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryDark,
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(
-                          Icons.shield_outlined,
-                          color: Colors.white,
-                          size: 22,
+                        child: Image.asset(
+                          'assets/images/logo-icon.png',
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.contain,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -70,10 +71,10 @@ class WelcomeScreen extends StatelessWidget {
               // Center content
               Column(
                 children: [
-                  // Main logo icon
+                  // Main logo (the proper v2-platform colorful shielded logo)
                   Container(
-                    width: 120,
-                    height: 120,
+                    width: 200,
+                    height: 200,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(28),
