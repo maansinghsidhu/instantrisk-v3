@@ -48,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   '1. Acceptance of Terms\n\n'
                   'By accessing and using InstantRisk, you agree to be bound by these Terms of Service and all applicable laws and regulations.\n\n'
                   '2. Use of Service\n\n'
-                  'InstantRisk provides insurance underwriting assessment tools powered by the InstantRisk Engine. You agree to use the service only for lawful purposes and in accordance with these terms.\n\n'
+                  'InstantRisk provides AI-powered insurance underwriting assessment tools. You agree to use the service only for lawful purposes and in accordance with these terms.\n\n'
                   '3. Data and Privacy\n\n'
                   'Your use of InstantRisk is also governed by our Privacy Policy. You consent to the collection and use of information as described therein.\n\n'
                   '4. Intellectual Property\n\n'
@@ -106,14 +106,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result['success'] == true) {
         // Pre-fetch documents data in background for instant loading
         documentsPrefetchService.prefetch();
+
         if (mounted) {
-          // If the router sent us here with a ?next= parameter (typically
-          // because the user tried to reach a protected route like /admin
-          // while signed out), respect it — otherwise the deep link is lost
-          // and the user lands on /home instead of where they were trying
-          // to go. Falls back to /home on direct visits to /welcome.
-          final next = GoRouterState.of(context).uri.queryParameters['next'];
-          context.go(_safeRedirectTarget(next));
+          context.go('/home');
         }
       } else if (result['requires_2fa'] == true) {
         // 2FA is required - redirect to 2FA verification screen
@@ -146,20 +141,13 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final bg = AppTheme.bg(context);
-    final text1 = AppTheme.text1(context);
-    final text2 = AppTheme.text2(context);
-    final hint = AppTheme.textH(context);
-    final surf = AppTheme.surfaceOf(context);
-    final bord = AppTheme.borderOf(context);
-
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: text1),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
           onPressed: () => context.go('/welcome'),
         ),
       ),
@@ -171,46 +159,68 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Brand logo
-                Center(
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF6B00CC).withOpacity(0.2),
-                          blurRadius: 20,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Image.asset('assets/images/logo-icon.png', fit: BoxFit.contain),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 // Header
                 Text(
                   l10n.welcomeBack,
-                  style: TextStyle(
-                    fontSize: 28,
+                  style: const TextStyle(
+                    fontSize: 32,
                     fontWeight: FontWeight.w700,
-                    color: text1,
+                    color: AppTheme.textPrimary,
                     fontFamily: 'Inter',
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Text(
-                  'Sign in to continue',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: text2,
+                  '${l10n.login} - ${l10n.appName}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppTheme.textSecondary,
                     fontFamily: 'Inter',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Build/Deploy date and time
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryDark.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppTheme.primaryDark.withOpacity(0.15)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.rocket_launch_outlined,
+                        size: 18,
+                        color: AppTheme.primaryDark,
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Deployed: $_buildDate at $_buildTime',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimary,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
+                          Text(
+                            _buildVersion,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textSecondary,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -228,12 +238,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline, color: AppTheme.danger, size: 20),
+                        Icon(Icons.error_outline, color: AppTheme.danger, size: 20),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             _errorMessage!,
-                            style: const TextStyle(color: AppTheme.danger, fontSize: 14),
+                            style: TextStyle(color: AppTheme.danger, fontSize: 14),
                           ),
                         ),
                       ],
@@ -243,10 +253,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Email field
                 Text(
                   l10n.email,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: text1,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -254,20 +264,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   key: const Key('loginEmailField'),
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  style: TextStyle(color: text1),
                   decoration: InputDecoration(
                     hintText: l10n.email,
-                    hintStyle: TextStyle(color: hint),
-                    prefixIcon: Icon(Icons.email_outlined, color: hint),
+                    prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.textHint),
                     filled: true,
-                    fillColor: surf,
+                    fillColor: AppTheme.surface,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: bord),
+                      borderSide: const BorderSide(color: AppTheme.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: bord),
+                      borderSide: const BorderSide(color: AppTheme.border),
                     ),
                   ),
                   validator: (value) {
@@ -285,10 +293,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Password field
                 Text(
                   l10n.password,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: text1,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -298,29 +306,27 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: _obscurePassword,
                   textInputAction: TextInputAction.done,
                   onFieldSubmitted: (_) => _handleLogin(),
-                  style: TextStyle(color: text1),
                   decoration: InputDecoration(
                     hintText: l10n.password,
-                    hintStyle: TextStyle(color: hint),
-                    prefixIcon: Icon(Icons.lock_outlined, color: hint),
+                    prefixIcon: const Icon(Icons.lock_outlined, color: AppTheme.textHint),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: hint,
+                        color: AppTheme.textHint,
                       ),
                       onPressed: () {
                         setState(() => _obscurePassword = !_obscurePassword);
                       },
                     ),
                     filled: true,
-                    fillColor: surf,
+                    fillColor: AppTheme.surface,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: bord),
+                      borderSide: const BorderSide(color: AppTheme.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: bord),
+                      borderSide: const BorderSide(color: AppTheme.border),
                     ),
                   ),
                   validator: (value) {
@@ -392,18 +398,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       Text(
                         '${l10n.login} - ',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
-                          color: text2,
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                       GestureDetector(
                         onTap: () => _showTermsDialog(l10n.termsOfService),
-                        child: const Text(
-                          // termsOfService label handled by caller via l10n
-                          // This text is static; the actual l10n string used above
-                          'Terms of Service',
-                          style: TextStyle(
+                        child: Text(
+                          l10n.termsOfService,
+                          style: const TextStyle(
                             fontSize: 12,
                             color: AppTheme.primaryDark,
                             fontWeight: FontWeight.w600,
@@ -411,18 +415,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      Text(
+                      const Text(
                         ' & ',
                         style: TextStyle(
                           fontSize: 12,
-                          color: text2,
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                       GestureDetector(
                         onTap: () => _showTermsDialog(l10n.privacyPolicy),
-                        child: const Text(
-                          'Privacy Policy',
-                          style: TextStyle(
+                        child: Text(
+                          l10n.privacyPolicy,
+                          style: const TextStyle(
                             fontSize: 12,
                             color: AppTheme.primaryDark,
                             fontWeight: FontWeight.w600,
@@ -441,7 +445,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Text(
                       '${l10n.createAccount}? ',
-                      style: TextStyle(color: text2),
+                      style: const TextStyle(color: AppTheme.textSecondary),
                     ),
                     TextButton(
                       onPressed: () => context.go('/register'),
@@ -457,9 +461,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Logo at bottom
+                // Deployment date (bottom)
                 Center(
-                  child: Image.asset('assets/images/logo-icon.png', height: 32),
+                  child: Text(
+                    '$_buildVersion - $_buildDate $_buildTime',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textHint,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -468,16 +479,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-}
-
-/// Validates a post-login redirect target. Only accepts relative paths
-/// that start with '/'. Rejects anything else (absolute URLs, protocol-
-/// relative paths, javascript:, data:, etc.) so a crafted deep link
-/// cannot bounce the user to an external site.
-String _safeRedirectTarget(String? raw) {
-  if (raw == null || raw.isEmpty) return '/home';
-  final decoded = Uri.decodeComponent(raw);
-  if (!decoded.startsWith('/')) return '/home';
-  if (decoded.startsWith('//')) return '/home';
-  return decoded;
 }

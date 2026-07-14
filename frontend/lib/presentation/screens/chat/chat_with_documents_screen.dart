@@ -279,20 +279,20 @@ Let's get started!''',
     final isWideScreen = screenWidth > 800;
 
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        backgroundColor: AppTheme.surfaceOf(context),
+        backgroundColor: AppTheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
           onPressed: () => context.pop(),
         ),
-        title: Text(
+        title: const Text(
           'Chat with Documents',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
           ),
         ),
         centerTitle: true,
@@ -309,9 +309,9 @@ Let's get started!''',
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: _selectedAssessmentId,
-                  hint: Text(
+                  hint: const Text(
                     'Select Assessment',
-                    style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
+                    style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                   ),
                   icon: const Icon(Icons.arrow_drop_down, size: 20),
                   isDense: true,
@@ -377,8 +377,8 @@ Let's get started!''',
         Container(
           width: 320,
           decoration: BoxDecoration(
-            color: AppTheme.surfaceOf(context),
-            border: Border(right: BorderSide(color: AppTheme.borderOf(context))),
+            color: AppTheme.surface,
+            border: Border(right: BorderSide(color: AppTheme.border)),
           ),
           child: _buildDocumentsPanel(),
         ),
@@ -399,8 +399,8 @@ Let's get started!''',
           duration: const Duration(milliseconds: 300),
           height: _documents.isEmpty ? 120 : 180,
           decoration: BoxDecoration(
-            color: AppTheme.surfaceOf(context),
-            border: Border(bottom: BorderSide(color: AppTheme.borderOf(context))),
+            color: AppTheme.surface,
+            border: Border(bottom: BorderSide(color: AppTheme.border)),
           ),
           child: _buildDocumentsPanel(compact: true),
         ),
@@ -423,13 +423,13 @@ Let's get started!''',
             children: [
               const Icon(Icons.folder_outlined, color: AppTheme.primaryDark),
               const SizedBox(width: 8),
-              Expanded(
+              const Expanded(
                 child: Text(
                   'Documents',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.text1(context),
+                    color: AppTheme.textPrimary,
                   ),
                 ),
               ),
@@ -485,14 +485,14 @@ Let's get started!''',
                         Icon(
                           Icons.upload_file,
                           size: compact ? 32 : 48,
-                          color: AppTheme.textH(context),
+                          color: AppTheme.textHint,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Upload documents to analyze',
                           style: TextStyle(
                             fontSize: compact ? 12 : 14,
-                            color: AppTheme.text2(context),
+                            color: AppTheme.textSecondary,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -535,10 +535,10 @@ Let's get started!''',
       child: Container(
         padding: EdgeInsets.all(compact ? 10 : 12),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryDark.withOpacity(0.1) : AppTheme.bg(context),
+          color: isSelected ? AppTheme.primaryDark.withOpacity(0.1) : AppTheme.background,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppTheme.primaryDark : AppTheme.borderOf(context),
+            color: isSelected ? AppTheme.primaryDark : AppTheme.border,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -560,7 +560,7 @@ Let's get started!''',
                     style: TextStyle(
                       fontSize: compact ? 12 : 14,
                       fontWeight: FontWeight.w500,
-                      color: AppTheme.text1(context),
+                      color: AppTheme.textPrimary,
                     ),
                     maxLines: compact ? 1 : 2,
                     overflow: TextOverflow.ellipsis,
@@ -571,7 +571,7 @@ Let's get started!''',
                   child: Icon(
                     Icons.close,
                     size: compact ? 16 : 18,
-                    color: AppTheme.textH(context),
+                    color: AppTheme.textHint,
                   ),
                 ),
               ],
@@ -580,9 +580,9 @@ Let's get started!''',
               const SizedBox(height: 4),
               Text(
                 _formatFileSize(doc.size),
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
-                  color: AppTheme.text2(context),
+                  color: AppTheme.textSecondary,
                 ),
               ),
             ],
@@ -639,8 +639,8 @@ Let's get started!''',
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceOf(context),
-            border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
+            color: AppTheme.surface,
+            border: Border(top: BorderSide(color: AppTheme.border)),
           ),
           child: SafeArea(
             child: Row(
@@ -655,7 +655,7 @@ Let's get started!''',
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: AppTheme.bg(context),
+                      fillColor: AppTheme.background,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 12,
@@ -729,15 +729,15 @@ Let's get started!''',
                         ? AppTheme.danger.withOpacity(0.1)
                         : isSystem
                             ? AppTheme.warning.withOpacity(0.1)
-                            : AppTheme.surfaceOf(context),
+                            : AppTheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: isUser ? null : Border.all(color: AppTheme.borderOf(context)),
+                border: isUser ? null : Border.all(color: AppTheme.border),
               ),
               child: Text(
                 message.text,
                 style: TextStyle(
                   fontSize: 14,
-                  color: isUser ? Colors.white : AppTheme.text1(context),
+                  color: isUser ? Colors.white : AppTheme.textPrimary,
                   height: 1.4,
                 ),
               ),
@@ -769,9 +769,9 @@ Let's get started!''',
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceOf(context),
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderOf(context)),
+                border: Border.all(color: AppTheme.border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -792,9 +792,9 @@ Let's get started!''',
                           const SizedBox(width: 8),
                           Text(
                             _thinkingMessage,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
-                              color: AppTheme.text2(context),
+                              color: AppTheme.textSecondary,
                               fontStyle: FontStyle.italic,
                             ),
                           ),
@@ -804,9 +804,9 @@ Let's get started!''',
                   if (_streamingResponse.isNotEmpty)
                     Text(
                       _streamingResponse,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
-                        color: AppTheme.text1(context),
+                        color: AppTheme.textPrimary,
                         height: 1.4,
                       ),
                     ),

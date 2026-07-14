@@ -20,8 +20,6 @@ class _UserApprovalsScreenState extends State<UserApprovalsScreen>
   List<Map<String, dynamic>> _allUsers = [];
   bool _isLoading = true;
   String? _error;
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
 
   // Stats
   int _pendingCount = 0;
@@ -38,7 +36,6 @@ class _UserApprovalsScreenState extends State<UserApprovalsScreen>
   @override
   void dispose() {
     _tabController.dispose();
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -56,11 +53,8 @@ class _UserApprovalsScreenState extends State<UserApprovalsScreen>
         _pendingCount = _pendingUsers.length;
       }
 
-      // Load all users (with optional email search)
-      final searchParam = _searchQuery.trim().isNotEmpty
-          ? '?search=${Uri.encodeComponent(_searchQuery.trim())}'
-          : '';
-      final allResponse = await _authService.get('/admin/users$searchParam');
+      // Load all users
+      final allResponse = await _authService.get('/admin/users');
       if (allResponse.statusCode == 200) {
         _allUsers = List<Map<String, dynamic>>.from(jsonDecode(allResponse.body));
         _approvedCount = _allUsers.where((u) => u['approval_status'] == 'approved').length;
@@ -246,46 +240,6 @@ class _UserApprovalsScreenState extends State<UserApprovalsScreen>
     );
   }
 
-  Future<void> _deactivateUser(Map<String, dynamic> user) async {
-    final userId = user['id']?.toString() ?? '';
-    final email = user['email'] ?? 'this user';
-    if (userId.isEmpty) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Deactivate User'),
-        content: Text('Deactivate $email? They will no longer be able to log in.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Deactivate'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    try {
-      final response = await _authService.delete('/auth/users/$userId');
-      if (response.statusCode == 200) {
-        _showSnackBar('User $email deactivated', Colors.orange);
-        await _loadData();
-      } else {
-        final data = jsonDecode(response.body);
-        _showSnackBar(data['detail'] ?? 'Failed to deactivate user', Colors.red);
-      }
-    } catch (e) {
-      _showSnackBar('Error: $e', Colors.red);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -297,83 +251,44 @@ class _UserApprovalsScreenState extends State<UserApprovalsScreen>
             icon: const Icon(Icons.refresh),
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(kTextTabBarHeight + 56),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search by email...',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _searchQuery = '');
-                              _loadData();
-                            },
-                          )
-                        : null,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: true,
-                    isDense: true,
-                  ),
-                  onChanged: (v) {
-                    setState(() => _searchQuery = v);
-                    if (v.isEmpty || v.length >= 2) _loadData();
-                  },
-                  onSubmitted: (_) => _loadData(),
-                ),
-              ),
-              TabBar(
-                controller: _tabController,
-                tabs: [
-                  Tab(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('Pending'),
-                        if (_pendingCount > 0) ...[
-                          const SizedBox(width: 8),
-                          _buildBadge(_pendingCount, Colors.orange),
-                        ],
-                      ],
-                    ),
-                  ),
-                  Tab(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('Approved'),
-                        const SizedBox(width: 8),
-                        _buildBadge(_approvedCount, Colors.green),
-                      ],
-                    ),
-                  ),
-                  Tab(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('Rejected'),
-                        if (_rejectedCount > 0) ...[
-                          const SizedBox(width: 8),
-                          _buildBadge(_rejectedCount, Colors.red),
-                        ],
-                      ],
-                    ),
-                  ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Pending'),
+                  if (_pendingCount > 0) ...[
+                    const SizedBox(width: 8),
+                    _buildBadge(_pendingCount, Colors.orange),
+                  ],
                 ],
               ),
-            ],
-          ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Approved'),
+                  const SizedBox(width: 8),
+                  _buildBadge(_approvedCount, Colors.green),
+                ],
+              ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Rejected'),
+                  if (_rejectedCount > 0) ...[
+                    const SizedBox(width: 8),
+                    _buildBadge(_rejectedCount, Colors.red),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ),
       ),
       body: _isLoading
@@ -627,32 +542,9 @@ class _UserApprovalsScreenState extends State<UserApprovalsScreen>
             ),
           ],
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              user['approval_status'] == 'approved' ? Icons.check_circle : Icons.cancel,
-              color: statusColor,
-            ),
-            const SizedBox(width: 4),
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'deactivate') _deactivateUser(user);
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'deactivate',
-                  child: Row(
-                    children: [
-                      Icon(Icons.block, size: 18, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Deactivate', style: TextStyle(color: Colors.red)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
+        trailing: Icon(
+          user['approval_status'] == 'approved' ? Icons.check_circle : Icons.cancel,
+          color: statusColor,
         ),
         isThreeLine: true,
       ),

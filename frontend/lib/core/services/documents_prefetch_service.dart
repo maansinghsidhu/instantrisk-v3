@@ -42,67 +42,55 @@ class DocumentsPrefetchService {
     try {
       debugPrint('[DocumentsPrefetch] Starting prefetch...');
 
-      // Load recent generated documents (with longer timeout for slow backend)
-      try {
-        final docsResponse = await authService.get(
-          '/generated-documents/?page_size=10',
-          timeout: const Duration(seconds: 90),
-        );
-        if (docsResponse.statusCode == 200) {
-          final data = jsonDecode(docsResponse.body);
-          _recentDocuments = List<Map<String, dynamic>>.from(data['items'] ?? []);
-          debugPrint('[DocumentsPrefetch] Loaded ${_recentDocuments.length} recent documents');
-        }
-      } catch (e) {
-        debugPrint('[DocumentsPrefetch] Generated docs failed (non-fatal): $e');
+      // Load recent generated documents
+      final docsResponse = await authService.get('/generated-documents/?page_size=10');
+      if (docsResponse.statusCode == 200) {
+        final data = jsonDecode(docsResponse.body);
+        _recentDocuments = List<Map<String, dynamic>>.from(data['items'] ?? []);
+        debugPrint('[DocumentsPrefetch] Loaded ${_recentDocuments.length} recent documents');
       }
 
       // Load assessments
-      try {
-        final assessResponse = await authService.get(
-          '/assessments/?page_size=20',
-          timeout: const Duration(seconds: 90),
-        );
-        if (assessResponse.statusCode == 200) {
-          final data = jsonDecode(assessResponse.body);
-          _assessments = List<Map<String, dynamic>>.from(data['items'] ?? []);
+      final assessResponse = await authService.get('/assessments/?page_size=20');
+      if (assessResponse.statusCode == 200) {
+        final data = jsonDecode(assessResponse.body);
+        _assessments = List<Map<String, dynamic>>.from(data['items'] ?? []);
 
-          // Load document counts for each assessment (in parallel for speed)
-          await Future.wait(_assessments.map((assessment) async {
-            final assessmentId = assessment['id'];
-            try {
-              final uploadedRes =
-                  await authService.get('/assessments/$assessmentId/documents');
-              if (uploadedRes.statusCode == 200) {
-                final uploadedData = jsonDecode(uploadedRes.body);
-                assessment['uploaded_count'] =
-                    (uploadedData['items'] as List?)?.length ?? 0;
-                assessment['uploaded_docs'] = uploadedData['items'] ?? [];
-              }
-            } catch (_) {
-              assessment['uploaded_count'] = 0;
-              assessment['uploaded_docs'] = [];
+        // Load document counts for each assessment (in parallel for speed)
+        await Future.wait(_assessments.map((assessment) async {
+          final assessmentId = assessment['id'];
+          try {
+            // Load uploaded documents count
+            final uploadedRes =
+                await authService.get('/assessments/$assessmentId/documents');
+            if (uploadedRes.statusCode == 200) {
+              final uploadedData = jsonDecode(uploadedRes.body);
+              assessment['uploaded_count'] =
+                  (uploadedData['items'] as List?)?.length ?? 0;
+              assessment['uploaded_docs'] = uploadedData['items'] ?? [];
             }
+          } catch (_) {
+            assessment['uploaded_count'] = 0;
+            assessment['uploaded_docs'] = [];
+          }
 
-            try {
-              final generatedRes =
-                  await authService.get('/assessments/$assessmentId/generated');
-              if (generatedRes.statusCode == 200) {
-                final generatedData = jsonDecode(generatedRes.body);
-                assessment['generated_count'] =
-                    (generatedData['items'] as List?)?.length ?? 0;
-                assessment['generated_docs'] = generatedData['items'] ?? [];
-              }
-            } catch (_) {
-              assessment['generated_count'] = 0;
-              assessment['generated_docs'] = [];
+          try {
+            // Load generated documents count
+            final generatedRes =
+                await authService.get('/assessments/$assessmentId/generated');
+            if (generatedRes.statusCode == 200) {
+              final generatedData = jsonDecode(generatedRes.body);
+              assessment['generated_count'] =
+                  (generatedData['items'] as List?)?.length ?? 0;
+              assessment['generated_docs'] = generatedData['items'] ?? [];
             }
-          }));
+          } catch (_) {
+            assessment['generated_count'] = 0;
+            assessment['generated_docs'] = [];
+          }
+        }));
 
-          debugPrint('[DocumentsPrefetch] Loaded ${_assessments.length} assessments');
-        }
-      } catch (e) {
-        debugPrint('[DocumentsPrefetch] Assessments failed (non-fatal): $e');
+        debugPrint('[DocumentsPrefetch] Loaded ${_assessments.length} assessments');
       }
 
       _lastFetchTime = DateTime.now();

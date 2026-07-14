@@ -97,29 +97,23 @@ class SubscriptionService {
     }
   }
 
-  /// Load subscription from backend (with retry)
+  /// Load subscription from backend
   Future<void> loadSubscription() async {
     if (!_authService.isLoggedIn) return;
 
-    for (int attempt = 0; attempt < 3; attempt++) {
-      try {
-        final response = await _authService.get('/subscription');
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          _currentTier = SubscriptionTierExtension.fromString(data['tier']);
-          _status = data['status'] ?? 'pending';
-          _expiresAt = data['expires_at'] != null
-              ? DateTime.tryParse(data['expires_at'])
-              : null;
-          await _saveToCache();
-          return;
-        }
-      } catch (e) {
-        debugPrint('Error loading subscription (attempt ${attempt + 1}): $e');
-        if (attempt < 2) {
-          await Future.delayed(Duration(seconds: attempt + 1));
-        }
+    try {
+      final response = await _authService.get('/subscription');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _currentTier = SubscriptionTierExtension.fromString(data['tier']);
+        _status = data['status'] ?? 'pending';
+        _expiresAt = data['expires_at'] != null
+            ? DateTime.tryParse(data['expires_at'])
+            : null;
+        await _saveToCache();
       }
+    } catch (e) {
+      debugPrint('Error loading subscription: $e');
     }
   }
 

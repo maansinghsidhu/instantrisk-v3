@@ -4,7 +4,6 @@ import 'dart:convert';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../widgets/common/screen_header.dart';
 
 /// Analysis Mode Selection Screen
 /// Allows users to choose between Quick, Go/No-Go, and Deep analysis
@@ -166,26 +165,33 @@ class _AnalysisModeScreenState extends State<AnalysisModeScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
-      body: Column(
-        children: [
-          ScreenHeader(
-            title: l10n.analysisMode,
-            subtitle: 'Choose analysis depth',
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => context.pop(),
-            ),
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        backgroundColor: AppTheme.surface,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(
+          l10n.analysisMode,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textPrimary,
+            fontFamily: 'Inter',
           ),
-          Expanded(
-            child: _isLoading
+        ),
+        centerTitle: true,
+      ),
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
                 // Header info
                 Container(
-                  padding: EdgeInsets.all(20),
-                  color: AppTheme.surfaceOf(context),
+                  padding: const EdgeInsets.all(20),
+                  color: AppTheme.surface,
                   child: Row(
                     children: [
                       Container(
@@ -207,18 +213,18 @@ class _AnalysisModeScreenState extends State<AnalysisModeScreen> {
                           children: [
                             Text(
                               '${widget.documentCount} document${widget.documentCount > 1 ? 's' : ''} to analyze',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.text1(context),
+                                color: AppTheme.textPrimary,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               '${(widget.totalChars / 1000).toStringAsFixed(1)}k characters',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
-                                color: AppTheme.text2(context),
+                                color: AppTheme.textSecondary,
                               ),
                             ),
                           ],
@@ -244,8 +250,8 @@ class _AnalysisModeScreenState extends State<AnalysisModeScreen> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceOf(context),
-                    border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
+                    color: AppTheme.surface,
+                    border: Border(top: BorderSide(color: AppTheme.border)),
                   ),
                   child: SafeArea(
                     child: SizedBox(
@@ -291,9 +297,6 @@ class _AnalysisModeScreenState extends State<AnalysisModeScreen> {
                 ),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -311,7 +314,7 @@ class _AnalysisModeScreenState extends State<AnalysisModeScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Material(
-        color: isSelected ? color.withOpacity(0.05) : AppTheme.surfaceOf(context),
+        color: isSelected ? color.withOpacity(0.05) : AppTheme.surface,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: () => setState(() => _selectedMode = modeId),
@@ -321,7 +324,7 @@ class _AnalysisModeScreenState extends State<AnalysisModeScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected ? color : AppTheme.borderOf(context),
+                color: isSelected ? color : AppTheme.border,
                 width: isSelected ? 2 : 1,
               ),
             ),
@@ -357,7 +360,7 @@ class _AnalysisModeScreenState extends State<AnalysisModeScreen> {
                                 style: TextStyle(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w700,
-                                  color: isSelected ? color : AppTheme.text1(context),
+                                  color: isSelected ? color : AppTheme.textPrimary,
                                   fontFamily: 'Inter',
                                 ),
                               ),
@@ -391,29 +394,29 @@ class _AnalysisModeScreenState extends State<AnalysisModeScreen> {
                               Icon(
                                 Icons.timer_outlined,
                                 size: 14,
-                                color: AppTheme.text2(context),
+                                color: AppTheme.textSecondary,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 _formatDuration(estimatedSeconds),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: AppTheme.text2(context),
+                                  color: AppTheme.textSecondary,
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Icon(
                                 Icons.smart_toy_outlined,
                                 size: 14,
-                                color: AppTheme.text2(context),
+                                color: AppTheme.textSecondary,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 '${mode['agents_count']} ${l10n.agents}',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 13,
-                                  color: AppTheme.text2(context),
+                                  color: AppTheme.textSecondary,
                                 ),
                               ),
                             ],
@@ -430,7 +433,7 @@ class _AnalysisModeScreenState extends State<AnalysisModeScreen> {
                         shape: BoxShape.circle,
                         color: isSelected ? color : Colors.transparent,
                         border: Border.all(
-                          color: isSelected ? color : AppTheme.borderOf(context),
+                          color: isSelected ? color : AppTheme.border,
                           width: 2,
                         ),
                       ),
@@ -446,9 +449,9 @@ class _AnalysisModeScreenState extends State<AnalysisModeScreen> {
                 // Description
                 Text(
                   modeInfo['description'] as String? ?? '',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                     height: 1.4,
                   ),
                 ),
@@ -462,10 +465,10 @@ class _AnalysisModeScreenState extends State<AnalysisModeScreen> {
                   children: agents.map((agent) => Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isSelected ? color.withOpacity(0.1) : AppTheme.bg(context),
+                      color: isSelected ? color.withOpacity(0.1) : AppTheme.background,
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: isSelected ? color.withOpacity(0.3) : AppTheme.borderOf(context),
+                        color: isSelected ? color.withOpacity(0.3) : AppTheme.border,
                       ),
                     ),
                     child: Row(
@@ -474,7 +477,7 @@ class _AnalysisModeScreenState extends State<AnalysisModeScreen> {
                         Icon(
                           Icons.psychology_outlined,
                           size: 14,
-                          color: isSelected ? color : AppTheme.text2(context),
+                          color: isSelected ? color : AppTheme.textSecondary,
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -482,7 +485,7 @@ class _AnalysisModeScreenState extends State<AnalysisModeScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: isSelected ? color : AppTheme.text2(context),
+                            color: isSelected ? color : AppTheme.textSecondary,
                           ),
                         ),
                       ],

@@ -337,18 +337,6 @@ class AuthService {
     await _storage.delete(key: _refreshTokenKey);
   }
 
-  /// Set broker token after broker portal login
-  /// Uses the same token storage as regular login so all API calls work
-  Future<void> setBrokerToken(String accessToken, String refreshToken, Map<String, dynamic> user) async {
-    _token = accessToken;
-    _user = user;
-    await _storage.write(key: _tokenKey, value: _token);
-    await _storage.write(key: _userKey, value: jsonEncode(_user));
-    if (refreshToken.isNotEmpty) {
-      await _storeRefreshToken(refreshToken);
-    }
-  }
-
   /// Get authenticated headers for API requests
   Map<String, String> get authHeaders => {
     "Content-Type": "application/json",
@@ -433,11 +421,11 @@ class AuthService {
   }
 
   /// Make authenticated GET request
-  Future<http.Response> get(String endpoint, {bool isRetry = false, Duration timeout = const Duration(seconds: 60)}) async {
+  Future<http.Response> get(String endpoint, {bool isRetry = false}) async {
     final response = await http.get(
       Uri.parse("$_baseUrl$endpoint"),
       headers: authHeaders,
-    ).timeout(timeout);
+    ).timeout(const Duration(seconds: 30));
     return _handleResponse(response, endpoint: endpoint, isRetry: isRetry);
   }
 
@@ -603,16 +591,6 @@ class AuthService {
   /// Make authenticated PUT request
   Future<http.Response> put(String endpoint, {Map<String, dynamic>? body}) async {
     final response = await http.put(
-      Uri.parse("$_baseUrl$endpoint"),
-      headers: authHeaders,
-      body: body != null ? jsonEncode(body) : null,
-    ).timeout(const Duration(seconds: 30));
-    return _handleResponse(response);
-  }
-
-  /// Make authenticated PATCH request
-  Future<http.Response> patch(String endpoint, {Map<String, dynamic>? body}) async {
-    final response = await http.patch(
       Uri.parse("$_baseUrl$endpoint"),
       headers: authHeaders,
       body: body != null ? jsonEncode(body) : null,

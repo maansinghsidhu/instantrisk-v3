@@ -6,8 +6,6 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
-// God Mode: Similar risks panel shown after analysis
-import '../../widgets/analysis/similar_risks_panel.dart';
 
 /// Analysis Progress Screen
 /// Shows real-time progress of AI analysis with agent steps
@@ -71,33 +69,6 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
       if (_startTime != null && !_isComplete && !_hasError) {
         setState(() {
           _elapsedSeconds = DateTime.now().difference(_startTime!).inSeconds;
-          // Smooth progress simulation — never appears stuck
-          // Progress advances asymptotically toward 95% over time
-          // Real completion (via polling/WebSocket) will jump to 100%
-          if (_progressPercent < 95) {
-            final expectedSeconds = widget.mode == 'quick' ? 30.0 :
-                                    widget.mode == 'go_no_go' ? 60.0 : 120.0;
-            final simulated = 5 + (90 * (1 - 1 / (1 + _elapsedSeconds / expectedSeconds)));
-            if (simulated > _progressPercent) {
-              _progressPercent = simulated;
-            }
-          }
-          // Update agent description based on simulated progress
-          if (_currentAgent.isEmpty || _currentAgent == 'Document Classifier') {
-            if (_progressPercent > 70) {
-              _currentAgent = 'Underwriter';
-              _currentDescription = 'Making underwriting decision...';
-            } else if (_progressPercent > 50) {
-              _currentAgent = 'Risk Analyst';
-              _currentDescription = 'Analyzing risk factors...';
-            } else if (_progressPercent > 30) {
-              _currentAgent = 'Data Extractor';
-              _currentDescription = 'Extracting data from documents...';
-            } else if (_progressPercent > 10) {
-              _currentAgent = 'Document Classifier';
-              _currentDescription = 'Classifying documents...';
-            }
-          }
         });
       }
     });
@@ -171,7 +142,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
             _result = {
               'decision': analysis['decision'] ??
                          agentResults['underwriter']?['decision'] ??
-                         'NO_GO',
+                         'REFER',
               'confidence': analysis['confidence_score'] ?? 0.7,
               'agent_results': agentResults,
             };
@@ -227,32 +198,20 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
           }
         },
         onError: (error) {
-          // WebSocket error - polling already running as backup
+          // WebSocket error - continue polling instead
+          _startPolling();
         },
         onDone: () {
-          // WebSocket closed - polling already running as backup
+          // WebSocket closed
+          if (!_isComplete && !_hasError) {
+            _startPolling();
+          }
         },
       );
-      // Start backup polling alongside WebSocket
-      _startBackupPolling();
     } catch (e) {
       // Fall back to polling if WebSocket fails
       _startPolling();
     }
-  }
-
-  Timer? _backupPollTimer;
-  DateTime? _stuckAt95Since;
-
-  void _startBackupPolling() {
-    // Poll every 3 seconds regardless of progress — catches stuck WebSockets
-    _backupPollTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
-      if (_isComplete || _hasError) {
-        _backupPollTimer?.cancel();
-        return;
-      }
-      await _pollProgress();
-    });
   }
 
   // Additional state for detailed sub-steps
@@ -313,7 +272,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
           _isComplete = true;
           _progressPercent = 100;
           _result = {
-            'decision': message['decision'] ?? 'NO_GO',
+            'decision': message['decision'] ?? 'REFER',
             'confidence': message['confidence'] ?? 0.7,
             'risk_score': message['risk_score'] ?? 50,
             'processing_time': message['processing_time'] ?? _elapsedSeconds,
@@ -331,17 +290,15 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
   Timer? _pollTimer;
 
   void _startPolling() {
-    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+    _pollTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
       await _pollProgress();
     });
   }
 
   Future<void> _pollProgress() async {
-    // Use actual assessment ID if available, otherwise try upload session ID
-    final pollId = _assessmentId ?? widget.assessmentId;
     try {
       final response = await authService.get(
-        '/assessments/$pollId/status',
+        '/assessments/${widget.assessmentId}/status',
       );
 
       if (response.statusCode == 200) {
@@ -349,7 +306,6 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
 
         if (data['status'] == 'completed') {
           _pollTimer?.cancel();
-          _backupPollTimer?.cancel();
           setState(() {
             _isComplete = true;
             _progressPercent = 100;
@@ -358,30 +314,20 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
           _elapsedTimer?.cancel();
         } else if (data['status'] == 'failed') {
           _pollTimer?.cancel();
-          _backupPollTimer?.cancel();
           _handleError(data['error'] ?? 'Analysis failed');
         } else {
-          // Update progress based on status — smoothly advance
+          // Update progress based on status
           setState(() {
             _currentAgent = data['current_agent'] ?? _currentAgent;
             _currentDescription = data['description'] ?? _currentDescription;
             if (data['progress'] != null) {
-              final newProgress = (data['progress'] as num).toDouble();
-              // Only advance, never go backwards
-              if (newProgress > _progressPercent) {
-                _progressPercent = newProgress;
-              }
-            }
-            // If in_progress and we have no progress data, ensure we show movement
-            if (_progressPercent < 10) {
-              _progressPercent = 10;
-              _currentDescription = 'Processing documents...';
+              _progressPercent = (data['progress'] as num).toDouble();
             }
           });
         }
       }
     } catch (e) {
-      // Ignore polling errors — will retry on next interval
+      // Ignore polling errors
     }
   }
 
@@ -392,7 +338,6 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
     });
     _elapsedTimer?.cancel();
     _pollTimer?.cancel();
-    _backupPollTimer?.cancel();
   }
 
   @override
@@ -402,7 +347,6 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
     _channel?.sink.close();
     _elapsedTimer?.cancel();
     _pollTimer?.cancel();
-    _backupPollTimer?.cancel();
     super.dispose();
   }
 
@@ -460,12 +404,12 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
         }
       },
       child: Scaffold(
-        backgroundColor: AppTheme.bg(context),
+        backgroundColor: AppTheme.background,
         appBar: AppBar(
-          backgroundColor: AppTheme.surfaceOf(context),
+          backgroundColor: AppTheme.surface,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.close, color: AppTheme.text1(context)),
+            icon: const Icon(Icons.close, color: AppTheme.textPrimary),
             onPressed: _handleBack,
           ),
           title: Text(
@@ -493,8 +437,8 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
       children: [
         // Progress header
         Container(
-          padding: EdgeInsets.all(24),
-          color: AppTheme.surfaceOf(context),
+          padding: const EdgeInsets.all(24),
+          color: AppTheme.surface,
           child: Column(
             children: [
               // Animated progress indicator
@@ -511,7 +455,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                       child: CircularProgressIndicator(
                         value: 1,
                         strokeWidth: 8,
-                        color: AppTheme.borderOf(context),
+                        color: AppTheme.border,
                       ),
                     ),
                     // Progress circle
@@ -541,9 +485,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                         const SizedBox(height: 2),
                         Text(
                           _formatTime(_elapsedSeconds),
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
-                            color: AppTheme.text2(context),
+                            color: AppTheme.textSecondary,
                             fontFamily: 'Courier',
                           ),
                         ),
@@ -601,9 +545,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                                 if (_documentName.isNotEmpty)
                                   Text(
                                     _documentName,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 12,
-                                      color: AppTheme.text2(context),
+                                      color: AppTheme.textSecondary,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -658,9 +602,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                                 Expanded(
                                   child: Text(
                                     _currentSubStepDesc,
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 11,
-                                      color: AppTheme.text2(context),
+                                      color: AppTheme.textSecondary,
                                     ),
                                     textAlign: TextAlign.right,
                                     maxLines: 1,
@@ -723,9 +667,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
               // Main description
               Text(
                 _currentDescription,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
-                  color: AppTheme.text2(context),
+                  color: AppTheme.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -776,9 +720,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceOf(context),
+                  color: AppTheme.surface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.borderOf(context)),
+                  border: Border.all(color: AppTheme.border),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -842,22 +786,22 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceOf(context),
-            border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
+            color: AppTheme.surface,
+            border: Border(top: BorderSide(color: AppTheme.border)),
           ),
           child: SafeArea(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.timer_outlined, size: 16, color: AppTheme.text2(context)),
+                Icon(Icons.timer_outlined, size: 16, color: AppTheme.textSecondary),
                 const SizedBox(width: 6),
                 Text(
                   _estimatedRemaining > 0
                       ? 'Estimated: ${_formatTime(_estimatedRemaining)} remaining'
                       : 'Processing...',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 13,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                   ),
                 ),
               ],
@@ -882,10 +826,10 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isCurrent ? modeColor.withOpacity(0.05) : AppTheme.surfaceOf(context),
+          color: isCurrent ? modeColor.withOpacity(0.05) : AppTheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isCurrent ? modeColor : AppTheme.borderOf(context),
+            color: isCurrent ? modeColor : AppTheme.border,
             width: isCurrent ? 2 : 1,
           ),
         ),
@@ -898,16 +842,16 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isCompleted
-                    ? Color(0xFF059669)
+                    ? const Color(0xFF059669)
                     : isCurrent
                         ? modeColor
-                        : AppTheme.bg(context),
+                        : AppTheme.background,
                 border: Border.all(
                   color: isCompleted
-                      ? Color(0xFF059669)
+                      ? const Color(0xFF059669)
                       : isCurrent
                           ? modeColor
-                          : AppTheme.borderOf(context),
+                          : AppTheme.border,
                   width: 2,
                 ),
               ),
@@ -924,10 +868,10 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                         )
                       : Text(
                           '${index + 1}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.text2(context),
+                            color: AppTheme.textSecondary,
                           ),
                         ),
             ),
@@ -943,7 +887,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: isPending ? AppTheme.text2(context) : AppTheme.text1(context),
+                      color: isPending ? AppTheme.textSecondary : AppTheme.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -951,7 +895,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                     agent['description'] as String,
                     style: TextStyle(
                       fontSize: 12,
-                      color: isPending ? AppTheme.textH(context) : AppTheme.text2(context),
+                      color: isPending ? AppTheme.textHint : AppTheme.textSecondary,
                     ),
                   ),
                 ],
@@ -978,11 +922,11 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
                 ),
               )
             else
-              Text(
+              const Text(
                 'Pending',
                 style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.textH(context),
+                  color: AppTheme.textHint,
                 ),
               ),
           ],
@@ -999,17 +943,17 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
         children: [
           Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
-              color: AppTheme.text2(context),
+              color: AppTheme.textSecondary,
             ),
           ),
           Text(
             value,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppTheme.text1(context),
+              color: AppTheme.textPrimary,
             ),
           ),
         ],
@@ -1048,7 +992,7 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
   }
 
   Widget _buildCompleteState(AppLocalizations l10n) {
-    final decision = _result?['decision'] ?? 'NO_GO';
+    final decision = _result?['decision'] ?? 'REFER';
     final confidence = (_result?['confidence'] ?? 0.5) * 100;
 
     Color decisionColor;
@@ -1067,9 +1011,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
         decisionText = 'Declined';
         break;
       default:
-        decisionColor = const Color(0xFFDC2626);
-        decisionIcon = Icons.cancel;
-        decisionText = 'Declined';
+        decisionColor = const Color(0xFFF59E0B);
+        decisionIcon = Icons.pending;
+        decisionText = 'Refer';
     }
 
     return Center(
@@ -1111,9 +1055,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
             // Confidence
             Text(
               'Confidence: ${confidence.toStringAsFixed(0)}%',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
-                color: AppTheme.text2(context),
+                color: AppTheme.textSecondary,
               ),
             ),
 
@@ -1122,21 +1066,13 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
             // Time taken
             Text(
               'Completed in ${_formatTime(_elapsedSeconds)}',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
-                color: AppTheme.textH(context),
+                color: AppTheme.textHint,
               ),
             ),
 
-            const SizedBox(height: 24),
-
-            // God Mode: Similar precedents (shown after analysis)
-            if (_assessmentId != null || widget.assessmentId.isNotEmpty)
-              SimilarRisksPanel(
-                assessmentId: _assessmentId ?? widget.assessmentId,
-              ),
-
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
             // View results button
             SizedBox(
@@ -1212,9 +1148,9 @@ class _AnalysisProgressScreenState extends State<AnalysisProgressScreen>
 
             Text(
               _errorMessage ?? 'An unexpected error occurred',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
-                color: AppTheme.text2(context),
+                color: AppTheme.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),

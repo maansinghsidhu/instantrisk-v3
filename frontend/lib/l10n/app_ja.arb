@@ -373,20 +373,5 @@
   "onboardingTitle3": "24時間保険AIアシスタント",
   "onboardingDesc3": "20GB以上のLloyd's市場知識で訓練されたAIから保険の質問に即座に回答を取得",
   "skip": "スキップ",
-  "getStartedNow": "始める",
-  "analysisCanContinueInBackground": "このウィンドウを閉じることができます。分析はバックグラウンドで続行されます。",
-  "clickCalculatePricing": "計算をクリックして、このリスクの技術的プレミアムを生成します。",
-  "discard": "破棄",
-  "discardChangesMessage": "未保存の変更があります。破棄しますか？",
-  "discardChangesQuestion": "変更を破棄しますか？",
-  "expandLiveResults": "ライブ結果を表示",
-  "failedToSaveLanguage": "言語設定の保存に失敗しました。もう一度お試しください。",
-  "languageChangedTo": "言語が{languageName}に変更されました",
-  "minimizeLiveResults": "最小化",
-  "noAiAnalysisYet": "まだAI分析はありません。\n分析をクリックしてリスクの洞察を生成してください。",
-  "pricingNotAvailableDeclined": "拒否されたリスクの価格設定はできません。",
-  "rtlLabel": "RTL",
-  "saveLanguagePreference": "言語設定を保存",
-  "undo": "元に戻す",
-  "unsavedChangesPressSave": "未保存の変更があります。新しい言語を適用するには保存を押してください。"
+  "getStartedNow": "始める"
 }

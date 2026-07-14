@@ -274,20 +274,20 @@ class _SanctionsScreeningProgressScreenState
     final levelColor = _getLevelColor();
 
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        backgroundColor: AppTheme.surfaceOf(context),
+        backgroundColor: AppTheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppTheme.text1(context)),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
           onPressed: () => context.pop(),
         ),
         title: Text(
           _getLevelName(),
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
           ),
         ),
         centerTitle: true,
@@ -305,8 +305,8 @@ class _SanctionsScreeningProgressScreenState
       children: [
         // Progress header
         Container(
-          padding: EdgeInsets.all(24),
-          color: AppTheme.surfaceOf(context),
+          padding: const EdgeInsets.all(24),
+          color: AppTheme.surface,
           child: Column(
             children: [
               // Animated progress indicator
@@ -323,7 +323,7 @@ class _SanctionsScreeningProgressScreenState
                       child: CircularProgressIndicator(
                         value: 1,
                         strokeWidth: 8,
-                        color: AppTheme.borderOf(context),
+                        color: AppTheme.border,
                       ),
                     ),
                     // Progress circle
@@ -352,9 +352,9 @@ class _SanctionsScreeningProgressScreenState
                         const SizedBox(height: 2),
                         Text(
                           _formatTime(_elapsedSeconds),
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
-                            color: AppTheme.text2(context),
+                            color: AppTheme.textSecondary,
                             fontFamily: 'Courier',
                           ),
                         ),
@@ -455,10 +455,10 @@ class _SanctionsScreeningProgressScreenState
               if (_liveFindings.isNotEmpty) ...[
                 Text(
                   AppLocalizations.of(context).liveFindings,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textH(context),
+                    color: AppTheme.textHint,
                     letterSpacing: 1,
                   ),
                 ),
@@ -469,10 +469,10 @@ class _SanctionsScreeningProgressScreenState
 
               Text(
                 AppLocalizations.of(context).checks,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.textH(context),
+                  color: AppTheme.textHint,
                   letterSpacing: 1,
                 ),
               ),
@@ -555,19 +555,19 @@ class _SanctionsScreeningProgressScreenState
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11,
-                      color: AppTheme.text2(context),
+                      color: AppTheme.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     value,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.text1(context),
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                 ],
@@ -601,7 +601,7 @@ class _SanctionsScreeningProgressScreenState
       final l10n = AppLocalizations.of(context);
       String statusText = isPending ? l10n.pending : isCurrent ? l10n.checking : l10n.done;
       Color statusColor = isPending
-          ? AppTheme.textH(context)
+          ? AppTheme.textHint
           : isCurrent
               ? levelColor
               : const Color(0xFF059669);
@@ -622,10 +622,10 @@ class _SanctionsScreeningProgressScreenState
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isCurrent ? levelColor.withOpacity(0.05) : AppTheme.surfaceOf(context),
+          color: isCurrent ? levelColor.withOpacity(0.05) : AppTheme.surface,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isCurrent ? levelColor : AppTheme.borderOf(context),
+            color: isCurrent ? levelColor : AppTheme.border,
             width: isCurrent ? 2 : 1,
           ),
         ),
@@ -641,9 +641,9 @@ class _SanctionsScreeningProgressScreenState
                     ? statusColor.withOpacity(0.2)
                     : isCurrent
                         ? levelColor.withOpacity(0.2)
-                        : AppTheme.bg(context),
+                        : AppTheme.background,
                 border: Border.all(
-                  color: isCompleted ? statusColor : isCurrent ? levelColor : AppTheme.borderOf(context),
+                  color: isCompleted ? statusColor : isCurrent ? levelColor : AppTheme.border,
                   width: 2,
                 ),
               ),
@@ -669,7 +669,7 @@ class _SanctionsScreeningProgressScreenState
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: isPending ? AppTheme.text2(context) : AppTheme.text1(context),
+                  color: isPending ? AppTheme.textSecondary : AppTheme.textPrimary,
                 ),
               ),
             ),
@@ -802,9 +802,9 @@ class _SanctionsScreeningProgressScreenState
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Text(
                     statusSubtitle,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
-                      color: AppTheme.text2(context),
+                      color: AppTheme.textSecondary,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -812,9 +812,9 @@ class _SanctionsScreeningProgressScreenState
               else
                 Text(
                   'Completed in ${_formatTime(_elapsedSeconds)}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                   ),
                 ),
             ],
@@ -824,8 +824,8 @@ class _SanctionsScreeningProgressScreenState
         // Stats - only show if we actually did screening (not for no_entities)
         if (_overallStatus != 'no_entities')
           Container(
-            padding: EdgeInsets.all(20),
-            color: AppTheme.surfaceOf(context),
+            padding: const EdgeInsets.all(20),
+            color: AppTheme.surface,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -846,32 +846,32 @@ class _SanctionsScreeningProgressScreenState
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceOf(context),
+                    color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.borderOf(context)),
+                    border: Border.all(color: AppTheme.border),
                   ),
                   child: Column(
                     children: [
                       Icon(
                         Icons.document_scanner_outlined,
                         size: 48,
-                        color: AppTheme.textH(context),
+                        color: AppTheme.textHint,
                       ),
                       const SizedBox(height: 16),
-                      Text(
+                      const Text(
                         'What does this mean?',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
+                      const Text(
                         'The document analysis did not identify any person names, company names, or other entities that could be screened against sanctions lists.\n\nThis could happen if:\n- The document is empty or contains only numbers/codes\n- The text could not be extracted properly\n- The document type does not contain named entities',
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                           height: 1.5,
                         ),
                         textAlign: TextAlign.center,
@@ -882,10 +882,10 @@ class _SanctionsScreeningProgressScreenState
               ] else if (_liveFindings.isNotEmpty) ...[
                 Text(
                   l10n.screeningResults,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textH(context),
+                    color: AppTheme.textHint,
                     letterSpacing: 1,
                   ),
                 ),
@@ -900,8 +900,8 @@ class _SanctionsScreeningProgressScreenState
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceOf(context),
-            border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
+            color: AppTheme.surface,
+            border: Border(top: BorderSide(color: AppTheme.border)),
           ),
           child: SafeArea(
             child: SizedBox(
@@ -939,18 +939,18 @@ class _SanctionsScreeningProgressScreenState
       children: [
         Text(
           value,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.w700,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
-            color: AppTheme.text2(context),
+            color: AppTheme.textSecondary,
           ),
         ),
       ],

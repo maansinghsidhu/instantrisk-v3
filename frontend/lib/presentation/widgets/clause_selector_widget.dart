@@ -14,7 +14,7 @@ import '../../core/services/auth_service.dart';
 /// - Virtual scrolling for large lists
 /// - Clause detail modal with full text
 class ClauseSelectorWidget extends StatefulWidget {
-  final String? assessmentId;
+  final int? assessmentId;
   final Set<String> selectedClauseIds;
   final Function(Set<String>) onSelectionChanged;
   final String? lineOfBusiness;
@@ -294,10 +294,10 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
                         children: [
                           Text(
                             name,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: AppTheme.text1(context),
+                              color: AppTheme.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -325,12 +325,12 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'CLAUSE TEXT',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                           letterSpacing: 1,
                         ),
                       ),
@@ -338,15 +338,15 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: AppTheme.bg(context),
+                          color: AppTheme.background,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.borderOf(context)),
+                          border: Border.all(color: AppTheme.border),
                         ),
                         child: SelectableText(
                           text,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
-                            color: AppTheme.text1(context),
+                            color: AppTheme.textPrimary,
                             height: 1.6,
                           ),
                         ),
@@ -363,7 +363,7 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
+                  border: Border(top: BorderSide(color: AppTheme.border)),
                 ),
                 child: Row(
                   children: [
@@ -410,7 +410,7 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: (color ?? AppTheme.text2(context)).withOpacity(0.1),
+        color: (color ?? AppTheme.textSecondary).withOpacity(0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
@@ -418,7 +418,7 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.w600,
-          color: color ?? AppTheme.text2(context),
+          color: color ?? AppTheme.textSecondary,
         ),
       ),
     );
@@ -438,7 +438,7 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
         TabBar(
           controller: _tabController,
           labelColor: AppTheme.primaryDark,
-          unselectedLabelColor: AppTheme.text2(context),
+          unselectedLabelColor: AppTheme.textSecondary,
           indicatorColor: AppTheme.primaryDark,
           tabs: [
             Tab(
@@ -525,19 +525,19 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Clauses Library',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.text1(context),
+                    color: AppTheme.textPrimary,
                   ),
                 ),
                 Text(
                   '${_formatNumber(_totalClauses)} clauses • ${_categories.length} categories',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 13,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                   ),
                 ),
               ],
@@ -584,11 +584,11 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: AppTheme.borderOf(context)),
+                  borderSide: BorderSide(color: AppTheme.border),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: AppTheme.borderOf(context)),
+                  borderSide: BorderSide(color: AppTheme.border),
                 ),
               ),
             ),
@@ -662,20 +662,20 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.auto_awesome, size: 48, color: AppTheme.textH(context)),
+            Icon(Icons.auto_awesome, size: 48, color: AppTheme.textHint),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'No recommendations yet',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.text1(context),
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'AI recommendations will appear based on your assessment',
-              style: TextStyle(color: AppTheme.text2(context)),
+              style: TextStyle(color: AppTheme.textSecondary),
             ),
           ],
         ),
@@ -711,7 +711,7 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isMandatory ? AppTheme.warning : (isSelected ? AppTheme.success : AppTheme.borderOf(context)),
+          color: isMandatory ? AppTheme.warning : (isSelected ? AppTheme.success : AppTheme.border),
           width: isMandatory || isSelected ? 2 : 1,
         ),
       ),
@@ -735,7 +735,7 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
                       color: isSelected ? AppTheme.success : (isMandatory ? AppTheme.warning : Colors.transparent),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: isSelected ? AppTheme.success : (isMandatory ? AppTheme.warning : AppTheme.borderOf(context)),
+                        color: isSelected ? AppTheme.success : (isMandatory ? AppTheme.warning : AppTheme.border),
                         width: 2,
                       ),
                     ),
@@ -795,10 +795,10 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
                             Expanded(
                               child: Text(
                                 clause['name']?.toString() ?? '',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: AppTheme.text1(context),
+                                  color: AppTheme.textPrimary,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -809,9 +809,9 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
                         const SizedBox(height: 4),
                         Text(
                           clause['text_preview']?.toString() ?? '',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
-                            color: AppTheme.text2(context),
+                            color: AppTheme.textSecondary,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -822,8 +822,8 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
 
                   // Info button to view details
                   IconButton(
-                    icon: Icon(Icons.info_outline, size: 20),
-                    color: AppTheme.text2(context),
+                    icon: const Icon(Icons.info_outline, size: 20),
+                    color: AppTheme.textSecondary,
                     onPressed: () => _showClauseDetail(clause),
                     tooltip: 'View clause details',
                   ),
@@ -871,20 +871,20 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 48, color: AppTheme.textH(context)),
+            Icon(Icons.search_off, size: 48, color: AppTheme.textHint),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'No clauses found',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.text1(context),
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Try adjusting your search or filters',
-              style: TextStyle(color: AppTheme.text2(context)),
+              style: TextStyle(color: AppTheme.textSecondary),
             ),
           ],
         ),
@@ -920,7 +920,7 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(
-          color: isSelected ? AppTheme.success : AppTheme.borderOf(context),
+          color: isSelected ? AppTheme.success : AppTheme.border,
           width: isSelected ? 2 : 1,
         ),
       ),
@@ -941,7 +941,7 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
                   color: isSelected ? AppTheme.success : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: isSelected ? AppTheme.success : AppTheme.borderOf(context),
+                    color: isSelected ? AppTheme.success : AppTheme.border,
                     width: 2,
                   ),
                 ),
@@ -955,10 +955,10 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
                   children: [
                     Text(
                       clause['name']?.toString() ?? '',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.text1(context),
+                        color: AppTheme.textPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -966,9 +966,9 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
                     const SizedBox(height: 4),
                     Text(
                       clause['text_preview']?.toString() ?? '',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 11,
-                        color: AppTheme.text2(context),
+                        color: AppTheme.textSecondary,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -986,8 +986,8 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
               ),
               // Info button to view details
               IconButton(
-                icon: Icon(Icons.info_outline, size: 20),
-                color: AppTheme.text2(context),
+                icon: const Icon(Icons.info_outline, size: 20),
+                color: AppTheme.textSecondary,
                 onPressed: () => _showClauseDetail(clause),
                 tooltip: 'View clause details',
               ),
@@ -1018,20 +1018,20 @@ class _ClauseSelectorWidgetState extends State<ClauseSelectorWidget>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.playlist_add, size: 48, color: AppTheme.textH(context)),
+            Icon(Icons.playlist_add, size: 48, color: AppTheme.textHint),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'No clauses selected',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.text1(context),
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Browse or use AI recommendations to select clauses',
-              style: TextStyle(color: AppTheme.text2(context)),
+              style: TextStyle(color: AppTheme.textSecondary),
             ),
           ],
         ),

@@ -60,7 +60,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final pages = _getPages(l10n);
 
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -74,7 +74,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: Text(
                     l10n.skip,
                     style: TextStyle(
-                      color: AppTheme.text2(context),
+                      color: AppTheme.textSecondary,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -168,10 +168,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Text(
             page.title,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w700,
-              color: AppTheme.text1(context),
+              color: AppTheme.textPrimary,
               fontFamily: 'Inter',
             ),
           ),
@@ -181,9 +181,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Text(
             page.description,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
-              color: AppTheme.text2(context),
+              color: AppTheme.textSecondary,
               fontFamily: 'Inter',
               height: 1.5,
             ),
@@ -200,7 +200,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       width: isActive ? 24 : 8,
       height: 8,
       decoration: BoxDecoration(
-        color: isActive ? AppTheme.primaryDark : AppTheme.borderOf(context),
+        color: isActive ? AppTheme.primaryDark : AppTheme.border,
         borderRadius: BorderRadius.circular(4),
       ),
     );

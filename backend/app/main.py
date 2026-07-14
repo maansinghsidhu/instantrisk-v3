@@ -64,6 +64,10 @@ from app.routers import (
     vision,
 )  # Feature: Computer Vision Property Inspection (AWS Bedrock)
 from app.routers import voice  # Feature: Voice Commands & Transcription
+from app.routers import (
+    email_integrations,
+)  # Feature: Email Integration (Gmail/Outlook OAuth + IMAP ingestion)
+
 
 # Security middleware
 from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler
@@ -108,6 +112,16 @@ async def lifespan(app: FastAPI):
             logger.warning(
                 "SECURITY: DEBUG mode is enabled in non-development environment"
             )
+
+
+    # Start email ingestion background polling (non-blocking)
+    app.state.email_polling_task = None
+    try:
+        from app.services.email_integration_polling import start_email_polling
+        app.state.email_polling_task = asyncio.create_task(start_email_polling())
+        print("Email ingestion polling worker started")
+    except Exception as e:
+        print(f"Email polling worker not started: {e}")
 
     # Add missing columns to existing tables (v4 → EC2 schema migration)
     # Run each migration in its own transaction so one failure doesn't abort others
@@ -792,6 +806,16 @@ async def lifespan(app: FastAPI):
 
     yield
 
+    # Shutdown: Stop email ingestion polling first
+    email_task = app.state.__dict__.get('email_polling_task')
+    if email_task:
+        email_task.cancel()
+        try:
+            await email_task
+        except asyncio.CancelledError:
+            pass
+        print("Email ingestion polling worker stopped")
+
     # Shutdown: Stop scheduler before disposing DB connections
     try:
         from app.tasks.scheduled_jobs import stop_scheduler
@@ -1057,6 +1081,12 @@ app.include_router(
 )
 app.include_router(
     voice.router, prefix=f"{settings.api_prefix}/voice", tags=["Voice Commands"]
+)
+
+app.include_router(
+    email_integrations.router,
+    prefix=f"{settings.api_prefix}/integrations/email",
+    tags=["Email Integrations"],
 )
 
 # Email Negotiation AI

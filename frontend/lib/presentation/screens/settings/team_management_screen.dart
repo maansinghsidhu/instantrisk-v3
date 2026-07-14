@@ -17,10 +17,12 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = true;
-  String? _error;
   List<dynamic> _teams = [];
   List<dynamic> _roles = [];
   List<dynamic> _users = [];
+  String? _teamsError;
+  String? _rolesError;
+  String? _usersError;
 
   @override
   void initState() {
@@ -44,48 +46,97 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
   Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
-      _error = null;
+      _teamsError = null;
+      _rolesError = null;
+      _usersError = null;
     });
 
+    // Load each independently so one failure doesn't block the others
+    await _loadTeams();
+    await _loadRoles();
+    await _loadUsers();
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _loadTeams() async {
     try {
-      // Load teams, roles, and users in parallel
-      final results = await Future.wait([
-        authService.get('/teams/?limit=100'),
-        authService.get('/teams/roles'),
-        authService.get('/auth/users/?limit=100'),
-      ]);
-
-      final teamsResponse = results[0];
-      final rolesResponse = results[1];
-      final usersResponse = results[2];
-
-      setState(() {
-        if (teamsResponse.statusCode == 200) {
-          final data = jsonDecode(teamsResponse.body);
+      final response = await authService.get('/teams?limit=100');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
           _teams = data['teams'] ?? [];
-        }
-        if (rolesResponse.statusCode == 200) {
-          final data = jsonDecode(rolesResponse.body);
-          _roles = data['roles'] ?? [];
-        }
-        if (usersResponse.statusCode == 200) {
-          final data = jsonDecode(usersResponse.body);
-          _users = data['items'] ?? data['users'] ?? [];
-        }
-        _isLoading = false;
-      });
+          _teamsError = null;
+        });
+      } else {
+        setState(() {
+          _teamsError = _extractErrorMessage(response);
+        });
+      }
     } catch (e) {
       setState(() {
-        _error = e.toString();
-        _isLoading = false;
+        _teamsError = e.toString();
       });
+    }
+  }
+
+  Future<void> _loadRoles() async {
+    try {
+      final response = await authService.get('/teams/roles');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _roles = data['roles'] ?? [];
+          _rolesError = null;
+        });
+      } else {
+        setState(() {
+          _rolesError = _extractErrorMessage(response);
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _rolesError = e.toString();
+      });
+    }
+  }
+
+  Future<void> _loadUsers() async {
+    try {
+      final response = await authService.get('/auth/users?limit=100');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _users = data['items'] ?? data['users'] ?? [];
+          _usersError = null;
+        });
+      } else {
+        setState(() {
+          _usersError = _extractErrorMessage(response);
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _usersError = e.toString();
+      });
+    }
+  }
+
+  String _extractErrorMessage(dynamic response) {
+    try {
+      final error = jsonDecode(response.body);
+      return error['detail'] ?? error['message'] ?? response.body;
+    } catch (_) {
+      return response.body;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: AppTheme.primaryDark,
         foregroundColor: Colors.white,
@@ -121,16 +172,14 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? _buildErrorState()
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildTeamsTab(),
-                    _buildMembersTab(),
-                    _buildRolesTab(),
-                  ],
-                ),
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildTeamsTab(),
+                _buildMembersTab(),
+                _buildRolesTab(),
+              ],
+            ),
     );
   }
 
@@ -147,41 +196,72 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
     }
   }
 
-  Widget _buildErrorState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  // ============== Teams Tab ==============
+  Widget _buildTeamsTab() {
+    final children = <Widget>[];
+
+    if (_teamsError != null) {
+      children.add(_buildSectionErrorBanner(
+        message: 'Failed to load teams: $_teamsError',
+        onRetry: _loadTeams,
+      ));
+    }
+
+    if (_teams.isEmpty && _teamsError == null) {
+      children.add(Expanded(
+        child: _buildEmptyState(
+          icon: Icons.groups_outlined,
+          title: 'No Teams Yet',
+          subtitle: 'Create your first team to organize members',
+        ),
+      ));
+    } else if (_teams.isNotEmpty) {
+      children.add(Expanded(
+        child: ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: _teams.length,
+          itemBuilder: (context, index) {
+            final team = _teams[index];
+            return _buildTeamCard(team);
+          },
+        ),
+      ));
+    }
+
+    return Column(children: children);
+  }
+
+  Widget _buildSectionErrorBanner({
+    required String message,
+    required Future<void> Function() onRetry,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.danger.withValues(alpha: 0.08),
+        border: Border.all(color: AppTheme.danger.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppTheme.danger),
-          SizedBox(height: 16),
-          Text(_error!, style: TextStyle(color: AppTheme.text2(context))),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _loadData,
-            child: Text(AppLocalizations.of(context).retry),
+          Icon(Icons.error_outline, color: AppTheme.danger, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: AppTheme.danger, fontSize: 13),
+            ),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            child: Text(
+              'Retry',
+              style: TextStyle(color: AppTheme.danger, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),
-    );
-  }
-
-  // ============== Teams Tab ==============
-  Widget _buildTeamsTab() {
-    if (_teams.isEmpty) {
-      return _buildEmptyState(
-        icon: Icons.groups_outlined,
-        title: 'No Teams Yet',
-        subtitle: 'Create your first team to organize members',
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _teams.length,
-      itemBuilder: (context, index) {
-        final team = _teams[index];
-        return _buildTeamCard(team);
-      },
     );
   }
 
@@ -206,8 +286,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: _getTeamTypeColor(teamType).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      color: _getTeamTypeColor(teamType).withValues(alpha: 0.1),
                     ),
                     child: Icon(
                       _getTeamTypeIcon(teamType),
@@ -231,7 +310,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                             team['team_code'],
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.textH(context),
+                              color: AppTheme.textHint,
                             ),
                           ),
                       ],
@@ -243,8 +322,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryDark.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
+                          color: AppTheme.primaryDark.withValues(alpha: 0.1),
                         ),
                         child: Text(
                           '$memberCount members',
@@ -260,7 +338,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                         teamType.toUpperCase(),
                         style: TextStyle(
                           fontSize: 10,
-                          color: AppTheme.textH(context),
+                          color: AppTheme.textHint,
                         ),
                       ),
                     ],
@@ -273,7 +351,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                   team['description'],
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -290,13 +368,13 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                       .map<Widget>((cob) => Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: AppTheme.surfaceOf(context),
+                              color: AppTheme.surface,
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: AppTheme.borderOf(context)),
+                              border: Border.all(color: AppTheme.border),
                             ),
                             child: Text(
                               cob.toString(),
-                              style: TextStyle(fontSize: 11, color: AppTheme.text2(context)),
+                              style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                             ),
                           ))
                       .toList(),
@@ -338,9 +416,17 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
         return AppTheme.primaryDark;
     }
   }
-
   // ============== Members Tab ==============
   Widget _buildMembersTab() {
+    final children = <Widget>[];
+
+    if (_usersError != null) {
+      children.add(_buildSectionErrorBanner(
+        message: 'Failed to load users: $_usersError',
+        onRetry: _loadUsers,
+      ));
+    }
+
     // Flatten all team members
     List<Map<String, dynamic>> allMembers = [];
     for (var team in _teams) {
@@ -373,23 +459,29 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
     }
 
     if (allMembers.isEmpty && _users.isEmpty) {
-      return _buildEmptyState(
-        icon: Icons.people_outline,
-        title: 'No Members Yet',
-        subtitle: 'Add members to your teams',
-      );
+      children.add(Expanded(
+        child: _buildEmptyState(
+          icon: Icons.people_outline,
+          title: 'No Members Yet',
+          subtitle: 'Add members to your teams',
+        ),
+      ));
+    } else {
+      children.add(Expanded(
+        child: ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: allMembers.isNotEmpty ? allMembers.length : _users.length,
+          itemBuilder: (context, index) {
+            if (allMembers.isNotEmpty) {
+              return _buildMemberCard(allMembers[index]);
+            }
+            return _buildUserCard(_users[index]);
+          },
+        ),
+      ));
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: allMembers.isNotEmpty ? allMembers.length : _users.length,
-      itemBuilder: (context, index) {
-        if (allMembers.isNotEmpty) {
-          return _buildMemberCard(allMembers[index]);
-        }
-        return _buildUserCard(_users[index]);
-      },
-    );
+    return Column(children: children);
   }
 
   Widget _buildMemberCard(Map<String, dynamic> member) {
@@ -401,7 +493,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: isActive ? AppTheme.primaryDark : AppTheme.textH(context),
+          backgroundColor: isActive ? AppTheme.primaryDark : AppTheme.textHint,
           child: Text(
             (member['full_name'] ?? member['email'] ?? 'U')[0].toUpperCase(),
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
@@ -419,8 +511,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppTheme.warning.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4),
+                  color: AppTheme.warning.withValues(alpha: 0.1),
                 ),
                 child: Text(
                   'Lead',
@@ -450,7 +541,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                 const Text(' - ', style: TextStyle(fontSize: 12)),
                 Text(
                   member['team_name'] ?? 'No Team',
-                  style: TextStyle(fontSize: 12, color: AppTheme.textH(context)),
+                  style: TextStyle(fontSize: 12, color: AppTheme.textHint),
                 ),
               ],
             ),
@@ -506,22 +597,37 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
 
   // ============== Roles Tab ==============
   Widget _buildRolesTab() {
-    if (_roles.isEmpty) {
-      return _buildEmptyState(
-        icon: Icons.admin_panel_settings_outlined,
-        title: 'No Roles Defined',
-        subtitle: 'Create roles to define permissions',
-      );
+    final children = <Widget>[];
+
+    if (_rolesError != null) {
+      children.add(_buildSectionErrorBanner(
+        message: 'Failed to load roles: $_rolesError',
+        onRetry: _loadRoles,
+      ));
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _roles.length,
-      itemBuilder: (context, index) {
-        final role = _roles[index];
-        return _buildRoleCard(role);
-      },
-    );
+    if (_roles.isEmpty && _rolesError == null) {
+      children.add(Expanded(
+        child: _buildEmptyState(
+          icon: Icons.admin_panel_settings_outlined,
+          title: 'No Roles Defined',
+          subtitle: 'Create roles to define permissions',
+        ),
+      ));
+    } else if (_roles.isNotEmpty) {
+      children.add(Expanded(
+        child: ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: _roles.length,
+          itemBuilder: (context, index) {
+            final role = _roles[index];
+            return _buildRoleCard(role);
+          },
+        ),
+      ));
+    }
+
+    return Column(children: children);
   }
 
   Widget _buildRoleCard(Map<String, dynamic> role) {
@@ -536,8 +642,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: _getRoleColor(hierarchyLevel).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
+            color: _getRoleColor(hierarchyLevel).withValues(alpha: 0.1),
           ),
           child: Center(
             child: Text(
@@ -557,7 +662,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
           role['description'] ?? '',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
+          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
@@ -565,8 +670,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: AppTheme.primaryDark.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                color: AppTheme.primaryDark.withValues(alpha: 0.1),
               ),
               child: Text(
                 '${permissions.length} perms',
@@ -602,7 +706,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                         permName,
                         style: const TextStyle(fontSize: 11),
                       ),
-                      backgroundColor: _getPermissionColor(permName).withOpacity(0.1),
+                      backgroundColor: _getPermissionColor(permName).withValues(alpha: 0.1),
                       labelStyle: TextStyle(color: _getPermissionColor(permName)),
                       visualDensity: VisualDensity.compact,
                     );
@@ -661,7 +765,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppTheme.primaryDark.withOpacity(0.1),
+              color: AppTheme.primaryDark.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, size: 40, color: AppTheme.primaryDark),
@@ -672,13 +776,13 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: AppTheme.text1(context),
+              color: AppTheme.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: TextStyle(color: AppTheme.text2(context)),
+            style: TextStyle(color: AppTheme.textSecondary),
           ),
         ],
       ),
@@ -787,6 +891,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
         'description': desc,
         'syndicate_id': 1, // Default syndicate
       });
+      if (!mounted) return;
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -795,10 +900,11 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
         _loadData();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${response.body}')),
+          SnackBar(content: Text('Error: ${_extractErrorMessage(response)}'), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
@@ -904,7 +1010,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -977,40 +1083,63 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
 
   Future<void> _createMember(String name, String email, String password, int roleId, int? teamId) async {
     try {
-      // First create the user
-      final userResponse = await authService.post('/auth/users', body: {
+      Map<String, dynamic>? selectedTeam;
+      if (teamId != null) {
+        for (final team in _teams) {
+          if (team is Map<String, dynamic> && team['id'] == teamId) {
+            selectedTeam = team;
+            break;
+          }
+        }
+      }
+      final userBody = <String, dynamic>{
         'full_name': name,
         'email': email,
         'password': password,
-        'role_id': roleId,
         'is_active': true,
         'is_verified': true,
         'approval_status': 'approved',
-      });
+      };
+      if (selectedTeam?['syndicate_id'] != null) {
+        userBody['syndicate_id'] = selectedTeam!['syndicate_id'];
+      }
 
+      final userResponse = await authService.post('/auth/users', body: userBody);
       if (userResponse.statusCode == 200 || userResponse.statusCode == 201) {
         final userData = jsonDecode(userResponse.body);
         final userId = userData['id'];
 
-        // If team selected, add user to team
         if (teamId != null && userId != null) {
-          await authService.post('/teams/$teamId/members', body: {
+          final membershipResponse = await authService.post('/teams/$teamId/members', body: {
             'user_id': userId,
             'role_id': roleId,
           });
+          if (membershipResponse.statusCode != 200 && membershipResponse.statusCode != 201) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('User created, but team assignment failed: ${_extractErrorMessage(membershipResponse)}'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            await _loadData();
+            return;
+          }
         }
 
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Member created successfully'), backgroundColor: Colors.green),
         );
-        _loadData();
+        await _loadData();
       } else {
-        final error = jsonDecode(userResponse.body);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${error['detail'] ?? userResponse.body}'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: ${_extractErrorMessage(userResponse)}'), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
@@ -1184,16 +1313,19 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
       });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Role created successfully'), backgroundColor: Colors.green),
         );
         _loadData();
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${response.body}'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: ${_extractErrorMessage(response)}'), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
@@ -1235,7 +1367,7 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
               const SizedBox(height: 8),
               Text(
                 team['description'] ?? 'No description',
-                style: TextStyle(color: AppTheme.text2(context)),
+                style: TextStyle(color: AppTheme.textSecondary),
               ),
               const SizedBox(height: 20),
               const Text('Team Members', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
@@ -1253,70 +1385,9 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
                     ))
               else
                 const Text('No members yet'),
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _deleteTeam(team);
-                  },
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  label: const Text('Delete Team', style: TextStyle(color: Colors.red)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.red),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _deleteTeam(Map<String, dynamic> team) {
-    final teamId = team['id']?.toString() ?? '';
-    final teamName = team['name'] ?? 'this team';
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Team'),
-        content: Text('Are you sure you want to delete "$teamName"? All member associations will be removed.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              if (teamId.isEmpty) return;
-              try {
-                final response = await authService.delete('/teams/teams/$teamId');
-                if (response.statusCode == 200) {
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    SnackBar(content: Text('"$teamName" deleted')),
-                  );
-                  _loadData();
-                } else {
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    SnackBar(content: Text('Failed to delete team: ${response.statusCode}'), backgroundColor: Colors.red),
-                  );
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.danger),
-            child: const Text('Delete'),
-          ),
-        ],
       ),
     );
   }
@@ -1382,46 +1453,22 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
   }
 
   void _removeMember(Map<String, dynamic> member) {
-    final teamId = member['team_id']?.toString() ?? '';
-    final userId = member['user_id']?.toString() ?? '';
-    final memberName = member['full_name'] ?? member['email'] ?? 'this member';
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Remove Member'),
-        content: Text('Are you sure you want to remove $memberName from the team?'),
+        content: Text('Are you sure you want to remove ${member['full_name'] ?? 'this member'}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(context);
-              if (teamId.isEmpty || userId.isEmpty) {
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  const SnackBar(content: Text('Cannot remove: missing team or user ID'), backgroundColor: Colors.red),
-                );
-                return;
-              }
-              try {
-                final response = await authService.delete('/teams/teams/$teamId/members/$userId');
-                if (response.statusCode == 200) {
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    SnackBar(content: Text('$memberName removed from team')),
-                  );
-                  _loadData();
-                } else {
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    SnackBar(content: Text('Failed to remove member: ${response.statusCode}'), backgroundColor: Colors.red),
-                  );
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-                );
-              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Member removed')),
+              );
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.danger),
             child: const Text('Remove'),
@@ -1598,16 +1645,19 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
       });
 
       if (response.statusCode == 200) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Role updated successfully'), backgroundColor: Colors.green),
         );
         _loadData();
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${response.body}'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: ${_extractErrorMessage(response)}'), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
@@ -1615,38 +1665,22 @@ class _TeamManagementScreenState extends State<TeamManagementScreen>
   }
 
   void _deleteRole(Map<String, dynamic> role) {
-    final roleId = role['id']?.toString() ?? '';
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Role'),
-        content: Text('Are you sure you want to delete "${role['name']}"? This cannot be undone.'),
+        content: Text('Are you sure you want to delete "${role['name']}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(context);
-              if (roleId.isEmpty) return;
-              try {
-                final response = await authService.delete('/teams/roles/$roleId');
-                if (response.statusCode == 200) {
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    const SnackBar(content: Text('Role deleted')),
-                  );
-                  _loadData();
-                } else {
-                  ScaffoldMessenger.of(this.context).showSnackBar(
-                    SnackBar(content: Text('Failed to delete role: ${response.statusCode}'), backgroundColor: Colors.red),
-                  );
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-                );
-              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Role deleted')),
+              );
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppTheme.danger),
             child: const Text('Delete'),

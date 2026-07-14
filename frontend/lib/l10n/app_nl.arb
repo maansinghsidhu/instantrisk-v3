@@ -387,20 +387,5 @@
   "onboardingTitle3": "24/7 Verzekerings AI-Assistent",
   "onboardingDesc3": "Krijg direct antwoorden op verzekeringsvragen van onze AI getraind met 20GB+ Lloyd's marktkennis",
   "skip": "Overslaan",
-  "getStartedNow": "Beginnen",
-  "analysisCanContinueInBackground": "U kunt dit venster sluiten. De analyse gaat door op de achtergrond.",
-  "clickCalculatePricing": "Klik op Berekenen om een technische premie voor dit risico te genereren.",
-  "discard": "Verwerpen",
-  "discardChangesMessage": "U heeft niet-opgeslagen wijzigingen. Wilt u ze verwerpen?",
-  "discardChangesQuestion": "Wijzigingen verwerpen?",
-  "expandLiveResults": "Live resultaten weergeven",
-  "failedToSaveLanguage": "Voorkeurstaal opslaan mislukt. Probeer het opnieuw.",
-  "languageChangedTo": "Taal gewijzigd naar {languageName}",
-  "minimizeLiveResults": "Minimaliseren",
-  "noAiAnalysisYet": "Nog geen AI-analyse beschikbaar.\nKlik op Analyseren om risico-inzichten te genereren.",
-  "pricingNotAvailableDeclined": "Prijsstelling niet beschikbaar voor afgewezen risico's.",
-  "rtlLabel": "RTL",
-  "saveLanguagePreference": "Taalvoorkeur opslaan",
-  "undo": "Ongedaan maken",
-  "unsavedChangesPressSave": "U heeft niet-opgeslagen wijzigingen. Druk op Opslaan om de nieuwe taal toe te passen."
+  "getStartedNow": "Beginnen"
 }

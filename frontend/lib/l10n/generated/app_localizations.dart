@@ -352,7 +352,7 @@ abstract class AppLocalizations {
   /// Pricing engine subtitle
   ///
   /// In en, this message translates to:
-  /// **'InstantRisk Engine pricing models'**
+  /// **'AI-powered pricing models'**
   String get pricingEngineSubtitle;
 
   /// Data quality title
@@ -1153,10 +1153,10 @@ abstract class AppLocalizations {
   /// **'Generate Documents'**
   String get generateDocuments;
 
-  /// Recommended documents title
+  /// AI recommended documents title
   ///
   /// In en, this message translates to:
-  /// **'Recommended Documents'**
+  /// **'AI Recommended Documents'**
   String get aiRecommendedDocuments;
 
   /// Select documents to generate subtitle
@@ -1189,10 +1189,10 @@ abstract class AppLocalizations {
   /// **'Generating Documents'**
   String get generatingDocuments;
 
-  /// Engine working message
+  /// AI agents working message
   ///
   /// In en, this message translates to:
-  /// **'InstantRisk Engine is generating your documents'**
+  /// **'AI agents are working on your documents'**
   String get aiAgentsWorking;
 
   /// Complete label
@@ -1327,10 +1327,10 @@ abstract class AppLocalizations {
   /// **'New Chat'**
   String get newChat;
 
-  /// InstantRisk assistant title
+  /// AI assistant title
   ///
   /// In en, this message translates to:
-  /// **'InstantRisk Assistant'**
+  /// **'AI Assistant'**
   String get aiAssistant;
 
   /// Knowledge sources title
@@ -1633,16 +1633,16 @@ abstract class AppLocalizations {
   /// **'New Assessment'**
   String get newAssessment;
 
-  /// InstantRisk Engine analysis label
+  /// AI-powered analysis label
   ///
   /// In en, this message translates to:
-  /// **'InstantRisk Engine Analysis'**
+  /// **'AI-Powered Analysis'**
   String get aiPoweredAnalysis;
 
   /// Risk type auto detection description
   ///
   /// In en, this message translates to:
-  /// **'Risk type will be automatically detected from your documents using the InstantRisk Engine'**
+  /// **'Risk type will be automatically detected from your documents using OCR & AI'**
   String get riskTypeAutoDetected;
 
   /// Add documents title
@@ -1903,10 +1903,10 @@ abstract class AppLocalizations {
   /// **'Contract Generations'**
   String get contractGenerations;
 
-  /// Engine chat messages label
+  /// AI chat messages label
   ///
   /// In en, this message translates to:
-  /// **'Engine Chat Messages'**
+  /// **'AI Chat Messages'**
   String get aiChatMessages;
 
   /// Document storage label
@@ -2404,13 +2404,13 @@ abstract class AppLocalizations {
   /// First onboarding screen title
   ///
   /// In en, this message translates to:
-  /// **'InstantRisk Engine Assessment'**
+  /// **'AI-Powered Risk Assessment'**
   String get onboardingTitle1;
 
   /// First onboarding screen description
   ///
   /// In en, this message translates to:
-  /// **'Upload insurance documents and get instant risk analysis with GO/NO-GO recommendations powered by the InstantRisk Engine'**
+  /// **'Upload insurance documents and get instant AI-powered risk analysis with GO/NO-GO recommendations'**
   String get onboardingDesc1;
 
   /// Second onboarding screen title
@@ -2428,13 +2428,13 @@ abstract class AppLocalizations {
   /// Third onboarding screen title
   ///
   /// In en, this message translates to:
-  /// **'24/7 InstantRisk Assistant'**
+  /// **'24/7 Insurance AI Assistant'**
   String get onboardingTitle3;
 
   /// Third onboarding screen description
   ///
   /// In en, this message translates to:
-  /// **'Get instant answers to insurance questions from the InstantRisk Engine trained on Lloyd\'s market knowledge'**
+  /// **'Get instant answers to insurance questions from our AI trained on 20GB+ of Lloyd\'s market knowledge'**
   String get onboardingDesc3;
 
   /// Skip button

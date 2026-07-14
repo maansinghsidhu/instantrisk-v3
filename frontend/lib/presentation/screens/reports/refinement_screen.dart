@@ -49,20 +49,20 @@ class _RefinementScreenState extends State<RefinementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
           onPressed: () => context.go('/reports/results/${widget.assessmentId}'),
         ),
-        title: Text(
+        title: const Text(
           'Refine Assessment',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
             fontFamily: 'Inter',
           ),
         ),
@@ -84,7 +84,7 @@ class _RefinementScreenState extends State<RefinementScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
-                      children: [
+                      children: const [
                         Icon(Icons.info_outline, color: AppTheme.info, size: 24),
                         SizedBox(width: 12),
                         Expanded(
@@ -92,7 +92,7 @@ class _RefinementScreenState extends State<RefinementScreen> {
                             'Adjust parameters below to see how they affect the risk assessment and premium calculation.',
                             style: TextStyle(
                               fontSize: 14,
-                              color: AppTheme.text1(context),
+                              color: AppTheme.textPrimary,
                               height: 1.4,
                             ),
                           ),
@@ -108,20 +108,20 @@ class _RefinementScreenState extends State<RefinementScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceOf(context),
+                      color: AppTheme.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderOf(context)),
+                      border: Border.all(color: AppTheme.border),
                     ),
                     child: Column(
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
+                            const Text(
                               'Limit Amount',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: AppTheme.text2(context),
+                                color: AppTheme.textSecondary,
                               ),
                             ),
                             Text(
@@ -138,7 +138,7 @@ class _RefinementScreenState extends State<RefinementScreen> {
                         SliderTheme(
                           data: SliderThemeData(
                             activeTrackColor: AppTheme.primaryDark,
-                            inactiveTrackColor: AppTheme.borderOf(context),
+                            inactiveTrackColor: AppTheme.border,
                             thumbColor: AppTheme.primaryDark,
                             overlayColor: AppTheme.primaryDark.withOpacity(0.2),
                           ),
@@ -154,9 +154,9 @@ class _RefinementScreenState extends State<RefinementScreen> {
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('\u20AC100k', style: TextStyle(fontSize: 12, color: AppTheme.textH(context))),
-                            Text('\u20AC2M', style: TextStyle(fontSize: 12, color: AppTheme.textH(context))),
+                          children: const [
+                            Text('\u20AC100k', style: TextStyle(fontSize: 12, color: AppTheme.textHint)),
+                            Text('\u20AC2M', style: TextStyle(fontSize: 12, color: AppTheme.textHint)),
                           ],
                         ),
                       ],
@@ -170,20 +170,20 @@ class _RefinementScreenState extends State<RefinementScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceOf(context),
+                      color: AppTheme.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderOf(context)),
+                      border: Border.all(color: AppTheme.border),
                     ),
                     child: Column(
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
+                            const Text(
                               'Deductible Amount',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: AppTheme.text2(context),
+                                color: AppTheme.textSecondary,
                               ),
                             ),
                             Text(
@@ -200,7 +200,7 @@ class _RefinementScreenState extends State<RefinementScreen> {
                         SliderTheme(
                           data: SliderThemeData(
                             activeTrackColor: AppTheme.primaryDark,
-                            inactiveTrackColor: AppTheme.borderOf(context),
+                            inactiveTrackColor: AppTheme.border,
                             thumbColor: AppTheme.primaryDark,
                             overlayColor: AppTheme.primaryDark.withOpacity(0.2),
                           ),
@@ -216,9 +216,9 @@ class _RefinementScreenState extends State<RefinementScreen> {
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('\u20AC1k', style: TextStyle(fontSize: 12, color: AppTheme.textH(context))),
-                            Text('\u20AC50k', style: TextStyle(fontSize: 12, color: AppTheme.textH(context))),
+                          children: const [
+                            Text('\u20AC1k', style: TextStyle(fontSize: 12, color: AppTheme.textHint)),
+                            Text('\u20AC50k', style: TextStyle(fontSize: 12, color: AppTheme.textHint)),
                           ],
                         ),
                       ],
@@ -232,23 +232,23 @@ class _RefinementScreenState extends State<RefinementScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceOf(context),
+                      color: AppTheme.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderOf(context)),
+                      border: Border.all(color: AppTheme.border),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _policyTerm,
                         isExpanded: true,
-                        icon: Icon(Icons.keyboard_arrow_down, color: AppTheme.text2(context)),
+                        icon: const Icon(Icons.keyboard_arrow_down, color: AppTheme.textSecondary),
                         items: _policyTerms.map((term) {
                           return DropdownMenuItem(
                             value: term,
                             child: Text(
                               term,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 16,
-                                color: AppTheme.text1(context),
+                                color: AppTheme.textPrimary,
                               ),
                             ),
                           );
@@ -268,9 +268,9 @@ class _RefinementScreenState extends State<RefinementScreen> {
                   const SizedBox(height: 12),
                   Container(
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceOf(context),
+                      color: AppTheme.surface,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderOf(context)),
+                      border: Border.all(color: AppTheme.border),
                     ),
                     child: Column(
                       children: [
@@ -280,14 +280,14 @@ class _RefinementScreenState extends State<RefinementScreen> {
                           _includeFlood,
                           (value) => setState(() => _includeFlood = value),
                         ),
-                        Divider(height: 1, color: AppTheme.borderOf(context)),
+                        const Divider(height: 1, color: AppTheme.border),
                         _buildToggleOption(
                           'Earthquake Coverage',
                           'Covers seismic event damage',
                           _includeEarthquake,
                           (value) => setState(() => _includeEarthquake = value),
                         ),
-                        Divider(height: 1, color: AppTheme.borderOf(context)),
+                        const Divider(height: 1, color: AppTheme.border),
                         _buildToggleOption(
                           'Business Interruption',
                           'Covers income loss during recovery',
@@ -327,11 +327,11 @@ class _RefinementScreenState extends State<RefinementScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'Estimated Premium Impact',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: AppTheme.text2(context),
+                                  color: AppTheme.textSecondary,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -373,7 +373,7 @@ class _RefinementScreenState extends State<RefinementScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceOf(context),
+              color: AppTheme.surface,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.05),
@@ -398,17 +398,17 @@ class _RefinementScreenState extends State<RefinementScreen> {
                       });
                     },
                     style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      side: BorderSide(color: AppTheme.borderOf(context)),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: AppTheme.border),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Reset',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.text1(context),
+                        color: AppTheme.textPrimary,
                       ),
                     ),
                   ),
@@ -455,10 +455,10 @@ class _RefinementScreenState extends State<RefinementScreen> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: TextStyle(
+      style: const TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w600,
-        color: AppTheme.text1(context),
+        color: AppTheme.textPrimary,
         fontFamily: 'Inter',
       ),
     );
@@ -481,18 +481,18 @@ class _RefinementScreenState extends State<RefinementScreen> {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
-                    color: AppTheme.text1(context),
+                    color: AppTheme.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 13,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                   ),
                 ),
               ],

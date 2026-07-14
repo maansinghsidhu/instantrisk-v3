@@ -202,20 +202,20 @@ class _AIDocumentAdvisorScreenState extends State<AIDocumentAdvisorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
           onPressed: () => context.pop(),
         ),
-        title: Text(
+        title: const Text(
           'AI Document Advisor',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
           ),
         ),
         centerTitle: true,
@@ -231,7 +231,7 @@ class _AIDocumentAdvisorScreenState extends State<AIDocumentAdvisorScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryDark,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppTheme.borderOf(context),
+                    disabledBackgroundColor: AppTheme.border,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -271,18 +271,18 @@ class _AIDocumentAdvisorScreenState extends State<AIDocumentAdvisorScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          Text(
+          const Text(
             'AI is analyzing your assessment...',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: AppTheme.text1(context),
+              color: AppTheme.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Determining which documents you need and why',
-            style: TextStyle(fontSize: 14, color: AppTheme.text2(context)),
+            style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
           ),
         ],
       ),
@@ -299,19 +299,19 @@ class _AIDocumentAdvisorScreenState extends State<AIDocumentAdvisorScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceOf(context),
+              color: AppTheme.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppTheme.borderOf(context)),
+              border: Border.all(color: AppTheme.border),
             ),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _requestController,
-                    style: TextStyle(color: AppTheme.text1(context), fontSize: 14),
-                    decoration: InputDecoration(
+                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14),
+                    decoration: const InputDecoration(
                       hintText: 'I also need a war risks endorsement...',
-                      hintStyle: TextStyle(color: AppTheme.textH(context), fontSize: 14),
+                      hintStyle: TextStyle(color: AppTheme.textHint, fontSize: 14),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.zero,
                       isDense: true,
@@ -340,18 +340,18 @@ class _AIDocumentAdvisorScreenState extends State<AIDocumentAdvisorScreen> {
           // Recommendations header
           Text(
             'AI Recommendations',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppTheme.text1(context),
+              color: AppTheme.textPrimary,
             ),
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text(
             '${_recommendations.length} documents recommended for this assessment',
-            style: TextStyle(fontSize: 13, color: AppTheme.text2(context)),
+            style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
 
           // Document cards
           ...List.generate(_recommendations.length, (index) {
@@ -367,12 +367,12 @@ class _AIDocumentAdvisorScreenState extends State<AIDocumentAdvisorScreen> {
   Widget _buildDocCard(Map<String, dynamic> doc, int index, bool isSelected) {
     final priority = doc['priority'] ?? 'optional';
     final priorityColor = priority == 'mandatory'
-        ? AppTheme.errorRed
+        ? const Color(0xFFEF4444)
         : priority == 'recommended'
-            ? AppTheme.warningAmber
+            ? const Color(0xFFF59E0B)
             : priority == 'user_requested'
                 ? AppTheme.primaryDark
-                : AppTheme.text2(context);
+                : AppTheme.textSecondary;
     final priorityLabel = priority == 'mandatory'
         ? 'MANDATORY'
         : priority == 'recommended'
@@ -397,12 +397,12 @@ class _AIDocumentAdvisorScreenState extends State<AIDocumentAdvisorScreen> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceOf(context),
+            color: AppTheme.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected
                   ? AppTheme.primaryDark.withValues(alpha: 0.5)
-                  : AppTheme.borderOf(context),
+                  : AppTheme.border,
               width: isSelected ? 2 : 1,
             ),
           ),
@@ -417,7 +417,7 @@ class _AIDocumentAdvisorScreenState extends State<AIDocumentAdvisorScreen> {
                   color: isSelected ? AppTheme.primaryDark : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: isSelected ? AppTheme.primaryDark : AppTheme.borderOf(context),
+                    color: isSelected ? AppTheme.primaryDark : AppTheme.border,
                     width: 2,
                   ),
                 ),
@@ -436,10 +436,10 @@ class _AIDocumentAdvisorScreenState extends State<AIDocumentAdvisorScreen> {
                         Expanded(
                           child: Text(
                             doc['name'] ?? doc['type'] ?? 'Document',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.text1(context),
+                              color: AppTheme.textPrimary,
                             ),
                           ),
                         ),
@@ -463,9 +463,9 @@ class _AIDocumentAdvisorScreenState extends State<AIDocumentAdvisorScreen> {
                     const SizedBox(height: 6),
                     Text(
                       doc['reason'] ?? '',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 13,
-                        color: AppTheme.text2(context),
+                        color: AppTheme.textSecondary,
                         height: 1.4,
                       ),
                     ),
@@ -473,7 +473,7 @@ class _AIDocumentAdvisorScreenState extends State<AIDocumentAdvisorScreen> {
                       const SizedBox(height: 8),
                       Text(
                         '~${doc['estimated_sections']} sections',
-                        style: TextStyle(fontSize: 11, color: AppTheme.textH(context)),
+                        style: const TextStyle(fontSize: 11, color: AppTheme.textHint),
                       ),
                     ],
                   ],

@@ -7,7 +7,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/subscription_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../widgets/common/screen_header.dart';
 
 /// Dashboard Screen - Main home screen with overview and quick actions
 class DashboardScreen extends StatefulWidget {
@@ -30,10 +29,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _pendingCount = 0;
   List<Map<String, dynamic>> _recentAssessments = [];
   bool _isLoadingStats = true;
-
-  // Shared With Me
-  List<Map<String, dynamic>> _sharedWithMe = [];
-  bool _isLoadingShared = true;
 
   // Subscription service for tier-based UI
   final SubscriptionService _subscriptionService = SubscriptionService();
@@ -59,7 +54,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return;
     }
     _fetchStats();
-    _fetchSharedWithMe();
   }
 
   Future<void> _fetchStats() async {
@@ -77,7 +71,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final decision = item['decision']?.toString().toLowerCase() ?? '';
           if (decision == 'go') {
             approved++;
-          } else if (decision == 'pending') {
+          } else if (decision == 'refer' || decision == 'pending') {
             pending++;
           }
         }
@@ -95,25 +89,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingStats = false);
-      }
-    }
-  }
-
-  Future<void> _fetchSharedWithMe() async {
-    try {
-      final response = await authService.get('/shares/received');
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as List? ?? [];
-        if (mounted) {
-          setState(() {
-            _sharedWithMe = data.take(5).map((e) => Map<String, dynamic>.from(e as Map)).toList();
-            _isLoadingShared = false;
-          });
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoadingShared = false);
       }
     }
   }
@@ -247,7 +222,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             Text(
               '${_uploadedDocs.length} document(s) uploaded from mobile:',
-              style: TextStyle(color: AppTheme.text2(context), fontSize: 14),
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
             ),
             const SizedBox(height: 16),
             Container(
@@ -334,7 +309,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.borderOf(context), width: 2),
+                  border: Border.all(color: AppTheme.border, width: 2),
                 ),
                 child: _qrUrl != null
                     ? QrImageView(
@@ -367,7 +342,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Expanded(
                       child: Text(
                         '${AppLocalizations.of(context).loading}\n${AppLocalizations.of(context).uploadDocument}',
-                        style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                       ),
                     ),
                   ],
@@ -422,112 +397,126 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // App Bar with unified header
+            // App Bar
             SliverToBoxAdapter(
-              child: ScreenHeader(
-                title: _userName,
-                subtitle: l10n.welcomeBack,
-                badge: 'Powered by InstantRisk Engine',
-                actions: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.welcomeBack,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppTheme.textSecondary,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _userName,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      ],
                     ),
-                    child: IconButton(
-                      onPressed: () {},
-                      icon: Stack(
-                        children: [
-                          const Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
-                          Positioned(
-                            right: 0, top: 0,
-                            child: Container(
-                              width: 9, height: 9,
-                              decoration: BoxDecoration(
-                                color: AppTheme.danger,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: AppTheme.darkBg, width: 1.5),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            // TODO: Implement notifications
+                          },
+                          icon: Stack(
+                            children: [
+                              const Icon(
+                                Icons.notifications_outlined,
+                                color: AppTheme.textPrimary,
+                                size: 28,
                               ),
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: const BoxDecoration(
+                                    color: AppTheme.danger,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor: AppTheme.primaryDark,
+                          child: Text(
+                            _userInitials,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
-                    ),
-                    child: CircleAvatar(
-                      radius: 20,
-                      backgroundColor: AppTheme.primaryDark,
-                      child: Text(
-                        _userInitials,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
             // Quick Stats Cards - 3 cards for better overview (Basic+ only)
             if (_isBasicOrHigher)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final narrow = constraints.maxWidth < 380;
-                      final gap = narrow ? 6.0 : 10.0;
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: _buildStatCard(
-                              title: l10n.reports,
-                              value: _isLoadingStats ? '-' : '$_totalAssessments',
-                              subtitle: l10n.reports,
-                              icon: Icons.assessment_outlined,
-                              color: AppTheme.primaryDark,
-                              compact: narrow,
-                            ),
-                          ),
-                          SizedBox(width: gap),
-                          Expanded(
-                            child: _buildStatCard(
-                              title: l10n.goDecision,
-                              value: _isLoadingStats ? '-' : '$_approvedCount',
-                              subtitle: _totalAssessments > 0
-                                  ? '${((_approvedCount / _totalAssessments) * 100).toInt()}%'
-                                  : '0%',
-                              icon: Icons.check_circle_outline,
-                              color: AppTheme.success,
-                              compact: narrow,
-                            ),
-                          ),
-                          SizedBox(width: gap),
-                          Expanded(
-                            child: _buildStatCard(
-                              title: l10n.pending,
-                              value: _isLoadingStats ? '-' : '$_pendingCount',
-                              subtitle: l10n.processing,
-                              icon: Icons.pending_outlined,
-                              color: AppTheme.warning,
-                              compact: narrow,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard(
+                          title: l10n.reports,
+                          value: _isLoadingStats ? '-' : '$_totalAssessments',
+                          subtitle: l10n.reports,
+                          icon: Icons.assessment_outlined,
+                          color: AppTheme.primaryDark,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildStatCard(
+                          title: l10n.goDecision,
+                          value: _isLoadingStats ? '-' : '$_approvedCount',
+                          subtitle: _totalAssessments > 0
+                              ? '${((_approvedCount / _totalAssessments) * 100).toInt()}%'
+                              : '0%',
+                          icon: Icons.check_circle_outline,
+                          color: AppTheme.success,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildStatCard(
+                          title: l10n.referDecision,
+                          value: _isLoadingStats ? '-' : '$_pendingCount',
+                          subtitle: l10n.processing,
+                          icon: Icons.pending_outlined,
+                          color: AppTheme.warning,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -537,43 +526,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
             // New Assessment Button - Upload Documents
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryDark,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primaryDark.withValues(alpha: 0.25),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
+                    gradient: LinearGradient(
+                      colors: [AppTheme.primaryDark, AppTheme.primaryLight],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
                       key: const Key('startAnalysisButton'),
                       onTap: () => context.go('/home/intake'),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(16),
                       child: Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.all(20.0),
                         child: Row(
                           children: [
                             Container(
-                              width: 44,
-                              height: 44,
+                              width: 56,
+                              height: 56,
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
-                                Icons.bolt_rounded,
+                                Icons.add_circle_outline,
                                 color: Colors.white,
-                                size: 24,
+                                size: 32,
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 16),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -581,25 +567,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   Text(
                                     l10n.startAnalysis,
                                     style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
                                       color: Colors.white,
                                       fontFamily: 'Inter',
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
+                                  const SizedBox(height: 4),
                                   Text(
-                                    'Upload documents for analysis',
+                                    l10n.uploadDocument,
                                     style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white.withValues(alpha: 0.85),
+                                      fontSize: 14,
+                                      color: Colors.white.withValues(alpha: 0.8),
+                                      fontFamily: 'Inter',
                                     ),
                                   ),
                                 ],
                               ),
                             ),
                             const Icon(
-                              Icons.arrow_forward_rounded,
+                              Icons.arrow_forward_ios,
                               color: Colors.white,
                               size: 20,
                             ),
@@ -617,12 +604,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SliverToBoxAdapter(child: SizedBox(height: 12)),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceOf(context),
+                      color: AppTheme.surface,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.borderOf(context)),
+                      border: Border.all(color: AppTheme.border),
                     ),
                     child: Material(
                       color: Colors.transparent,
@@ -637,7 +624,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primaryDark.withValues(alpha: 0.1),
+                                  color: AppTheme.accent.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: _isCreatingSession
@@ -649,7 +636,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       )
                                     : Icon(
                                         Icons.qr_code_scanner,
-                                        color: AppTheme.primaryDark,
+                                        color: AppTheme.accent,
                                         size: 24,
                                       ),
                               ),
@@ -660,19 +647,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   children: [
                                     Text(
                                       l10n.uploadDocument,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
-                                        color: AppTheme.text1(context),
+                                        color: AppTheme.textPrimary,
                                         fontFamily: 'Inter',
                                       ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       l10n.uploadDocument,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 13,
-                                        color: AppTheme.text2(context),
+                                        color: AppTheme.textSecondary,
                                         fontFamily: 'Inter',
                                       ),
                                     ),
@@ -681,7 +668,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                               Icon(
                                 Icons.arrow_forward_ios,
-                                color: AppTheme.textH(context),
+                                color: AppTheme.textHint,
                                 size: 16,
                               ),
                             ],
@@ -699,16 +686,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             // Recent Assessments Section
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       l10n.recentAssessments,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.text1(context),
+                        color: AppTheme.textPrimary,
                         fontFamily: 'Inter',
                       ),
                     ),
@@ -729,23 +716,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             // Recent Assessment List
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
               sliver: _recentAssessments.isEmpty && !_isLoadingStats
                   ? SliverToBoxAdapter(
                       child: Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: AppTheme.surfaceOf(context),
+                          color: AppTheme.surface,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.borderOf(context)),
+                          border: Border.all(color: AppTheme.border),
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.folder_open_outlined, size: 48, color: AppTheme.textH(context)),
-                            SizedBox(height: 12),
-                            Text(l10n.noData, style: TextStyle(color: AppTheme.text2(context))),
-                            SizedBox(height: 4),
-                            Text(l10n.uploadDocument, style: TextStyle(color: AppTheme.textH(context), fontSize: 12)),
+                            Icon(Icons.folder_open_outlined, size: 48, color: AppTheme.textHint),
+                            const SizedBox(height: 12),
+                            Text(l10n.noData, style: const TextStyle(color: AppTheme.textSecondary)),
+                            const SizedBox(height: 4),
+                            Text(l10n.uploadDocument, style: const TextStyle(color: AppTheme.textHint, fontSize: 12)),
                           ],
                         ),
                       ),
@@ -766,104 +753,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             context,
                             title: item['reference_number'] ?? 'Assessment #${item['id']}',
                             company: item['insured_name'] ?? item['title'] ?? 'Unknown',
-                            status: decision == 'GO' ? 'GO' : 'NO-GO',
+                            status: decision == 'GO' ? 'GO' : (decision == 'NO_GO' ? 'NO-GO' : 'REFER'),
                             date: '${createdAt.day} ${_monthName(createdAt.month)} ${createdAt.year}',
                             assessmentId: '${item['id']}',
                           );
                         },
                         childCount: _isLoadingStats ? 1 : _recentAssessments.length,
-                      ),
-                    ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-            // Shared With Me Section
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.share_outlined, color: AppTheme.primaryDark, size: 22),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Shared With Me',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.text1(context),
-                            fontFamily: 'Inter',
-                          ),
-                        ),
-                      ],
-                    ),
-                    TextButton(
-                      onPressed: () => context.go('/shared'),
-                      child: const Text(
-                        'View All',
-                        style: TextStyle(
-                          color: AppTheme.primaryDark,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Shared With Me List
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              sliver: _sharedWithMe.isEmpty && !_isLoadingShared
-                  ? SliverToBoxAdapter(
-                      child: Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceOf(context),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.borderOf(context)),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(Icons.share_outlined, size: 48, color: AppTheme.textH(context)),
-                            const SizedBox(height: 12),
-                            Text('No shared submissions', style: TextStyle(color: AppTheme.text2(context))),
-                            const SizedBox(height: 4),
-                            Text('Submissions shared with you will appear here', 
-                                style: TextStyle(color: AppTheme.textH(context), fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                    )
-                  : SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          if (_isLoadingShared) {
-                            return const Center(
-                                child: Padding(
-                              padding: EdgeInsets.all(20),
-                              child: CircularProgressIndicator(),
-                            ));
-                          }
-                          final item = _sharedWithMe[index];
-                          final share = item['share'] as Map<String, dynamic>;
-                          final assessment = item['assessment'] as Map<String, dynamic>;
-                          final createdAt = DateTime.tryParse(share['created_at'] ?? '') ?? DateTime.now();
-                          return _buildSharedItem(
-                            context,
-                            title: assessment['reference_number'] ?? 'Assessment #${assessment['id']}',
-                            company: assessment['insured_name'] ?? 'Unknown',
-                            sharedBy: share['shared_by_name'] ?? 'Unknown',
-                            shareType: share['share_type'] ?? 'analysis',
-                            date: '${createdAt.day} ${_monthName(createdAt.month)} ${createdAt.year}',
-                            assessmentId: '${assessment['id']}',
-                          );
-                        },
-                        childCount: _isLoadingShared ? 1 : _sharedWithMe.length,
                       ),
                     ),
             ),
@@ -881,51 +776,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required String subtitle,
     required IconData icon,
     required Color color,
-    bool compact = false,
   }) {
     return Container(
-      padding: EdgeInsets.all(compact ? 12 : 18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderOf(context)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: EdgeInsets.all(compact ? 6 : 10),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: compact ? 16 : 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: compact ? 8 : 14),
+          const SizedBox(height: 12),
           Text(
             value,
-            style: TextStyle(
-              fontSize: compact ? 22 : 32,
-              fontWeight: FontWeight.w800,
-              color: AppTheme.text1(context),
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimary,
               fontFamily: 'Inter',
-              letterSpacing: -1,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           Text(
             title,
-            style: TextStyle(
-              fontSize: compact ? 11 : 13,
-              fontWeight: FontWeight.w500,
-              color: AppTheme.text2(context),
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppTheme.textSecondary,
               fontFamily: 'Inter',
             ),
           ),
@@ -943,52 +840,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required String assessmentId,
   }) {
     Color statusColor;
-    IconData statusIcon;
     switch (status) {
       case 'GO':
         statusColor = AppTheme.success;
-        statusIcon = Icons.check_circle_rounded;
         break;
       case 'NO-GO':
         statusColor = AppTheme.danger;
-        statusIcon = Icons.cancel_rounded;
         break;
       default:
         statusColor = AppTheme.warning;
-        statusIcon = Icons.schedule_rounded;
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderOf(context)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () => context.go('/reports/results/$assessmentId'),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 Container(
-                  width: 50,
-                  height: 50,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(statusIcon, color: statusColor, size: 24),
+                  child: Icon(
+                    status == 'GO' ? Icons.check_circle : (status == 'NO-GO' ? Icons.cancel : Icons.help),
+                    color: statusColor,
+                    size: 24,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -996,199 +886,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        company,
-                        style: TextStyle(
-                          fontSize: 15,
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                           fontFamily: 'Inter',
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          Icon(Icons.tag_rounded, size: 13, color: AppTheme.textH(context)),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              title,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.text2(context),
-                                fontFamily: 'Inter',
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Icon(Icons.calendar_today_rounded, size: 11, color: AppTheme.textH(context)),
-                          const SizedBox(width: 3),
-                          Text(
-                            date,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.textH(context),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    status,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: statusColor,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSharedItem(
-    BuildContext context, {
-    required String title,
-    required String company,
-    required String sharedBy,
-    required String shareType,
-    required String date,
-    required String assessmentId,
-  }) {
-    final shareIcon = shareType == 'analysis' 
-        ? Icons.analytics_outlined 
-        : Icons.description_outlined;
-    final shareColor = shareType == 'analysis' 
-        ? AppTheme.primaryDark 
-        : AppTheme.success;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderOf(context)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => context.go('/reports/results/$assessmentId'),
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: shareColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(shareIcon, color: shareColor, size: 24),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                      const SizedBox(height: 4),
                       Text(
                         company,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.textSecondary,
                           fontFamily: 'Inter',
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          Icon(Icons.tag_rounded, size: 13, color: AppTheme.textH(context)),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              title,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.text2(context),
-                                fontFamily: 'Inter',
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      Row(
-                        children: [
-                          Icon(Icons.person_outline_rounded, size: 11, color: AppTheme.textH(context)),
-                          const SizedBox(width: 3),
-                          Text(
-                            'Shared by $sharedBy',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.textH(context),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(Icons.calendar_today_rounded, size: 11, color: AppTheme.textH(context)),
-                          const SizedBox(width: 3),
-                          Text(
-                            date,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.textH(context),
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: shareColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    shareType.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: shareColor,
-                      letterSpacing: 0.5,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        status,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: statusColor,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    Text(
+                      date,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textHint,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

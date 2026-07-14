@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:convert';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/services/auth_service.dart';
 import '../../../core/services/chat_service.dart';
-import '../../../core/services/subscription_service.dart';
-// God Mode: Voice input
-import '../../widgets/voice/voice_command_button.dart';
 
 /// Unified AI Chat Screen - Claude/ChatGPT-style interface
 ///
@@ -185,64 +180,8 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Premium gate - chat is premium-only
-    if (!SubscriptionService().isPremium) {
-      return Scaffold(
-        backgroundColor: AppTheme.bg(context),
-        body: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [AppTheme.accent.withValues(alpha: 0.2), AppTheme.primaryDark.withValues(alpha: 0.2)],
-                      ),
-                    ),
-                    child: const Icon(Icons.chat_bubble_outline, size: 48, color: AppTheme.accentBright),
-                  ),
-                  SizedBox(height: 24),
-                  Text('InstantRisk Assistant', style: TextStyle(color: AppTheme.text1(context), fontSize: 22, fontWeight: FontWeight.w700, fontFamily: 'Inter')),
-                  SizedBox(height: 12),
-                  Text('Get instant answers about insurance policies, risk analysis, and underwriting decisions.',
-                      textAlign: TextAlign.center, style: TextStyle(color: AppTheme.text2(context), fontSize: 14, height: 1.5)),
-                  const SizedBox(height: 32),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.primaryDark.withValues(alpha: 0.3)),
-                      color: AppTheme.primaryDark.withValues(alpha: 0.08),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.workspace_premium, color: AppTheme.accentBright, size: 20),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text('Premium Feature', style: TextStyle(color: AppTheme.text1(context), fontSize: 14, fontWeight: FontWeight.w600)),
-                        ),
-                        TextButton(
-                          onPressed: () => context.go('/settings/subscription'),
-                          child: const Text('Upgrade', style: TextStyle(color: AppTheme.accentBright, fontWeight: FontWeight.w600)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: const Color(0xFF0A0E1A),
       appBar: _isWelcomeState ? null : _buildAppBar(),
       body: SafeArea(
         child: Column(
@@ -263,10 +202,10 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: const Color(0xFF0A0E1A),
       elevation: 0,
       leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: AppTheme.text2(context)),
+        icon: const Icon(Icons.arrow_back, color: Colors.white70),
         onPressed: () {
           if (_messages.isNotEmpty) {
             setState(() {
@@ -279,13 +218,13 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
           }
         },
       ),
-      title: Text(
-        'InstantRisk Assistant',
-        style: TextStyle(color: AppTheme.text1(context), fontSize: 18, fontWeight: FontWeight.w600),
+      title: const Text(
+        'AI Assistant',
+        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
       ),
       actions: [
         IconButton(
-          icon: Icon(Icons.add_circle_outline, color: AppTheme.text2(context)),
+          icon: const Icon(Icons.add_circle_outline, color: Colors.white70),
           tooltip: 'Attach context',
           onPressed: _showContextPicker,
         ),
@@ -295,8 +234,8 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
 
   Widget _buildContextBar() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: AppTheme.cardOf(context),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: const Color(0xFF1A1F2E),
       child: Row(
         children: [
           Container(
@@ -343,17 +282,17 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
             height: 64,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppTheme.primaryDark, AppTheme.analysisPurple],
+                colors: [AppTheme.primaryDark, const Color(0xFF7C3AED)],
               ),
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Icon(Icons.auto_awesome, color: Colors.white, size: 32),
           ),
           const SizedBox(height: 20),
-          Text(
+          const Text(
             'What can I help you with?',
             style: TextStyle(
-              color: AppTheme.text1(context),
+              color: Colors.white,
               fontSize: 24,
               fontWeight: FontWeight.w600,
             ),
@@ -361,8 +300,11 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
           const SizedBox(height: 8),
           Text(
             'Insurance AI with 112K+ knowledge base records',
-            style: TextStyle(color: AppTheme.textH(context), fontSize: 14),
+            style: TextStyle(color: Colors.white38, fontSize: 14),
           ),
+          const SizedBox(height: 40),
+          // Suggestion Grid (2x2)
+          _buildSuggestionGrid(),
           const SizedBox(height: 32),
           // Recent Conversations
           if (_recentConversations.isNotEmpty) ...[
@@ -371,7 +313,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
               child: Text(
                 'Recent Conversations',
                 style: TextStyle(
-                  color: AppTheme.text2(context),
+                  color: Colors.white54,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
@@ -387,6 +329,84 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
     );
   }
 
+  Widget _buildSuggestionGrid() {
+    final suggestions = [
+      {
+        'icon': Icons.bar_chart,
+        'title': 'GL claims in CA?',
+        'subtitle': 'Query benchmark data',
+        'query': "What's the average GL claim severity in California?",
+      },
+      {
+        'icon': Icons.compare_arrows,
+        'title': 'Compare to benchmarks',
+        'subtitle': 'Assessment vs industry',
+        'query': 'Compare my assessment to industry benchmarks',
+      },
+      {
+        'icon': Icons.description,
+        'title': 'What clauses do I need?',
+        'subtitle': 'Document generation help',
+        'query': 'What clauses do I need for a marine cargo policy?',
+      },
+      {
+        'icon': Icons.search,
+        'title': 'Explain war exclusion',
+        'subtitle': 'Clause explanation',
+        'query': 'Explain the war exclusion clause and when it applies',
+      },
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
+        childAspectRatio: 1.6,
+      ),
+      itemCount: suggestions.length,
+      itemBuilder: (context, index) {
+        final s = suggestions[index];
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _sendMessage(s['query'] as String),
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1F2E),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(s['icon'] as IconData, color: AppTheme.primaryDark, size: 20),
+                  const Spacer(),
+                  Text(
+                    s['title'] as String,
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    s['subtitle'] as String,
+                    style: const TextStyle(color: Colors.white38, fontSize: 11),
+                    maxLines: 1,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildConversationTile(Conversation convo) {
     final timeAgo = _formatTimeAgo(convo.lastMessageAt);
     return ListTile(
@@ -396,18 +416,18 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: AppTheme.cardOf(context),
+          color: const Color(0xFF1A1F2E),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(Icons.chat_bubble_outline, color: AppTheme.textH(context), size: 16),
+        child: const Icon(Icons.chat_bubble_outline, color: Colors.white38, size: 16),
       ),
       title: Text(
         convo.title,
-        style: TextStyle(color: AppTheme.text2(context), fontSize: 13),
+        style: const TextStyle(color: Colors.white70, fontSize: 13),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: Text(timeAgo, style: TextStyle(color: AppTheme.textH(context), fontSize: 11)),
+      trailing: Text(timeAgo, style: const TextStyle(color: Colors.white24, fontSize: 11)),
       onTap: () {
         setState(() {
           _conversationId = convo.id;
@@ -442,7 +462,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppTheme.primaryDark, AppTheme.analysisIndigo],
+                colors: [AppTheme.primaryDark, const Color(0xFF5B4FD6)],
               ),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(18),
@@ -471,7 +491,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppTheme.cardOf(context),
+              color: const Color(0xFF1A1F2E),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(4),
                 topRight: Radius.circular(18),
@@ -482,7 +502,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
             child: SelectableText(
               message.text,
               style: TextStyle(
-                color: message.isError ? Colors.redAccent : AppTheme.text1(context),
+                color: message.isError ? Colors.redAccent : Colors.white.withValues(alpha: 0.9),
                 fontSize: 14,
                 height: 1.6,
               ),
@@ -500,12 +520,12 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.text1(context).withValues(alpha: 0.05),
+                      color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '$name ${(score * 100).toInt()}%',
-                      style: TextStyle(color: AppTheme.textH(context), fontSize: 10),
+                      style: const TextStyle(color: Colors.white24, fontSize: 10),
                     ),
                   );
                 }).toList(),
@@ -528,7 +548,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.darkCard, AppTheme.darkCard],
+          colors: [const Color(0xFF1E293B), const Color(0xFF1A1F2E)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -555,7 +575,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                 ),
                 child: const Text(
                   'ClaimSense',
-                  style: TextStyle(color: AppTheme.phaseResearch, fontSize: 10, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: Color(0xFF60A5FA), fontSize: 10, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -601,7 +621,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppTheme.cardOf(context),
+              color: const Color(0xFF1A1F2E),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(4),
                 topRight: Radius.circular(18),
@@ -630,7 +650,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                 if (_streamingResponse.isNotEmpty)
                   SelectableText(
                     _streamingResponse,
-                    style: TextStyle(color: AppTheme.text1(context), fontSize: 14, height: 1.6),
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 14, height: 1.6),
                   ),
                 if (_streamingResponse.isEmpty && _thinkingMessage.isEmpty)
                   Row(
@@ -654,7 +674,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
       width: 8,
       height: 8,
       decoration: BoxDecoration(
-        color: AppTheme.textH(context),
+        color: Colors.white24,
         shape: BoxShape.circle,
       ),
     );
@@ -663,44 +683,36 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
   Widget _buildInputArea() {
     return Container(
       padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.of(context).padding.bottom + 12),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
-        border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F1320),
+        border: Border(top: BorderSide(color: Colors.white10)),
       ),
       child: Row(
         children: [
           // Attach button
           IconButton(
-            icon: Icon(Icons.attach_file, color: AppTheme.textH(context), size: 22),
+            icon: const Icon(Icons.attach_file, color: Colors.white38, size: 22),
             onPressed: _showContextPicker,
-          ),
-          // Voice input button (God Mode)
-          VoiceCommandButton(
-            compact: true,
-            onTranscript: (transcript) {
-              _messageController.text = transcript;
-              _sendMessage(transcript);
-            },
           ),
           // Text input
           Expanded(
             child: Container(
               constraints: const BoxConstraints(maxHeight: 120),
               decoration: BoxDecoration(
-                color: AppTheme.cardOf(context),
+                color: const Color(0xFF1A1F2E),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppTheme.borderOf(context)),
+                border: Border.all(color: Colors.white10),
               ),
               child: TextField(
                 controller: _messageController,
                 focusNode: _inputFocusNode,
-                style: TextStyle(color: AppTheme.text1(context), fontSize: 14),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
                 maxLines: null,
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => _sendMessage(),
                 decoration: InputDecoration(
                   hintText: _isWelcomeState ? 'Ask about insurance...' : 'Type a message...',
-                  hintStyle: TextStyle(color: AppTheme.textH(context), fontSize: 14),
+                  hintStyle: const TextStyle(color: Colors.white24, fontSize: 14),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                 ),
@@ -713,7 +725,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
             decoration: BoxDecoration(
               gradient: _isStreaming
                   ? null
-                  : LinearGradient(colors: [AppTheme.primaryDark, AppTheme.analysisIndigo]),
+                  : LinearGradient(colors: [AppTheme.primaryDark, const Color(0xFF5B4FD6)]),
               color: _isStreaming ? Colors.white10 : null,
               shape: BoxShape.circle,
             ),
@@ -734,7 +746,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
   void _showContextPicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.darkCard,
+      backgroundColor: const Color(0xFF1A1F2E),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -763,7 +775,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                 subtitle: const Text('Attach an assessment for context', style: TextStyle(color: Colors.white38, fontSize: 12)),
                 onTap: () {
                   Navigator.pop(context);
-                  _showAssessmentPicker();
+                  // TODO: Navigate to assessment picker
                 },
               ),
               ListTile(
@@ -779,9 +791,7 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
                 subtitle: const Text('PDF, DOCX, or images', style: TextStyle(color: Colors.white38, fontSize: 12)),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Document upload coming soon'), duration: Duration(seconds: 2)),
-                  );
+                  // TODO: File picker
                 },
               ),
               const SizedBox(height: 16),
@@ -790,70 +800,6 @@ class _UnifiedChatScreenState extends State<UnifiedChatScreen> {
         );
       },
     );
-  }
-
-  Future<void> _showAssessmentPicker() async {
-    try {
-      final response = await authService.get('/assessments/?page=1&page_size=20');
-      if (response.statusCode != 200 || !mounted) return;
-      final data = jsonDecode(response.body);
-      final items = (data['items'] as List?) ?? [];
-      if (!mounted) return;
-
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AppTheme.darkCard,
-          title: const Text('Select Assessment', style: TextStyle(color: Colors.white)),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: 400,
-            child: items.isEmpty
-                ? const Center(child: Text('No assessments found', style: TextStyle(color: Colors.white54)))
-                : ListView.builder(
-                    itemCount: items.length,
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      final title = item['title'] ?? item['insured_name'] ?? 'Assessment';
-                      final status = item['status'] ?? '';
-                      final decision = item['decision'] ?? '';
-                      return ListTile(
-                        leading: Icon(
-                          decision == 'go' ? Icons.check_circle : decision == 'no_go' ? Icons.cancel : Icons.pending,
-                          color: decision == 'go' ? Colors.green : decision == 'no_go' ? Colors.red : Colors.orange,
-                          size: 20,
-                        ),
-                        title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
-                        subtitle: Text('$status ${decision.isNotEmpty ? "· $decision" : ""}', style: const TextStyle(color: Colors.white38, fontSize: 12)),
-                        onTap: () {
-                          Navigator.pop(ctx);
-                          setState(() {
-                            _attachedAssessmentId = item['id']?.toString();
-                            _attachedAssessmentTitle = title;
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Attached: $title'), duration: const Duration(seconds: 2)),
-                          );
-                        },
-                      );
-                    },
-                  ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load assessments')),
-        );
-      }
-    }
   }
 
   String _formatTimeAgo(DateTime date) {

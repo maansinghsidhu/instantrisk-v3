@@ -12,7 +12,7 @@ class WelcomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -25,18 +25,27 @@ class WelcomeScreen extends StatelessWidget {
                   // Logo and brand
                   Row(
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.asset('assets/images/logo-icon.png', width: 40, height: 40, fit: BoxFit.contain),
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryDark,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.shield_outlined,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Text(
                         l10n.appName,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                     ],
@@ -47,9 +56,9 @@ class WelcomeScreen extends StatelessWidget {
                       // Show language selector
                       _showLanguageSelector(context);
                     },
-                    icon: Icon(
+                    icon: const Icon(
                       Icons.language,
-                      color: AppTheme.text2(context),
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                 ],
@@ -61,23 +70,25 @@ class WelcomeScreen extends StatelessWidget {
               // Center content
               Column(
                 children: [
-                  // Main logo
+                  // Main logo icon
                   Container(
-                    width: 140,
-                    height: 140,
+                    width: 120,
+                    height: 120,
                     decoration: BoxDecoration(
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF6B00CC).withOpacity(0.3),
+                          color: Colors.black.withOpacity(0.08),
                           blurRadius: 40,
                           offset: const Offset(0, 10),
                         ),
                       ],
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(28),
-                      child: Image.asset('assets/images/logo-full.png', fit: BoxFit.contain),
+                    child: const Icon(
+                      Icons.analytics_outlined,
+                      size: 56,
+                      color: AppTheme.primaryDark,
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -85,11 +96,11 @@ class WelcomeScreen extends StatelessWidget {
                   // Welcome text
                   Text(
                     l10n.welcomeBack,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 28,
                       fontWeight: FontWeight.w400,
-                      color: AppTheme.text1(context),
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                   Text(
@@ -107,11 +118,11 @@ class WelcomeScreen extends StatelessWidget {
                   Text(
                     AppConfig.appTagline,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 16,
                       fontWeight: FontWeight.w400,
-                      color: AppTheme.text2(context),
+                      color: AppTheme.textSecondary,
                       height: 1.5,
                     ),
                   ),
@@ -150,28 +161,60 @@ class WelcomeScreen extends StatelessWidget {
 
               const SizedBox(height: 32),
 
-              // Footer
+              // Version and links
               Column(
                 children: [
+                  Text(
+                    'ENTERPRISE EDITION V${AppConfig.appVersion}',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppTheme.textHint,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          // Show terms
+                        },
                         child: Text(
                           l10n.termsOfService,
-                          style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: AppTheme.text2(context)),
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            color: AppTheme.textSecondary,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 16),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          // Show privacy
+                        },
                         child: Text(
                           l10n.privacyPolicy,
-                          style: TextStyle(fontFamily: 'Inter', fontSize: 13, color: AppTheme.text2(context)),
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13,
+                            color: AppTheme.textSecondary,
+                          ),
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'v5.0.0 - Deployed: 2026-02-02',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      color: AppTheme.textHint,
+                    ),
                   ),
                 ],
               ),

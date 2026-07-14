@@ -24,7 +24,6 @@ class ClauseReviewScreen extends StatefulWidget {
 class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
   bool _isLoading = true;
   Map<String, List<Map<String, dynamic>>> _clausesByDoc = {};
-  final Set<String> _deselectedClauses = {}; // clause_ids the user has deselected
 
   @override
   void initState() {
@@ -113,51 +112,33 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
   }
 
   void _proceedToGeneration() {
-    // Filter out deselected clauses before sending to generation
-    final filteredClauses = _clausesByDoc.map((docType, clauses) {
-      return MapEntry(
-        docType,
-        clauses.where((c) => !_deselectedClauses.contains(c['clause_id'])).toList(),
-      );
-    });
-
     context.go(
       '/documents/generation-progress',
       extra: {
         'assessmentId': widget.assessmentId,
         'selectedDocuments': widget.selectedDocuments,
-        'clausesByDoc': filteredClauses,
+        'clausesByDoc': _clausesByDoc,
       },
     );
-  }
-
-  void _toggleClause(String clauseId) {
-    setState(() {
-      if (_deselectedClauses.contains(clauseId)) {
-        _deselectedClauses.remove(clauseId);
-      } else {
-        _deselectedClauses.add(clauseId);
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
           onPressed: () => context.pop(),
         ),
-        title: Text(
+        title: const Text(
           'Clause Review',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
           ),
         ),
         centerTitle: true,
@@ -204,18 +185,14 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
   }
 
   Widget _buildSourceSummary() {
-    int userCount = 0, acordCount = 0, aiCount = 0, totalSelected = 0, totalAll = 0;
+    int userCount = 0, acordCount = 0, aiCount = 0;
     for (final clauses in _clausesByDoc.values) {
       for (final clause in clauses) {
-        totalAll++;
-        if (_deselectedClauses.contains(clause['clause_id'])) continue;
-        totalSelected++;
         switch (clause['source']) {
           case 'user_uploaded':
             userCount++;
             break;
           case 'acord':
-          case 'template':
             acordCount++;
             break;
           default:
@@ -224,21 +201,12 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
       }
     }
 
-    return Column(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          '$totalSelected of $totalAll clauses selected',
-          style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
-        ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (userCount > 0) _buildSourceChip('$userCount Your Wording', AppTheme.phaseCompose),
-            if (acordCount > 0) _buildSourceChip('$acordCount ACORD', AppTheme.phaseResearch),
-            if (aiCount > 0) _buildSourceChip('$aiCount Engine Generated', AppTheme.text2(context)),
-          ],
-        ),
+        if (userCount > 0) _buildSourceChip('$userCount Your Wording', const Color(0xFF10B981)),
+        if (acordCount > 0) _buildSourceChip('$acordCount ACORD', const Color(0xFF3B82F6)),
+        if (aiCount > 0) _buildSourceChip('$aiCount AI Generated', AppTheme.textSecondary),
       ],
     );
   }
@@ -259,7 +227,7 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
   }
 
   Widget _buildLoadingState() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -267,12 +235,12 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
           SizedBox(height: 16),
           Text(
             'Searching for best clauses...',
-            style: TextStyle(color: AppTheme.text2(context)),
+            style: TextStyle(color: AppTheme.textSecondary),
           ),
           SizedBox(height: 4),
           Text(
             'Checking your uploads, ACORD library, and AI',
-            style: TextStyle(fontSize: 12, color: AppTheme.textH(context)),
+            style: TextStyle(fontSize: 12, color: AppTheme.textHint),
           ),
         ],
       ),
@@ -307,16 +275,16 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
                       Expanded(
                         child: Text(
                           docName,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.text1(context),
+                            color: AppTheme.textPrimary,
                           ),
                         ),
                       ),
                       Text(
                         '${clauses.length} clauses',
-                        style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                       ),
                     ],
                   ),
@@ -337,86 +305,65 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
     final source = clause['source'] ?? 'ai_generated';
     final sourceBadge = _getSourceBadge(source);
     final isMandatory = clause['is_mandatory'] ?? false;
-    final clauseId = clause['clause_id'] ?? '';
-    final isSelected = !_deselectedClauses.contains(clauseId);
 
-    return GestureDetector(
-      onTap: isMandatory ? null : () => _toggleClause(clauseId),
-      child: AnimatedOpacity(
-        opacity: isSelected ? 1.0 : 0.5,
-        duration: const Duration(milliseconds: 200),
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isSelected ? AppTheme.surfaceOf(context) : AppTheme.bg(context),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected ? AppTheme.borderOf(context) : AppTheme.borderOf(context).withValues(alpha: 0.5),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  // Checkbox for non-mandatory clauses
-                  if (!isMandatory)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 10),
-                      child: Icon(
-                        isSelected ? Icons.check_circle : Icons.circle_outlined,
-                        color: isSelected ? AppTheme.primaryDark : AppTheme.textH(context),
-                        size: 20,
-                      ),
-                    ),
-                  Expanded(
-                    child: Text(
-                      clause['name'] ?? 'Clause',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected ? AppTheme.text1(context) : AppTheme.text2(context),
-                      ),
-                    ),
+              Expanded(
+                child: Text(
+                  clause['name'] ?? 'Clause',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
                   ),
-                  sourceBadge,
-                  if (isMandatory) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppTheme.errorRed.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        'REQ',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.errorRed,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
+                ),
               ),
-              if (clause['content_preview'] != null) ...[
-                const SizedBox(height: 6),
-                Text(
-                  clause['content_preview'],
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.text2(context),
-                    height: 1.4,
+              sourceBadge,
+              if (isMandatory) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'REQ',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFEF4444),
+                    ),
                   ),
                 ),
               ],
             ],
           ),
-        ),
+          if (clause['content_preview'] != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              clause['content_preview'],
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -427,20 +374,16 @@ class _ClauseReviewScreenState extends State<ClauseReviewScreen> {
 
     switch (source) {
       case 'user_uploaded':
-        color = AppTheme.phaseCompose;
+        color = const Color(0xFF10B981);
         label = 'Your Wording';
         break;
       case 'acord':
-        color = AppTheme.phaseResearch;
+        color = const Color(0xFF3B82F6);
         label = 'ACORD Standard';
         break;
-      case 'template':
-        color = AppTheme.corporateBlue;
-        label = 'Template';
-        break;
       default:
-        color = AppTheme.text2(context);
-        label = 'Engine Generated';
+        color = AppTheme.textSecondary;
+        label = 'AI Generated';
     }
 
     return Container(

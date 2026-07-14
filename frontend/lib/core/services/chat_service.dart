@@ -203,19 +203,6 @@ class ChatService {
     return [];
   }
 
-  /// Delete a conversation
-  Future<bool> deleteConversation(String conversationId) async {
-    final token = await authService.token;
-    if (token == null) return false;
-
-    final response = await http.delete(
-      Uri.parse('$_baseUrl/chat/conversations/$conversationId'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-
-    return response.statusCode == 200;
-  }
-
   /// Submit feedback on a response
   Future<void> submitFeedback(String messageId, int rating, {String? feedback}) async {
     final token = await authService.token;

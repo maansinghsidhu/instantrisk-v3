@@ -165,7 +165,7 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(finalize ? 'Document finalized' : 'Draft saved'),
-              backgroundColor: AppTheme.successDark,
+              backgroundColor: const Color(0xFF059669),
             ),
           );
           if (finalize) {
@@ -254,12 +254,12 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
         return true;
       },
       child: Scaffold(
-        backgroundColor: AppTheme.bg(context),
+        backgroundColor: AppTheme.background,
         appBar: AppBar(
-          backgroundColor: AppTheme.surfaceOf(context),
+          backgroundColor: AppTheme.surface,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: AppTheme.text1(context)),
+            icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
             onPressed: () async {
               if (_hasChanges) {
                 final result = await _showUnsavedChangesDialog();
@@ -274,18 +274,18 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
             children: [
               Text(
                 _document['name'] ?? 'Document Editor',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.text1(context),
+                  color: AppTheme.textPrimary,
                 ),
               ),
               if (_hasChanges)
-                Text(
+                const Text(
                   'Unsaved changes',
                   style: TextStyle(
                     fontSize: 11,
-                    color: AppTheme.warningAmber,
+                    color: Color(0xFFF59E0B),
                   ),
                 ),
             ],
@@ -295,7 +295,7 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
             IconButton(
               icon: Icon(
                 _isPreviewMode ? Icons.edit : Icons.visibility,
-                color: AppTheme.text2(context),
+                color: AppTheme.textSecondary,
               ),
               onPressed: () => setState(() => _isPreviewMode = !_isPreviewMode),
               tooltip: _isPreviewMode ? 'Edit' : 'Preview',
@@ -316,7 +316,7 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
           bottom: TabBar(
             controller: _tabController,
             labelColor: AppTheme.primaryDark,
-            unselectedLabelColor: AppTheme.text2(context),
+            unselectedLabelColor: AppTheme.textSecondary,
             indicatorColor: AppTheme.primaryDark,
             tabs: const [
               Tab(text: 'Content'),
@@ -349,8 +349,8 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
         Container(
           width: 200,
           decoration: BoxDecoration(
-            color: AppTheme.surfaceOf(context),
-            border: Border(right: BorderSide(color: AppTheme.borderOf(context))),
+            color: AppTheme.surface,
+            border: Border(right: BorderSide(color: AppTheme.border)),
           ),
           child: Column(
             children: [
@@ -358,18 +358,18 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(color: AppTheme.borderOf(context))),
+                  border: Border(bottom: BorderSide(color: AppTheme.border)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.list, size: 18, color: AppTheme.text2(context)),
+                    const Icon(Icons.list, size: 18, color: AppTheme.textSecondary),
                     const SizedBox(width: 8),
-                    Text(
+                    const Text(
                       'Sections',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.text1(context),
+                        color: AppTheme.textPrimary,
                       ),
                     ),
                     const Spacer(),
@@ -397,14 +397,14 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
                       leading: Icon(
                         Icons.article_outlined,
                         size: 18,
-                        color: isSelected ? AppTheme.primaryDark : AppTheme.text2(context),
+                        color: isSelected ? AppTheme.primaryDark : AppTheme.textSecondary,
                       ),
                       title: Text(
                         section['title'] ?? 'Section ${index + 1}',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                          color: isSelected ? AppTheme.primaryDark : AppTheme.text1(context),
+                          color: isSelected ? AppTheme.primaryDark : AppTheme.textPrimary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -435,10 +435,10 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
           if (_selectedSectionIndex < _sections.length) ...[
             Text(
               _sections[_selectedSectionIndex]['title'] ?? 'Section',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.text1(context),
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 16),
@@ -447,19 +447,19 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: Color(0xFFFFFFF8),
+                color: const Color(0xFFFFFFF8),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.borderOf(context)),
+                border: Border.all(color: AppTheme.border),
               ),
               child: TextField(
                 controller: _contentController,
                 maxLines: null,
                 expands: true,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
                   fontFamily: 'Courier',
                   height: 1.6,
-                  color: AppTheme.text1(context),
+                  color: Color(0xFF1F2937),
                 ),
                 decoration: const InputDecoration(
                   border: InputBorder.none,
@@ -498,10 +498,10 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
         ),
         child: SelectableText(
           fullContent,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 13,
             height: 1.6,
-            color: AppTheme.text1(context),
+            color: Color(0xFF1F2937),
           ),
         ),
       ),
@@ -516,26 +516,26 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
           Icon(
             Icons.article_outlined,
             size: 64,
-            color: AppTheme.textH(context),
+            color: AppTheme.textHint,
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'LMA Clause Library',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: AppTheme.text2(context),
+              color: AppTheme.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
-          Padding(
+          const Padding(
             padding: EdgeInsets.symmetric(horizontal: 48),
             child: Text(
               'Browse and insert LMA clauses directly into your document',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.textH(context),
+                color: AppTheme.textHint,
               ),
             ),
           ),
@@ -565,23 +565,23 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
             Icon(
               Icons.history,
               size: 64,
-              color: AppTheme.textH(context),
+              color: AppTheme.textHint,
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'No version history yet',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.text2(context),
+                color: AppTheme.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Versions are created when you save the document',
               style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.textH(context),
+                color: AppTheme.textHint,
               ),
             ),
           ],
@@ -656,8 +656,8 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
-        border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
+        color: AppTheme.surface,
+        border: Border(top: BorderSide(color: AppTheme.border)),
       ),
       child: SafeArea(
         child: Row(
@@ -667,8 +667,8 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: (_document['status'] == 'finalized')
-                    ? AppTheme.successDark.withOpacity(0.1)
-                    : AppTheme.warningAmber.withOpacity(0.1),
+                    ? const Color(0xFF059669).withOpacity(0.1)
+                    : const Color(0xFFF59E0B).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
@@ -680,8 +680,8 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
                         : Icons.edit_note,
                     size: 16,
                     color: (_document['status'] == 'finalized')
-                        ? AppTheme.successDark
-                        : AppTheme.warningAmber,
+                        ? const Color(0xFF059669)
+                        : const Color(0xFFF59E0B),
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -690,8 +690,8 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: (_document['status'] == 'finalized')
-                          ? AppTheme.successDark
-                          : AppTheme.warningAmber,
+                          ? const Color(0xFF059669)
+                          : const Color(0xFFF59E0B),
                     ),
                   ),
                 ],
@@ -705,7 +705,7 @@ class _DocumentEditorScreenState extends State<DocumentEditorScreen>
                 icon: const Icon(Icons.check, size: 18),
                 label: const Text('Finalize'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.successDark,
+                  backgroundColor: const Color(0xFF059669),
                   foregroundColor: Colors.white,
                 ),
               ),

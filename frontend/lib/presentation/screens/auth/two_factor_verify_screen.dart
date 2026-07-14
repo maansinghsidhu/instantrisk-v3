@@ -78,12 +78,12 @@ class _TwoFactorVerifyScreenState extends State<TwoFactorVerifyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
           onPressed: () => context.pop(),
         ),
       ),
@@ -112,12 +112,12 @@ class _TwoFactorVerifyScreenState extends State<TwoFactorVerifyScreen> {
               const SizedBox(height: 24),
 
               // Title
-              Text(
+              const Text(
                 'Two-Factor Authentication',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
-                  color: AppTheme.text1(context),
+                  color: AppTheme.textPrimary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -127,9 +127,9 @@ class _TwoFactorVerifyScreenState extends State<TwoFactorVerifyScreen> {
                 _isBackupCode
                     ? 'Enter one of your backup codes'
                     : 'Enter the 6-digit code from your authenticator app',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
-                  color: AppTheme.text2(context),
+                  color: AppTheme.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -152,12 +152,12 @@ class _TwoFactorVerifyScreenState extends State<TwoFactorVerifyScreen> {
                   counterText: '',
                   hintText: _isBackupCode ? 'XXXXXXXX' : '000000',
                   hintStyle: TextStyle(
-                    color: AppTheme.textH(context).withOpacity(0.5),
+                    color: AppTheme.textHint.withOpacity(0.5),
                     letterSpacing: 8,
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: AppTheme.borderOf(context), width: 2),
+                    borderSide: const BorderSide(color: AppTheme.border, width: 2),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -256,19 +256,19 @@ class _TwoFactorVerifyScreenState extends State<TwoFactorVerifyScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceOf(context),
+                  color: AppTheme.surface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.borderOf(context)),
+                  border: Border.all(color: AppTheme.border),
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.help_outline, color: AppTheme.text2(context)),
+                    const Icon(Icons.help_outline, color: AppTheme.textSecondary),
                     const SizedBox(height: 8),
-                    Text(
+                    const Text(
                       'Open your authenticator app (Google Authenticator, Microsoft Authenticator, etc.) and enter the code shown for InstantRisk.',
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppTheme.text2(context),
+                        color: AppTheme.textSecondary,
                         height: 1.4,
                       ),
                       textAlign: TextAlign.center,

@@ -23,7 +23,7 @@ class PlatformStorage {
   }
 }
 
-/// On mobile/desktop, use the CloudFront HTTPS URL.
+/// On mobile, use the hardcoded URL since there is no browser location.
 String getPlatformBaseUrl() {
-  return "https://d2ci3ptu2ygeo3.cloudfront.net/api/v1";
+  return "https://ir.alexandratechlab.com/api/v1";
 }

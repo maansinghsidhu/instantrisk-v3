@@ -12,8 +12,10 @@ Security Features:
 """
 
 from datetime import datetime, timezone
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +32,7 @@ from app.core.security import (
     get_current_user
 )
 from app.models.user import User, UserRole, ApprovalStatus
+from app.models.syndicate import Syndicate
 from app.models.subscription import Subscription, SubscriptionTier, SubscriptionStatus
 from app.schemas.user import (
     UserCreate,
@@ -44,6 +47,37 @@ from app.middleware.ip_protection import track_failed_attempt, clear_failed_atte
 
 # Security logger
 security_logger = logging.getLogger("security.auth")
+
+
+# =============================================================================
+# Admin User Creation Schemas
+# =============================================================================
+
+
+class AdminUserCreate(BaseModel):
+    """Schema for admin-created user with full control over status fields."""
+    email: EmailStr
+    full_name: str = Field(..., min_length=2, max_length=255)
+    password: str = Field(..., min_length=8, max_length=100)
+    role: UserRole = UserRole.BROKER
+    syndicate_id: Optional[int] = None
+    is_active: bool = True
+    is_verified: bool = True
+    approval_status: ApprovalStatus = ApprovalStatus.APPROVED
+
+
+class AdminUserResponse(BaseModel):
+    """Schema for admin-created user response."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    email: EmailStr
+    full_name: str
+    role: UserRole
+    syndicate_id: Optional[int] = None
+    is_active: bool
+    is_verified: bool
+    created_at: datetime
 
 router = APIRouter()
 
@@ -546,76 +580,59 @@ async def list_users(
     }
 
 
-@router.post("/users", status_code=status.HTTP_201_CREATED)
+@router.post("/users", response_model=AdminUserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
-    email: str,
-    password: str,
-    full_name: str,
-    role: Optional[str] = "user",
-    syndicate_id: Optional[int] = None,
-    is_active: bool = True,
-    is_verified: bool = True,
+    user_data: AdminUserCreate,
     current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db)
-) -> dict:
+) -> User:
     """
     Create a new user (Admin only).
 
-    Args:
-        email: User's email address.
-        password: User's password.
-        full_name: User's full name.
-        role: User role (user, admin, underwriter, etc.).
-        syndicate_id: Optional syndicate ID.
-        is_active: Whether user is active.
-        is_verified: Whether user is verified.
-
-    Returns:
-        dict: Created user details.
+    Accepts a JSON body. Admin can create users in any syndicate provided
+    that syndicate exists. Duplicate emails are rejected.
     """
-    # Check if email already exists
-    result = await db.execute(select(User).where(User.email == email))
-    existing = result.scalar_one_or_none()
-    if existing:
+    # Check duplicate email
+    result = await db.execute(select(User).where(User.email == user_data.email))
+    if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
 
-    # Validate role
-    try:
-        user_role = UserRole(role) if role else UserRole.USER
-    except ValueError:
-        user_role = UserRole.USER
+    # Validate syndicate exists if specified
+    if user_data.syndicate_id is not None:
+        syndicate_result = await db.execute(
+            select(Syndicate).where(Syndicate.id == user_data.syndicate_id)
+        )
+        if not syndicate_result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Syndicate not found"
+            )
 
     # Create user
     new_user = User(
-        email=email,
-        hashed_password=get_password_hash(password),
-        full_name=full_name,
-        role=user_role,
-        syndicate_id=syndicate_id or current_user.syndicate_id,
-        is_active=is_active,
-        is_verified=is_verified,
-        approval_status=ApprovalStatus.APPROVED,
+        email=user_data.email,
+        hashed_password=get_password_hash(user_data.password),
+        full_name=user_data.full_name,
+        role=user_data.role,
+        syndicate_id=user_data.syndicate_id,
+        is_active=user_data.is_active,
+        is_verified=user_data.is_verified,
+        approval_status=user_data.approval_status,
     )
 
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
 
-    security_logger.info(f"User created by admin: user_id={new_user.id}, email={email}, created_by={current_user.id}")
+    security_logger.info(
+        f"User created by admin: user_id={new_user.id}, email={user_data.email}, "
+        f"syndicate_id={user_data.syndicate_id}, created_by={current_user.id}"
+    )
 
-    return {
-        "id": new_user.id,
-        "email": new_user.email,
-        "full_name": new_user.full_name,
-        "role": new_user.role.value if new_user.role else None,
-        "syndicate_id": new_user.syndicate_id,
-        "is_active": new_user.is_active,
-        "is_verified": new_user.is_verified,
-        "created_at": new_user.created_at,
-    }
+    return new_user
 
 
 @router.get("/users/{user_id}")

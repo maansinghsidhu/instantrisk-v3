@@ -29,6 +29,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
   List<Map<String, dynamic>> _uploadedDocs = [];
   List<Map<String, dynamic>> _generatedDocs = [];
   List<Map<String, dynamic>> _pendingJobs = [];
+  List<Map<String, dynamic>> _sanctionsReports = [];
   bool _isLoading = true;
   Timer? _refreshTimer;
   int _previousUploadedCount = 0;
@@ -116,86 +117,6 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     }
   }
 
-  Future<void> _deleteUploadedDocument(String docId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Document'),
-        content: const Text('Are you sure you want to delete this uploaded document?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-
-    try {
-      final response = await authService.delete('/documents/$docId');
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Document deleted')),
-          );
-          _loadDocuments();
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _deleteGeneratedDocument(String docId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Document'),
-        content: const Text('Are you sure you want to delete this generated document?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-
-    try {
-      final response = await authService.delete('/generated-documents/$docId');
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Document deleted')),
-          );
-          _loadDocuments();
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete: $e')),
-        );
-      }
-    }
-  }
-
   Future<void> _loadDocuments() async {
     try {
       setState(() => _isLoading = true);
@@ -220,6 +141,9 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
 
       // Load pending generation jobs
       await _loadPendingJobs();
+
+      // Load sanctions reports
+      await _loadSanctionsReports();
 
       // Track counts for auto-refresh comparison
       _previousUploadedCount = _uploadedDocs.length;
@@ -289,6 +213,34 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     } catch (e) {
       // Continue even if this fails
       _pendingJobs = [];
+    }
+  }
+
+  Future<void> _loadSanctionsReports() async {
+    try {
+      // Get sanctions summary which includes screening history
+      final sanctionsRes = await authService.get(
+          '/sanctions/assessments/${widget.assessmentId}/summary');
+      if (sanctionsRes.statusCode == 200) {
+        final data = jsonDecode(sanctionsRes.body);
+        final screenings = List<Map<String, dynamic>>.from(data['screenings'] ?? []);
+        // Add completed screenings as downloadable reports
+        _sanctionsReports = screenings.where((s) {
+          final status = s['status'] as String?;
+          return status == 'clear' || status == 'match' || status == 'review';
+        }).map((s) => {
+          'id': s['id'],
+          'name': 'Sanctions Report - ${(s['level'] as String).toUpperCase()}',
+          'type': 'sanctions_report',
+          'status': s['status'],
+          'score': s['score'],
+          'completed': s['completed'],
+          'matches': s['matches'],
+        }).toList();
+      }
+    } catch (e) {
+      // Continue even if this fails
+      _sanctionsReports = [];
     }
   }
 
@@ -374,24 +326,24 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        backgroundColor: AppTheme.surfaceOf(context),
+        backgroundColor: AppTheme.surface,
         elevation: 0,
         leading: IconButton(
           onPressed: () => context.pop(),
-          icon: Icon(Icons.arrow_back),
-          color: AppTheme.text1(context),
+          icon: const Icon(Icons.arrow_back),
+          color: AppTheme.textPrimary,
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
+            const Text(
               'Assessment Documents',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.text1(context),
+                color: AppTheme.textPrimary,
                 fontFamily: 'Inter',
               ),
             ),
@@ -400,7 +352,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                 _assessment!['reference_number'] ?? '',
                 style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.text2(context),
+                  color: AppTheme.textSecondary,
                 ),
               ),
           ],
@@ -409,7 +361,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppTheme.primaryDark,
-          unselectedLabelColor: AppTheme.text2(context),
+          unselectedLabelColor: AppTheme.textSecondary,
           indicatorColor: AppTheme.primaryDark,
           tabs: [
             Tab(
@@ -490,6 +442,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     final allItems = [
       ..._pendingJobs.map((j) => {'...data': j, '_type': 'pending'}),
       ..._generatedDocs.map((d) => {'...data': d, '_type': 'generated'}),
+      ..._sanctionsReports.map((r) => {'...data': r, '_type': 'sanctions'}),
     ];
 
     if (allItems.isEmpty) {
@@ -502,7 +455,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
             child: _buildEmptyState(
               icon: Icons.description_outlined,
               title: 'No Generated Documents',
-              subtitle: 'Generated documents will appear here\nPull to refresh',
+              subtitle: 'AI-generated documents will appear here\nPull to refresh',
               actionLabel: 'Generate Documents',
               onAction: () {
                 context.push('/reports/generate/${widget.assessmentId}');
@@ -520,14 +473,14 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
         children: [
           // Pending generation jobs
           if (_pendingJobs.isNotEmpty) ...[
-            Padding(
+            const Padding(
               padding: EdgeInsets.only(bottom: 8),
               child: Text(
                 'GENERATING',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.textH(context),
+                  color: AppTheme.textHint,
                   letterSpacing: 1,
                 ),
               ),
@@ -538,14 +491,14 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
 
           // Generated documents
           if (_generatedDocs.isNotEmpty) ...[
-            Padding(
+            const Padding(
               padding: EdgeInsets.only(bottom: 8),
               child: Text(
                 'GENERATED DOCUMENTS',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.textH(context),
+                  color: AppTheme.textHint,
                   letterSpacing: 1,
                 ),
               ),
@@ -554,6 +507,22 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
             const SizedBox(height: 16),
           ],
 
+          // Sanctions reports
+          if (_sanctionsReports.isNotEmpty) ...[
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Text(
+                'SANCTIONS REPORTS',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textHint,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+            ..._sanctionsReports.map((report) => _buildSanctionsReportCard(report)),
+          ],
         ],
       ),
     );
@@ -568,7 +537,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppTheme.primaryDark.withOpacity(0.3)),
       ),
@@ -598,10 +567,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                     children: [
                       Text(
                         'Generating $docsCount Document${docsCount > 1 ? 's' : ''}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -632,7 +601,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: progress / 100,
-                backgroundColor: AppTheme.borderOf(context),
+                backgroundColor: AppTheme.border,
                 valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryDark),
                 minHeight: 6,
               ),
@@ -642,13 +611,151 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
               description,
               style: TextStyle(
                 fontSize: 12,
-                color: AppTheme.text2(context),
+                color: AppTheme.textSecondary,
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildSanctionsReportCard(Map<String, dynamic> report) {
+    final status = report['status'] ?? 'clear';
+    final score = (report['score'] ?? 0.0);
+    final matches = report['matches'] ?? 0;
+    final completed = report['completed']?.toString().split('T')[0] ?? '';
+
+    Color statusColor;
+    switch (status) {
+      case 'match':
+        statusColor = const Color(0xFFDC2626);
+        break;
+      case 'review':
+        statusColor = const Color(0xFFF59E0B);
+        break;
+      default:
+        statusColor = const Color(0xFF059669);
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.security,
+                color: statusColor,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    report['name'] ?? 'Sanctions Report',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          status.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: statusColor,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$matches matches · ${score.toStringAsFixed(0)}% score',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                IconButton(
+                  onPressed: () => _downloadSanctionsReport(report),
+                  icon: Icon(Icons.download, color: AppTheme.primaryDark),
+                  tooltip: 'Download Report',
+                ),
+                Text(
+                  completed,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: AppTheme.textHint,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _downloadSanctionsReport(Map<String, dynamic> report) async {
+    try {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Preparing sanctions report download...')),
+        );
+      }
+
+      // Use the correct endpoint: /sanctions/assessments/{assessment_id}/report
+      final assessmentId = widget.assessmentId;
+      final downloadUrl = '${authService.baseUrl}/sanctions/assessments/$assessmentId/report?format=pdf';
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+      // Use authenticated download
+      await authService.downloadFile(downloadUrl, 'sanctions_report_$timestamp.pdf');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sanctions report downloaded successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed: $e')),
+        );
+      }
+    }
   }
 
   Widget _buildEmptyState({
@@ -675,10 +782,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
             const SizedBox(height: 24),
             Text(
               title,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.text1(context),
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -687,7 +794,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.text2(context),
+                color: AppTheme.textSecondary,
               ),
             ),
             if (actionLabel != null && onAction != null) ...[
@@ -718,9 +825,9 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderOf(context)),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -748,10 +855,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                     children: [
                       Text(
                         doc['name'] ?? 'Document',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -780,7 +887,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                             doc['status'] ?? 'processed',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.text2(context),
+                              color: AppTheme.textSecondary,
                             ),
                           ),
                         ],
@@ -794,12 +901,6 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                     icon: const Icon(Icons.download, color: AppTheme.primaryDark),
                     tooltip: 'Download',
                   ),
-                if (doc['id'] != null)
-                  IconButton(
-                    onPressed: () => _deleteUploadedDocument(doc['id'].toString()),
-                    icon: Icon(Icons.delete_outline, color: AppTheme.textH(context)),
-                    tooltip: 'Delete',
-                  ),
               ],
             ),
             if (doc['ocr_preview'] != null) ...[
@@ -807,7 +908,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.bg(context),
+                  color: AppTheme.background,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -816,7 +917,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                     height: 1.4,
                   ),
                 ),
@@ -840,9 +941,9 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderOf(context)),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -870,10 +971,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                     children: [
                       Text(
                         title,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -885,7 +986,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                             '${confidence.toStringAsFixed(0)}% confidence',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.text2(context),
+                              color: AppTheme.textSecondary,
                             ),
                           ),
                         ],
@@ -901,9 +1002,9 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppTheme.bg(context),
+              color: AppTheme.background,
               border: Border(
-                top: BorderSide(color: AppTheme.borderOf(context)),
+                top: BorderSide(color: AppTheme.border),
               ),
             ),
             child: Row(
@@ -956,15 +1057,6 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: () {
-                        final docId = doc['id']?.toString();
-                        if (docId != null) _deleteGeneratedDocument(docId);
-                      },
-                      icon: Icon(Icons.delete_outline, color: AppTheme.textH(context), size: 20),
-                      tooltip: 'Delete',
-                    ),
                   ],
                 ),
               ],
@@ -1003,8 +1095,8 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
         label = 'Failed';
         break;
       default:
-        bgColor = AppTheme.borderOf(context);
-        textColor = AppTheme.text2(context);
+        bgColor = AppTheme.border;
+        textColor = AppTheme.textSecondary;
         label = status;
     }
 
@@ -1034,12 +1126,12 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     return Row(
       children: [
         Icon(icon, size: 16, color: color),
-        SizedBox(width: 4),
+        const SizedBox(width: 4),
         Text(
           '$label: ',
           style: TextStyle(
             fontSize: 12,
-            color: AppTheme.text2(context),
+            color: AppTheme.textSecondary,
           ),
         ),
         Text(
@@ -1060,7 +1152,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     if (docType.contains('cover_note')) return AppTheme.success;
     if (docType.contains('quote')) return AppTheme.warning;
     if (docType.contains('certificate')) return AppTheme.secondary;
-    return AppTheme.text2(context);
+    return AppTheme.textSecondary;
   }
 
   IconData _getDocTypeIcon(String docType) {
@@ -1095,8 +1187,8 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
         minChildSize: 0.5,
         maxChildSize: 0.95,
         builder: (context, scrollController) => Container(
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceOf(context),
+          decoration: const BoxDecoration(
+            color: AppTheme.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
@@ -1107,7 +1199,7 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppTheme.borderOf(context),
+                  color: AppTheme.border,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1119,10 +1211,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                     Expanded(
                       child: Text(
                         doc['title'] ?? 'Document Preview',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                     ),
@@ -1155,8 +1247,8 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceOf(context),
-                  border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
+                  color: AppTheme.surface,
+                  border: Border(top: BorderSide(color: AppTheme.border)),
                 ),
                 child: SafeArea(
                   child: Row(
@@ -1209,10 +1301,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: AppTheme.bg(context),
+        color: AppTheme.background,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isComplete ? AppTheme.borderOf(context) : AppTheme.warning.withOpacity(0.5),
+          color: isComplete ? AppTheme.border : AppTheme.warning.withOpacity(0.5),
         ),
       ),
       child: Column(
@@ -1238,10 +1330,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
                 Expanded(
                   child: Text(
                     title,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.text1(context),
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                 ),
@@ -1268,10 +1360,10 @@ class _AssessmentDocumentsScreenState extends State<AssessmentDocumentsScreen>
             padding: const EdgeInsets.all(16),
             child: Text(
               content,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 13,
                 height: 1.6,
-                color: AppTheme.text1(context),
+                color: AppTheme.textPrimary,
               ),
             ),
           ),

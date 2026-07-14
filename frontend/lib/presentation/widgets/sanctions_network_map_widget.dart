@@ -220,10 +220,10 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
                     children: [
                       Text(
                         name,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -297,9 +297,9 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
                           const SizedBox(height: 4),
                           Text(
                             'Matched: $matchedName',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 13,
-                              color: AppTheme.text2(context),
+                              color: AppTheme.textSecondary,
                             ),
                           ),
                         ],
@@ -313,12 +313,12 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
             // Datasets
             if (datasets.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Text(
+              const Text(
                 'SANCTIONS LISTS',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.text2(context),
+                  color: AppTheme.textSecondary,
                   letterSpacing: 1,
                 ),
               ),
@@ -329,16 +329,16 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
                 children: datasets.map((ds) => Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppTheme.bg(context),
+                    color: AppTheme.background,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppTheme.borderOf(context)),
+                    border: Border.all(color: AppTheme.border),
                   ),
                   child: Text(
                     ds.toString().toUpperCase(),
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.text2(context),
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                 )).toList(),
@@ -388,9 +388,9 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
       return Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: AppTheme.surfaceOf(context),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppTheme.borderOf(context)),
+          border: Border.all(color: AppTheme.border),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -398,20 +398,20 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.bg(context),
+                color: AppTheme.background,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.hub_outlined,
                 size: 48,
-                color: AppTheme.textH(context),
+                color: AppTheme.textHint,
               ),
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'No network data available',
               style: TextStyle(
-                color: AppTheme.text1(context),
+                color: AppTheme.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
@@ -421,7 +421,7 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
               'Run "Extensive" screening to generate\nthe entity network map',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppTheme.text2(context),
+                color: AppTheme.textSecondary,
                 fontSize: 13,
                 height: 1.4,
               ),
@@ -433,9 +433,9 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderOf(context)),
+        border: Border.all(color: AppTheme.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -491,20 +491,20 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Entity Network Map',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         '${nodes.length} entities • ${edges.length} connections',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 13,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                     ],
@@ -586,7 +586,7 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
                         ),
                       ),
                       paint: Paint()
-                        ..color = AppTheme.borderOf(context).withOpacity(0.6)
+                        ..color = AppTheme.border.withOpacity(0.6)
                         ..strokeWidth = 2
                         ..style = PaintingStyle.stroke,
                       builder: (Node node) {
@@ -623,10 +623,10 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Text(
                           '${(_currentScale * 100).toInt()}%',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.text2(context),
+                            color: AppTheme.textSecondary,
                           ),
                         ),
                       ),
@@ -666,10 +666,10 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
         const SizedBox(width: 6),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w500,
-            color: AppTheme.text2(context),
+            color: AppTheme.textSecondary,
           ),
         ),
       ],
@@ -683,8 +683,8 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
         onTap: onPressed,
         borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: EdgeInsets.all(10),
-          child: Icon(icon, size: 20, color: AppTheme.text2(context)),
+          padding: const EdgeInsets.all(10),
+          child: Icon(icon, size: 20, color: AppTheme.textSecondary),
         ),
       ),
     );
@@ -769,10 +769,10 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.text1(context),
+                  color: AppTheme.textPrimary,
                   height: 1.2,
                 ),
               ),
@@ -785,7 +785,7 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textH(context),
+                    color: AppTheme.textHint,
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -821,15 +821,15 @@ class _SanctionsNetworkMapWidgetState extends State<SanctionsNetworkMapWidget>
                   children: datasets.take(2).map((ds) => Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppTheme.bg(context),
+                      color: AppTheme.background,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       ds.toString().toUpperCase(),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 8,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.textH(context),
+                        color: AppTheme.textHint,
                       ),
                     ),
                   )).toList(),

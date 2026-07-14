@@ -16,7 +16,7 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   String _selectedFilter = 'All';
-  final List<String> _filters = ['All', 'GO', 'NO-GO', 'PROCESSING'];
+  final List<String> _filters = ['All', 'GO', 'NO-GO', 'REFER'];
   List<AssessmentItem> _assessments = [];
   bool _isLoading = true;
   String? _error;
@@ -124,46 +124,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return _assessments.where((a) => a.status == _selectedFilter).toList();
   }
 
-  Future<void> _deleteAssessment(AssessmentItem assessment) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Assessment'),
-        content: Text('Are you sure you want to delete "${assessment.title}"? This will also remove all generated documents. This cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppTheme.error),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-
-    try {
-      final response = await authService.delete('/assessments/${assessment.id}');
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Assessment deleted')),
-          );
-          _fetchAssessments();
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete: $e')),
-        );
-      }
-    }
-  }
-
   // Rename dialog (available for all tiers)
   Future<void> _showRenameDialog(AssessmentItem assessment) async {
     final controller = TextEditingController(text: assessment.title);
@@ -237,7 +197,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/home/intake'),
         backgroundColor: AppTheme.primaryDark,
@@ -253,21 +213,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.all(20.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     l10n.reports,
-                    style: TextStyle(
-                      fontSize: 22,
+                    style: const TextStyle(
+                      fontSize: 28,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.text1(context),
+                      color: AppTheme.textPrimary,
                       fontFamily: 'Inter',
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.refresh, color: AppTheme.text1(context), size: 20),
+                    icon: const Icon(Icons.refresh, color: AppTheme.textPrimary),
                     onPressed: _fetchAssessments,
                   ),
                 ],
@@ -292,16 +252,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       onSelected: (selected) {
                         setState(() => _selectedFilter = filter);
                       },
-                      backgroundColor: AppTheme.surfaceOf(context),
+                      backgroundColor: AppTheme.surface,
                       selectedColor: AppTheme.primaryDark.withOpacity(0.2),
                       labelStyle: TextStyle(
-                        color: isSelected ? AppTheme.primaryDark : AppTheme.text2(context),
+                        color: isSelected ? AppTheme.primaryDark : AppTheme.textSecondary,
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
-                          color: isSelected ? AppTheme.primaryDark : AppTheme.borderOf(context),
+                          color: isSelected ? AppTheme.primaryDark : AppTheme.border,
                         ),
                       ),
                     ),
@@ -321,8 +281,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(Icons.error_outline, size: 48, color: AppTheme.danger),
-                              SizedBox(height: 16),
-                              Text(_error!, style: TextStyle(color: AppTheme.text2(context))),
+                              const SizedBox(height: 16),
+                              Text(_error!, style: const TextStyle(color: AppTheme.textSecondary)),
                               const SizedBox(height: 16),
                               ElevatedButton(
                                 onPressed: _fetchAssessments,
@@ -337,28 +297,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Container(
-                                    width: 60,
-                                    height: 60,
+                                    width: 80,
+                                    height: 80,
                                     decoration: BoxDecoration(
                                       color: AppTheme.primaryDark.withOpacity(0.1),
                                       shape: BoxShape.circle,
                                     ),
-                                    child: Icon(Icons.assessment_outlined, size: 28, color: AppTheme.primaryDark),
+                                    child: Icon(Icons.assessment_outlined, size: 40, color: AppTheme.primaryDark),
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 20),
                                   Text(
                                     l10n.noData,
-                                    style: TextStyle(
-                                      fontSize: 16,
+                                    style: const TextStyle(
+                                      fontSize: 20,
                                       fontWeight: FontWeight.w600,
-                                      color: AppTheme.text1(context),
+                                      color: AppTheme.textPrimary,
                                     ),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
                                     l10n.uploadDocument,
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(color: AppTheme.text2(context)),
+                                    style: const TextStyle(color: AppTheme.textSecondary),
                                   ),
                                   const SizedBox(height: 24),
                                   ElevatedButton.icon(
@@ -410,15 +370,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
         statusColor = AppTheme.primaryDark;
         break;
       default:
-        statusColor = AppTheme.textH(context);
+        statusColor = AppTheme.textHint;
     }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderOf(context)),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Material(
         color: Colors.transparent,
@@ -444,17 +404,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 : '#${assessment.id}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.textH(context),
+                              color: AppTheme.textHint,
                               fontFamily: 'Inter',
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             assessment.title,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.text1(context),
+                              color: AppTheme.textPrimary,
                               fontFamily: 'Inter',
                             ),
                             maxLines: 1,
@@ -479,24 +439,19 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => _deleteAssessment(assessment),
-                      child: Icon(Icons.delete_outline, size: 20, color: AppTheme.textH(context)),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.business, size: 16, color: AppTheme.textH(context)),
+                    Icon(Icons.business, size: 16, color: AppTheme.textHint),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         assessment.company,
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -534,7 +489,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       'Long press to rename',
                       style: TextStyle(
                         fontSize: 10,
-                        color: AppTheme.textH(context).withOpacity(0.6),
+                        color: AppTheme.textHint.withOpacity(0.6),
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -542,7 +497,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       _formatDate(assessment.date),
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.textH(context),
+                        color: AppTheme.textHint,
                       ),
                     ),
                   ],

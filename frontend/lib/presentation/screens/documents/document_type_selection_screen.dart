@@ -11,21 +11,21 @@ class DocumentTypeSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        backgroundColor: AppTheme.surfaceOf(context),
+        backgroundColor: AppTheme.surface,
         elevation: 0,
         leading: IconButton(
           onPressed: () => context.pop(),
-          icon: Icon(Icons.arrow_back_ios),
-          color: AppTheme.text1(context),
+          icon: const Icon(Icons.arrow_back_ios),
+          color: AppTheme.textPrimary,
         ),
-        title: Text(
+        title: const Text(
           'Create Document',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
             fontFamily: 'Inter',
           ),
         ),
@@ -37,21 +37,21 @@ class DocumentTypeSelectionScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            Text(
+            const Text(
               'What would you like to create?',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.text1(context),
+                color: AppTheme.textPrimary,
                 fontFamily: 'Inter',
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Select a document type to get started with InstantRisk Engine generation',
+              'Select a document type to get started with AI-powered generation',
               style: TextStyle(
                 fontSize: 15,
-                color: AppTheme.text2(context),
+                color: AppTheme.textSecondary,
                 height: 1.4,
               ),
             ),
@@ -159,7 +159,7 @@ class DocumentTypeSelectionScreen extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppTheme.borderOf(context)),
+        side: BorderSide(color: AppTheme.border),
       ),
       child: InkWell(
         onTap: () {
@@ -197,10 +197,10 @@ class DocumentTypeSelectionScreen extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.text1(context),
+                        color: AppTheme.textPrimary,
                         fontFamily: 'Inter',
                       ),
                     ),
@@ -209,7 +209,7 @@ class DocumentTypeSelectionScreen extends StatelessWidget {
                       description,
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppTheme.text2(context),
+                        color: AppTheme.textSecondary,
                         height: 1.3,
                       ),
                     ),
@@ -226,14 +226,14 @@ class DocumentTypeSelectionScreen extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: AppTheme.bg(context),
+                            color: AppTheme.background,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             feature,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
-                              color: AppTheme.text2(context),
+                              color: AppTheme.textSecondary,
                             ),
                           ),
                         );
@@ -246,7 +246,7 @@ class DocumentTypeSelectionScreen extends StatelessWidget {
               // Arrow
               Icon(
                 Icons.arrow_forward_ios,
-                color: AppTheme.textH(context),
+                color: AppTheme.textHint,
                 size: 16,
               ),
             ],

@@ -206,12 +206,12 @@ How can I help you today?''',
     final isNewConversation = _conversationId == null || _conversationId == 'new';
 
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        backgroundColor: AppTheme.surfaceOf(context),
+        backgroundColor: AppTheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
           onPressed: () => context.go('/chat'),
         ),
         title: Row(
@@ -240,10 +240,10 @@ How can I help you today?''',
                 children: [
                   Text(
                     isNewConversation ? AppLocalizations.of(context).newChat : AppLocalizations.of(context).aiAssistant,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.text1(context),
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                   Row(
@@ -279,12 +279,12 @@ How can I help you today?''',
             IconButton(
               icon: Badge(
                 label: Text('${_currentSources.length}'),
-                child: Icon(Icons.source_outlined, color: AppTheme.text1(context)),
+                child: const Icon(Icons.source_outlined, color: AppTheme.textPrimary),
               ),
               onPressed: _showSources,
             ),
           IconButton(
-            icon: Icon(Icons.refresh, color: AppTheme.text1(context)),
+            icon: const Icon(Icons.refresh, color: AppTheme.textPrimary),
             onPressed: _conversationId != null ? _loadConversation : null,
           ),
         ],
@@ -356,7 +356,7 @@ How can I help you today?''',
                         ? AppTheme.primaryDark
                         : message.isError
                             ? AppTheme.error.withOpacity(0.1)
-                            : AppTheme.surfaceOf(context),
+                            : AppTheme.surface,
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(16),
                       topRight: const Radius.circular(16),
@@ -366,7 +366,7 @@ How can I help you today?''',
                     border: message.isUser
                         ? null
                         : Border.all(
-                            color: message.isError ? AppTheme.error : AppTheme.borderOf(context),
+                            color: message.isError ? AppTheme.error : AppTheme.border,
                           ),
                   ),
                   child: Column(
@@ -380,7 +380,7 @@ How can I help you today?''',
                               ? Colors.white
                               : message.isError
                                   ? AppTheme.error
-                                  : AppTheme.text1(context),
+                                  : AppTheme.textPrimary,
                           height: 1.5,
                         ),
                       ),
@@ -392,7 +392,7 @@ How can I help you today?''',
                             _formatTimestamp(message.timestamp),
                             style: TextStyle(
                               fontSize: 10,
-                              color: message.isUser ? Colors.white60 : AppTheme.textH(context),
+                              color: message.isUser ? Colors.white60 : AppTheme.textHint,
                             ),
                           ),
                           if (!message.isUser && message.sources != null && message.sources!.isNotEmpty) ...[
@@ -478,14 +478,14 @@ How can I help you today?''',
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceOf(context),
+                color: AppTheme.surface,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
                   bottomLeft: Radius.circular(4),
                   bottomRight: Radius.circular(16),
                 ),
-                border: Border.all(color: AppTheme.borderOf(context)),
+                border: Border.all(color: AppTheme.border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -506,7 +506,7 @@ How can I help you today?''',
                           _thinkingMessage,
                           style: TextStyle(
                             fontSize: 13,
-                            color: AppTheme.text2(context),
+                            color: AppTheme.textSecondary,
                             fontStyle: FontStyle.italic,
                           ),
                         ),
@@ -517,9 +517,9 @@ How can I help you today?''',
                   if (_streamingResponse.isNotEmpty)
                     SelectableText(
                       _streamingResponse,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
-                        color: AppTheme.text1(context),
+                        color: AppTheme.textPrimary,
                         height: 1.5,
                       ),
                     ),
@@ -566,8 +566,8 @@ How can I help you today?''',
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Padding(
-          padding: EdgeInsets.all(6),
-          child: Icon(icon, size: 16, color: AppTheme.textH(context)),
+          padding: const EdgeInsets.all(6),
+          child: Icon(icon, size: 16, color: AppTheme.textHint),
         ),
       ),
     );
@@ -577,7 +577,7 @@ How can I help you today?''',
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
+        color: AppTheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -591,7 +591,7 @@ How can I help you today?''',
         child: Row(
           children: [
             IconButton(
-              icon: Icon(Icons.attach_file, color: AppTheme.text2(context)),
+              icon: const Icon(Icons.attach_file, color: AppTheme.textSecondary),
               onPressed: () {
                 // TODO: Attach document for context
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -602,7 +602,7 @@ How can I help you today?''',
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: AppTheme.bg(context),
+                  color: AppTheme.background,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: TextField(
@@ -629,7 +629,7 @@ How can I help you today?''',
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                color: _isStreaming ? AppTheme.textH(context) : null,
+                color: _isStreaming ? AppTheme.textHint : null,
                 shape: BoxShape.circle,
               ),
               child: IconButton(
@@ -657,7 +657,7 @@ How can I help you today?''',
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.surfaceOf(context),
+      backgroundColor: AppTheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -673,7 +673,7 @@ How can I help you today?''',
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppTheme.borderOf(context),
+                color: AppTheme.border,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -685,10 +685,10 @@ How can I help you today?''',
                   const SizedBox(width: 8),
                   Text(
                     '${AppLocalizations.of(context).knowledgeSources} (${sources.length})',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.text1(context),
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                 ],
@@ -706,9 +706,9 @@ How can I help you today?''',
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppTheme.bg(context),
+                      color: AppTheme.background,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderOf(context)),
+                      border: Border.all(color: AppTheme.border),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -735,7 +735,7 @@ How can I help you today?''',
                               '${((source['relevance'] ?? 0) * 100).toInt()}% match',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: AppTheme.textH(context),
+                                color: AppTheme.textHint,
                               ),
                             ),
                           ],
@@ -743,18 +743,18 @@ How can I help you today?''',
                         const SizedBox(height: 8),
                         Text(
                           source['title'] ?? 'Document',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.text1(context),
+                            color: AppTheme.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           source['snippet'] ?? '',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 13,
-                            color: AppTheme.text2(context),
+                            color: AppTheme.textSecondary,
                             height: 1.4,
                           ),
                           maxLines: 3,

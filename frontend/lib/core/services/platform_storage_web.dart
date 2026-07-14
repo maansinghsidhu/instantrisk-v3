@@ -1,4 +1,4 @@
-// ignore: avoid_web_libraries_in_flutter
+// ignore: avoid_web_libraries_in_flutter, deprecated_member_use
 import "dart:html" as html;
 
 /// Web implementation of PlatformStorage using window.localStorage
@@ -22,29 +22,11 @@ class PlatformStorage {
   }
 }
 
-/// Get the base URL for the backend API.
-/// When hosted on S3/CloudFront, use the ALB CloudFront (HTTPS).
-/// When on localhost or ALB directly, use the same host.
-/// Override with --dart-define=BASE_URL=... for integration tests.
+/// Get the same-origin API URL for browser builds.
+///
+/// CloudFront forwards `/api/*` to the FastAPI origin, so keeping requests on
+/// the current origin preserves TLS and the Authorization header without CORS
+/// or mixed-content fallbacks.
 String getPlatformBaseUrl() {
-  // Allow override via --dart-define for integration tests
-  const overrideUrl = String.fromEnvironment('BASE_URL', defaultValue: '');
-  if (overrideUrl.isNotEmpty) return overrideUrl;
-
-  final location = html.window.location;
-  final host = location.host;
-
-  // If on CloudFront or S3 website, use same origin /api/v1 path (CloudFront routes /api/* to ALB)
-  if (host.contains('cloudfront') || host.contains('s3-website')) {
-    return "${location.protocol}//$host/api/v1";
-  }
-
-  // Local dev: frontend on :3000, backend on :8000
-  if (host.contains('localhost') || host.contains('127.0.0.1')) {
-    return "http://localhost:8000/api/v1";
-  }
-
-  // Otherwise use same host (ALB direct access)
-  final protocol = location.protocol;
-  return "$protocol//$host/api/v1";
+  return "${html.window.location.origin}/api/v1";
 }

@@ -376,17 +376,5 @@
   "onboardingTitle3": "24/7 Versicherungs-KI-Assistent",
   "onboardingDesc3": "Erhalten Sie sofortige Antworten auf Versicherungsfragen von unserer KI, die mit 20GB+ Lloyd's-Marktwissen trainiert wurde",
   "skip": "Überspringen",
-  "getStartedNow": "Loslegen",
-  "clickCalculatePricing": "Klicken Sie auf Berechnen, um eine technische Prämie für dieses Risiko zu erstellen.",
-  "discard": "Verwerfen",
-  "discardChangesMessage": "Sie haben nicht gespeicherte Änderungen. Möchten Sie diese verwerfen?",
-  "discardChangesQuestion": "Änderungen verwerfen?",
-  "failedToSaveLanguage": "Sprachpräferenz konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
-  "languageChangedTo": "Sprache geändert zu {languageName}",
-  "noAiAnalysisYet": "Noch keine KI-Analyse verfügbar.\nKlicken Sie auf Analysieren, um Risikoeinblicke zu erstellen.",
-  "pricingNotAvailableDeclined": "Preisgestaltung für abgelehnte Risiken nicht verfügbar.",
-  "rtlLabel": "RTL",
-  "saveLanguagePreference": "Sprachpräferenz speichern",
-  "undo": "Rückgängig",
-  "unsavedChangesPressSave": "Sie haben nicht gespeicherte Änderungen. Drücken Sie Speichern, um die neue Sprache anzuwenden."
+  "getStartedNow": "Loslegen"
 }

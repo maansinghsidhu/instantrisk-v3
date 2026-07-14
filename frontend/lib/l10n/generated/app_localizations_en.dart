@@ -126,7 +126,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pricingEngine => 'Pricing Engine';
 
   @override
-  String get pricingEngineSubtitle => 'InstantRisk Engine pricing models';
+  String get pricingEngineSubtitle => 'AI-powered pricing models';
 
   @override
   String get dataQuality => 'Data Quality';
@@ -536,7 +536,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get generateDocuments => 'Generate Documents';
 
   @override
-  String get aiRecommendedDocuments => 'Recommended Documents';
+  String get aiRecommendedDocuments => 'AI Recommended Documents';
 
   @override
   String get selectDocumentsToGenerate => 'Select the documents you want to generate';
@@ -554,7 +554,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get generatingDocuments => 'Generating Documents';
 
   @override
-  String get aiAgentsWorking => 'InstantRisk Engine is generating your documents';
+  String get aiAgentsWorking => 'AI agents are working on your documents';
 
   @override
   String get complete => 'Complete';
@@ -627,7 +627,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newChat => 'New Chat';
 
   @override
-  String get aiAssistant => 'InstantRisk Assistant';
+  String get aiAssistant => 'AI Assistant';
 
   @override
   String get knowledgeSources => 'Knowledge Sources';
@@ -780,10 +780,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get newAssessment => 'New Assessment';
 
   @override
-  String get aiPoweredAnalysis => 'InstantRisk Engine Analysis';
+  String get aiPoweredAnalysis => 'AI-Powered Analysis';
 
   @override
-  String get riskTypeAutoDetected => 'Risk type will be automatically detected from your documents using the InstantRisk Engine';
+  String get riskTypeAutoDetected => 'Risk type will be automatically detected from your documents using OCR & AI';
 
   @override
   String get addDocuments => 'Add Documents';
@@ -923,7 +923,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contractGenerations => 'Contract Generations';
 
   @override
-  String get aiChatMessages => 'Engine Chat Messages';
+  String get aiChatMessages => 'AI Chat Messages';
 
   @override
   String get documentStorage => 'Document Storage';
@@ -1188,10 +1188,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pleaseAcceptTerms => 'Please accept the terms and conditions';
 
   @override
-  String get onboardingTitle1 => 'InstantRisk Engine Assessment';
+  String get onboardingTitle1 => 'AI-Powered Risk Assessment';
 
   @override
-  String get onboardingDesc1 => 'Upload insurance documents and get instant risk analysis with GO/NO-GO recommendations powered by the InstantRisk Engine';
+  String get onboardingDesc1 => 'Upload insurance documents and get instant AI-powered risk analysis with GO/NO-GO recommendations';
 
   @override
   String get onboardingTitle2 => 'Smart Document Generation';
@@ -1200,10 +1200,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingDesc2 => 'Generate professional insurance documents, contracts, and clauses tailored to Lloyd\'s market standards';
 
   @override
-  String get onboardingTitle3 => '24/7 InstantRisk Assistant';
+  String get onboardingTitle3 => '24/7 Insurance AI Assistant';
 
   @override
-  String get onboardingDesc3 => 'Get instant answers to insurance questions from the InstantRisk Engine trained on Lloyd\'s market knowledge';
+  String get onboardingDesc3 => 'Get instant answers to insurance questions from our AI trained on 20GB+ of Lloyd\'s market knowledge';
 
   @override
   String get skip => 'Skip';

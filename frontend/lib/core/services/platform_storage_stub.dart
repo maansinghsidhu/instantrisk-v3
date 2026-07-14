@@ -17,5 +17,5 @@ class PlatformStorage {
 
 /// Get the base URL for the current platform
 String getPlatformBaseUrl() {
-  return "https://d2ci3ptu2ygeo3.cloudfront.net/api/v1";
+  return "https://ir.alexandratechlab.com/api/v1";
 }

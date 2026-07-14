@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/chat_service.dart';
+import '../../../core/services/subscription_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../widgets/common/screen_header.dart';
+import '../../widgets/feature_gate_widget.dart';
 
 /// Chat Home Screen - List of chat conversations with AI assistant
 class ChatHomeScreen extends StatefulWidget {
@@ -53,57 +54,30 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     }
   }
 
-  Future<void> _deleteConversation(Conversation conversation) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Conversation'),
-        content: Text('Delete "${conversation.title}"? This cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    try {
-      final success = await _chatService.deleteConversation(conversation.id);
-      if (success && mounted) {
-        setState(() {
-          _conversations.removeWhere((c) => c.id == conversation.id);
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Conversation deleted')),
-        );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to delete conversation'), backgroundColor: Colors.red),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
+    // Check if user has access to ClaimSense chat
+    if (!subscriptionService.hasFeature('claimsense_chat')) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        body: SafeArea(
+          child: Center(
+            child: PremiumLockedBanner(
+              featureName: 'claimsense_chat',
+              onUpgrade: () => showDialog(
+                context: context,
+                builder: (context) => const UpgradeDialog(featureName: 'claimsense_chat'),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadData,
@@ -111,21 +85,74 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
             slivers: [
               // Header
               SliverToBoxAdapter(
-                child: ScreenHeader(
-                  title: l10n.chat,
-                  subtitle: l10n.analysis,
-                  badge: 'RAG-Powered',
-                  badgeColor: AppTheme.primaryLight,
-                  actions: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                l10n.chat,
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.textPrimary,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [AppTheme.primaryDark, AppTheme.accent],
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  'RAG',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.analysis,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.textSecondary,
+                              fontFamily: 'Inter',
+                            ),
+                          ),
+                        ],
                       ),
-                      child: const Icon(Icons.auto_awesome, color: Colors.white, size: 22),
-                    ),
-                  ],
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppTheme.primaryDark, AppTheme.accent],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.auto_awesome,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
@@ -135,12 +162,16 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryDark,
+                      gradient: LinearGradient(
+                        colors: [AppTheme.primaryDark, AppTheme.primaryLight],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primaryDark.withOpacity(0.2),
-                          blurRadius: 10,
+                          color: AppTheme.primaryDark.withOpacity(0.3),
+                          blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
                       ],
@@ -213,7 +244,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceOf(context),
+                      color: AppTheme.surface,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: AppTheme.primaryDark.withOpacity(0.3)),
                     ),
@@ -243,21 +274,21 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
+                                    const Text(
                                       'Chat with Documents',
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
-                                        color: AppTheme.text1(context),
+                                        color: AppTheme.textPrimary,
                                         fontFamily: 'Inter',
                                       ),
                                     ),
                                     const SizedBox(height: 2),
-                                    Text(
+                                    const Text(
                                       'Upload and analyze your documents',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: AppTheme.text2(context),
+                                        color: AppTheme.textSecondary,
                                         fontFamily: 'Inter',
                                       ),
                                     ),
@@ -266,7 +297,7 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                               ),
                               Icon(
                                 Icons.arrow_forward_ios,
-                                color: AppTheme.textH(context),
+                                color: AppTheme.textHint,
                                 size: 16,
                               ),
                             ],
@@ -274,6 +305,23 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                         ),
                       ),
                     ),
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+              // Knowledge Base Stats
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Row(
+                    children: [
+                      _buildStatCard('34K+', 'Clauses', Icons.description_outlined),
+                      const SizedBox(width: 12),
+                      _buildStatCard('20GB', 'Knowledge', Icons.storage_outlined),
+                      const SizedBox(width: 12),
+                      _buildStatCard('10', 'Languages', Icons.translate),
+                    ],
                   ),
                 ),
               ),
@@ -289,10 +337,10 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                       children: [
                         Text(
                           l10n.quickAnalysis,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.text1(context),
+                            color: AppTheme.textPrimary,
                             fontFamily: 'Inter',
                           ),
                         ),
@@ -321,19 +369,19 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
                     children: [
                       Text(
                         l10n.chat,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                           fontFamily: 'Inter',
                         ),
                       ),
                       if (_conversations.isNotEmpty)
                         Text(
                           '${_conversations.length} ${l10n.chat}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
-                            color: AppTheme.text2(context),
+                            color: AppTheme.textSecondary,
                           ),
                         ),
                     ],
@@ -368,6 +416,40 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
     );
   }
 
+  Widget _buildStatCard(String value, String label, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: AppTheme.accent, size: 20),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildQuickAction(BuildContext context, String text) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -377,9 +459,9 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceOf(context),
+            color: AppTheme.surface,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.borderOf(context)),
+            border: Border.all(color: AppTheme.border),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -388,9 +470,9 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
               const SizedBox(width: 8),
               Text(
                 text,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 13,
-                  color: AppTheme.text1(context),
+                  color: AppTheme.textPrimary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -402,141 +484,87 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
   }
 
   Widget _buildConversationItem(BuildContext context, Conversation conversation) {
-    return Dismissible(
-      key: Key(conversation.id),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(
-          color: Colors.red,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.delete_outline, color: Colors.white),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.border),
       ),
-      confirmDismiss: (direction) async {
-        return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Delete Conversation'),
-            content: Text('Delete "${conversation.title}"?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('Delete'),
-              ),
-            ],
-          ),
-        );
-      },
-      onDismissed: (_) async {
-        final success = await _chatService.deleteConversation(conversation.id);
-        if (mounted) {
-          setState(() {
-            _conversations.removeWhere((c) => c.id == conversation.id);
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(success ? 'Conversation deleted' : 'Failed to delete'),
-            ),
-          );
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceOf(context),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.go('/chat/conversation/${conversation.id}'),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.borderOf(context)),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => context.go('/chat/conversation/${conversation.id}'),
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryDark.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppTheme.primaryDark.withOpacity(0.1), AppTheme.accent.withOpacity(0.1)],
                     ),
-                    child: const Icon(
-                      Icons.chat_bubble_outline,
-                      color: AppTheme.primaryDark,
-                      size: 22,
-                    ),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                conversation.title,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.text1(context),
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Text(
-                              _formatTimestamp(conversation.lastMessageAt),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.textH(context),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Text(
-                              '${conversation.messageCount}',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppTheme.text2(context),
-                              ),
-                            ),
-                            const Spacer(),
-                            GestureDetector(
-                              onTap: () => _deleteConversation(conversation),
-                              child: Icon(
-                                Icons.delete_outline,
-                                size: 18,
-                                color: AppTheme.textH(context),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              size: 14,
-                              color: AppTheme.textH(context),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                  child: const Icon(
+                    Icons.chat_bubble_outline,
+                    color: AppTheme.primaryDark,
+                    size: 22,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              conversation.title,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textPrimary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Text(
+                            _formatTimestamp(conversation.lastMessageAt),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textHint,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(
+                            '${conversation.messageCount}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                          const Spacer(),
+                          const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 14,
+                            color: AppTheme.textHint,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -552,7 +580,9 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppTheme.primaryDark.withOpacity(0.08),
+              gradient: LinearGradient(
+                colors: [AppTheme.primaryDark.withOpacity(0.1), AppTheme.accent.withOpacity(0.1)],
+              ),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -564,19 +594,19 @@ class _ChatHomeScreenState extends State<ChatHomeScreen> {
           const SizedBox(height: 20),
           Text(
             l10n.noData,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: AppTheme.text1(context),
+              color: AppTheme.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             l10n.quickAnalysis,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: AppTheme.text2(context),
+              color: AppTheme.textSecondary,
               height: 1.5,
             ),
           ),

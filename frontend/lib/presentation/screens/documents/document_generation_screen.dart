@@ -10,8 +10,6 @@ import '../../../core/services/subscription_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../widgets/clause_selector_widget.dart';
 import '../../widgets/feature_gate_widget.dart';
-// God Mode: Vision OCR confidence
-import '../../widgets/vision/property_risk_card.dart';
 
 /// Document Generation Screen - AI-Powered Document Generation from Assessments
 class DocumentGenerationScreen extends ConsumerStatefulWidget {
@@ -151,149 +149,6 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
         );
       }
     }
-  }
-
-  void _showGenerationConfirmation() {
-    if (_selectedDocs.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one document to generate')),
-      );
-      return;
-    }
-
-    // Get selected document names
-    final selectedDocNames = _suggestions
-        .where((doc) => _selectedDocs.contains(doc['document_type']?.toString()))
-        .map((doc) => doc['template_name'] as String? ?? (doc['document_type'] as String).replaceAll('_', ' '))
-        .toList();
-
-    // Get language name
-    final langName = _availableLanguages
-        .firstWhere((l) => l['code'] == _selectedLanguage, orElse: () => {'name': 'English'})['name']!;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryDark.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.summarize, color: AppTheme.primaryDark, size: 24),
-            ),
-            const SizedBox(width: 12),
-            const Text('Generation Summary'),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Documents
-              Text(
-                'Documents (${selectedDocNames.length})',
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              ...selectedDocNames.map((name) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  children: [
-                    const Icon(Icons.description, size: 16, color: AppTheme.primaryDark),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(name, style: const TextStyle(fontSize: 13))),
-                  ],
-                ),
-              )),
-              const Divider(height: 24),
-
-              // Clauses
-              Row(
-                children: [
-                  Text(
-                    'Selected Clauses: ${_selectedClauses.length}',
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${_selectedClauses.length}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const Divider(height: 24),
-
-              // Language
-              Row(
-                children: [
-                  const Icon(Icons.language, size: 16),
-                  const SizedBox(width: 8),
-                  Text('Language: $langName', style: const TextStyle(fontSize: 13)),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Pipeline info
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.info.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.info.withOpacity(0.2)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.auto_awesome, size: 16, color: AppTheme.info),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'InstantRisk Engine will generate, validate, and refine your documents.',
-                        style: TextStyle(fontSize: 12, color: AppTheme.info),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Back to Review'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              _startGeneration();
-            },
-            icon: const Icon(Icons.rocket_launch, size: 18),
-            label: const Text('Generate Documents'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryDark,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _startGeneration() async {
@@ -475,21 +330,21 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
     // Check if user has access to document generation
     if (!subscriptionService.hasFeature('document_generation')) {
       return Scaffold(
-        backgroundColor: AppTheme.bg(context),
+        backgroundColor: AppTheme.background,
         appBar: AppBar(
-          backgroundColor: AppTheme.surfaceOf(context),
+          backgroundColor: AppTheme.surface,
           elevation: 0,
           leading: IconButton(
             onPressed: () => context.pop(),
-            icon: Icon(Icons.arrow_back),
-            color: AppTheme.text1(context),
+            icon: const Icon(Icons.arrow_back),
+            color: AppTheme.textPrimary,
           ),
-          title: Text(
+          title: const Text(
             'Generate Documents',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
-              color: AppTheme.text1(context),
+              color: AppTheme.textPrimary,
               fontFamily: 'Inter',
             ),
           ),
@@ -508,21 +363,21 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        backgroundColor: AppTheme.surfaceOf(context),
+        backgroundColor: AppTheme.surface,
         elevation: 0,
         leading: IconButton(
           onPressed: () => context.pop(),
-          icon: Icon(Icons.arrow_back),
-          color: AppTheme.text1(context),
+          icon: const Icon(Icons.arrow_back),
+          color: AppTheme.textPrimary,
         ),
-        title: Text(
+        title: const Text(
           'Generate Documents',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
             fontFamily: 'Inter',
           ),
         ),
@@ -561,10 +416,10 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
           const SizedBox(height: 24),
           Text(
             _loadingStatus,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppTheme.text1(context),
+              color: AppTheme.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
@@ -572,7 +427,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
             'Preparing document generation...',
             style: TextStyle(
               fontSize: 14,
-              color: AppTheme.text2(context),
+              color: AppTheme.textSecondary,
             ),
           ),
         ],
@@ -589,21 +444,21 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
             Icon(
               Icons.description_outlined,
               size: 64,
-              color: AppTheme.textH(context),
+              color: AppTheme.textHint,
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'No documents suggested',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.text2(context),
+                color: AppTheme.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Complete the assessment to get document suggestions',
-              style: TextStyle(color: AppTheme.textH(context)),
+              style: TextStyle(color: AppTheme.textHint),
             ),
           ],
         ),
@@ -618,19 +473,10 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // God Mode: Vision OCR confidence card
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  child: PropertyRiskCard(
-                    assessmentId: widget.assessmentId,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
                 // Document Suggestions Header
                 Container(
-                  padding: EdgeInsets.all(16),
-                  color: AppTheme.surfaceOf(context),
+                  padding: const EdgeInsets.all(16),
+                  color: AppTheme.surface,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -638,12 +484,12 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                         children: [
                           const Icon(Icons.description, size: 20, color: AppTheme.primaryDark),
                           const SizedBox(width: 8),
-                          Text(
+                          const Text(
                             'AI Recommended Documents',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.text1(context),
+                              color: AppTheme.textPrimary,
                             ),
                           ),
                         ],
@@ -653,7 +499,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                         'Select the documents you want to generate',
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                     ],
@@ -670,8 +516,8 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
 
                 // Language Selection Section
                 Container(
-                  padding: EdgeInsets.all(16),
-                  color: AppTheme.surfaceOf(context),
+                  padding: const EdgeInsets.all(16),
+                  color: AppTheme.surface,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -679,12 +525,12 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                         children: [
                           const Icon(Icons.language, size: 20, color: AppTheme.primaryDark),
                           const SizedBox(width: 8),
-                          Text(
+                          const Text(
                             'Document Language',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.text1(context),
+                              color: AppTheme.textPrimary,
                             ),
                           ),
                         ],
@@ -693,7 +539,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          border: Border.all(color: AppTheme.borderOf(context)),
+                          border: Border.all(color: AppTheme.border),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: DropdownButtonHideUnderline(
@@ -732,7 +578,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceOf(context),
+            color: AppTheme.surface,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -745,10 +591,10 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _selectedDocs.isEmpty ? null : _showGenerationConfirmation,
+                onPressed: _selectedDocs.isEmpty ? null : _startGeneration,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryDark,
-                  disabledBackgroundColor: AppTheme.borderOf(context),
+                  disabledBackgroundColor: AppTheme.border,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -761,7 +607,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: _selectedDocs.isEmpty ? AppTheme.textH(context) : Colors.white,
+                    color: _selectedDocs.isEmpty ? AppTheme.textHint : Colors.white,
                   ),
                 ),
               ),
@@ -784,7 +630,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isSelected ? AppTheme.primaryDark : AppTheme.borderOf(context),
+          color: isSelected ? AppTheme.primaryDark : AppTheme.border,
           width: isSelected ? 2 : 1,
         ),
       ),
@@ -811,7 +657,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   color: isSelected ? AppTheme.primaryDark : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: isSelected ? AppTheme.primaryDark : AppTheme.borderOf(context),
+                    color: isSelected ? AppTheme.primaryDark : AppTheme.border,
                     width: 2,
                   ),
                 ),
@@ -830,10 +676,10 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                       children: [
                         Text(
                           suggestion['template_name'] as String? ?? docType.replaceAll('_', ' '),
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.text1(context),
+                            color: AppTheme.textPrimary,
                           ),
                         ),
                         if (isMandatory) ...[
@@ -859,35 +705,35 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                     const SizedBox(height: 4),
                     Text(
                       suggestion['reason'] as String? ?? '',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 13,
-                        color: AppTheme.text2(context),
+                        color: AppTheme.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.psychology_outlined, size: 14, color: AppTheme.textH(context)),
+                        const Icon(Icons.psychology_outlined, size: 14, color: AppTheme.textHint),
                         const SizedBox(width: 4),
                         Text(
                           'AI Confidence: ${(confidence * 100).toInt()}%',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 12,
-                            color: AppTheme.textH(context),
+                            color: AppTheme.textHint,
                           ),
                         ),
                         const SizedBox(width: 16),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: AppTheme.borderOf(context),
+                            color: AppTheme.border,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             'Priority ${suggestion['priority'] ?? 1}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 11,
-                              color: AppTheme.text2(context),
+                              color: AppTheme.textSecondary,
                             ),
                           ),
                         ),
@@ -907,9 +753,9 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderOf(context)),
+        border: Border.all(color: AppTheme.border),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -940,19 +786,19 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Clauses Library',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       Text(
-                        'Insurance clauses with AI recommendations',
+                        '102,000+ clauses with AI recommendations',
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                     ],
@@ -1095,12 +941,12 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
+                    const Text(
                       'Select Clauses for Document',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.text1(context),
+                        color: AppTheme.textPrimary,
                       ),
                     ),
                     IconButton(
@@ -1114,7 +960,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
               // Clause selector widget
               Expanded(
                 child: ClauseSelectorWidget(
-                  assessmentId: widget.assessmentId,
+                  assessmentId: int.tryParse(widget.assessmentId),
                   selectedClauseIds: _selectedClauses,
                   onSelectionChanged: (selectedIds) {
                     setState(() {
@@ -1131,7 +977,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
+                  border: Border(top: BorderSide(color: AppTheme.border)),
                 ),
                 child: SizedBox(
                   width: double.infinity,
@@ -1172,20 +1018,20 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
             const SizedBox(height: 20),
 
             // Header
-            Text(
+            const Text(
               'Generating Documents',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: AppTheme.text1(context),
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'InstantRisk Engine is generating your documents',
+              'AI agents are working on your documents',
               style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.text2(context),
+                color: AppTheme.textSecondary,
               ),
             ),
 
@@ -1201,7 +1047,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   CircularProgressIndicator(
                     value: _progressPercentage / 100,
                     strokeWidth: 14,
-                    backgroundColor: AppTheme.borderOf(context),
+                    backgroundColor: AppTheme.border,
                     color: AppTheme.primaryDark,
                   ),
                   Column(
@@ -1209,17 +1055,17 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                     children: [
                       Text(
                         '$_progressPercentage%',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 42,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
-                      Text(
+                      const Text(
                         'Complete',
                         style: TextStyle(
                           fontSize: 16,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                     ],
@@ -1248,10 +1094,10 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                         children: [
                           Text(
                             _currentAgent!,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.text1(context),
+                              color: AppTheme.textPrimary,
                             ),
                           ),
                           if (_currentDescription != null) ...[
@@ -1260,7 +1106,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                               _currentDescription!,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: AppTheme.text2(context),
+                                color: AppTheme.textSecondary,
                               ),
                             ),
                           ],
@@ -1296,14 +1142,14 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.terminal, size: 16, color: AppTheme.text2(context)),
+                      Icon(Icons.terminal, size: 16, color: AppTheme.textSecondary),
                       const SizedBox(width: 8),
-                      Text(
+                      const Text(
                         'Live Activity',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                     ],
@@ -1315,7 +1161,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                       style: TextStyle(
                         fontSize: 12,
                         fontFamily: 'monospace',
-                        color: AppTheme.text2(context),
+                        color: AppTheme.textSecondary,
                       ),
                     )
                   else
@@ -1335,7 +1181,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                                     ? Colors.green
                                     : step['status'] == 'running'
                                         ? AppTheme.primaryDark
-                                        : AppTheme.textH(context),
+                                        : AppTheme.textHint,
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -1345,8 +1191,8 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                                     fontSize: 12,
                                     fontFamily: 'monospace',
                                     color: step['status'] == 'running'
-                                        ? AppTheme.text1(context)
-                                        : AppTheme.text2(context),
+                                        ? AppTheme.textPrimary
+                                        : AppTheme.textSecondary,
                                   ),
                                 ),
                               ),
@@ -1379,15 +1225,15 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   CircularProgressIndicator(
                     value: _progressPercentage / 100,
                     strokeWidth: 8,
-                    backgroundColor: AppTheme.borderOf(context),
+                    backgroundColor: AppTheme.border,
                     color: AppTheme.primaryDark,
                   ),
                   Text(
                     '$_progressPercentage%',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.text1(context),
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                 ],
@@ -1404,10 +1250,10 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   const SizedBox(width: 12),
                   Text(
                     _currentAgent!,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.text1(context),
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                 ],
@@ -1419,9 +1265,9 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
               Text(
                 _currentDescription!,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
-                  color: AppTheme.text2(context),
+                  color: AppTheme.textSecondary,
                 ),
               ),
 
@@ -1444,84 +1290,84 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
       // Phase 1: Research
       case 'RiskResearcher':
         icon = Icons.search;
-        color = AppTheme.phaseResearch;
+        color = const Color(0xFF3B82F6);
         break;
       case 'ClauseExtractor':
         icon = Icons.content_paste_search;
-        color = AppTheme.phaseResearch;
+        color = const Color(0xFF3B82F6);
         break;
       case 'GapAnalyzer':
         icon = Icons.find_replace;
-        color = AppTheme.phaseResearch;
+        color = const Color(0xFF3B82F6);
         break;
       // Phase 2: Structure
       case 'ClauseManager':
         icon = Icons.library_books;
-        color = AppTheme.phaseStructure;
+        color = const Color(0xFF8B5CF6);
         break;
       case 'StructurePlanner':
         icon = Icons.account_tree;
-        color = AppTheme.phaseStructure;
+        color = const Color(0xFF8B5CF6);
         break;
       case 'LloydFormatter':
         icon = Icons.format_align_left;
-        color = AppTheme.phaseStructure;
+        color = const Color(0xFF8B5CF6);
         break;
       // Phase 3: Compose
       case 'SectionDrafter':
         icon = Icons.edit_document;
-        color = AppTheme.phaseCompose;
+        color = const Color(0xFF10B981);
         break;
       case 'ConsistencyChecker':
         icon = Icons.fact_check;
-        color = AppTheme.phaseCompose;
+        color = const Color(0xFF10B981);
         break;
       case 'ToneUnifier':
         icon = Icons.record_voice_over;
-        color = AppTheme.phaseCompose;
+        color = const Color(0xFF10B981);
         break;
       // Phase 4: Validate
       case 'RiskChallenger':
         icon = Icons.gavel;
-        color = AppTheme.phaseValidate;
+        color = const Color(0xFFF59E0B);
         break;
       case 'ClauseVerifier':
         icon = Icons.verified_user;
-        color = AppTheme.phaseValidate;
+        color = const Color(0xFFF59E0B);
         break;
       case 'ComplianceReviewer':
         icon = Icons.policy;
-        color = AppTheme.phaseValidate;
+        color = const Color(0xFFF59E0B);
         break;
       // Phase 5: Refine
       case 'HouseStyleAgent':
         icon = Icons.style;
-        color = AppTheme.phaseRefine;
+        color = const Color(0xFFEC4899);
         break;
       case 'LanguageVarier':
         icon = Icons.text_rotation_none;
-        color = AppTheme.phaseRefine;
+        color = const Color(0xFFEC4899);
         break;
       case 'ProofReader':
         icon = Icons.spellcheck;
-        color = AppTheme.phaseRefine;
+        color = const Color(0xFFEC4899);
         break;
       case 'ClauseCompiler':
         icon = Icons.integration_instructions;
-        color = AppTheme.phaseRefine;
+        color = const Color(0xFFEC4899);
         break;
       // Phase 6: Export
       case 'ScheduleBuilder':
         icon = Icons.table_chart;
-        color = AppTheme.phaseExport;
+        color = const Color(0xFF6366F1);
         break;
       case 'PDFExporter':
         icon = Icons.picture_as_pdf;
-        color = AppTheme.phaseExport;
+        color = const Color(0xFF6366F1);
         break;
       case 'QualityGate':
         icon = Icons.check_circle_outline;
-        color = AppTheme.phaseExport;
+        color = const Color(0xFF6366F1);
         break;
       default:
         icon = Icons.smart_toy;
@@ -1542,12 +1388,12 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
   Widget _buildAgentPipeline() {
     // Show 6 phases instead of individual agents for compact display
     final phases = [
-      {'name': 'Research', 'icon': Icons.search, 'color': AppTheme.phaseResearch, 'threshold': 16},
-      {'name': 'Structure', 'icon': Icons.account_tree, 'color': AppTheme.phaseStructure, 'threshold': 32},
-      {'name': 'Compose', 'icon': Icons.edit_document, 'color': AppTheme.phaseCompose, 'threshold': 48},
-      {'name': 'Validate', 'icon': Icons.verified, 'color': AppTheme.phaseValidate, 'threshold': 64},
-      {'name': 'Refine', 'icon': Icons.auto_fix_high, 'color': AppTheme.phaseRefine, 'threshold': 84},
-      {'name': 'Export', 'icon': Icons.output, 'color': AppTheme.phaseExport, 'threshold': 100},
+      {'name': 'Research', 'icon': Icons.search, 'color': const Color(0xFF3B82F6), 'threshold': 16},
+      {'name': 'Structure', 'icon': Icons.account_tree, 'color': const Color(0xFF8B5CF6), 'threshold': 32},
+      {'name': 'Compose', 'icon': Icons.edit_document, 'color': const Color(0xFF10B981), 'threshold': 48},
+      {'name': 'Validate', 'icon': Icons.verified, 'color': const Color(0xFFF59E0B), 'threshold': 64},
+      {'name': 'Refine', 'icon': Icons.auto_fix_high, 'color': const Color(0xFFEC4899), 'threshold': 84},
+      {'name': 'Export', 'icon': Icons.output, 'color': const Color(0xFF6366F1), 'threshold': 100},
     ];
 
     return Row(
@@ -1571,12 +1417,12 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   decoration: BoxDecoration(
                     color: isActive
                         ? phaseColor.withOpacity(isCurrent ? 1 : 0.2)
-                        : AppTheme.borderOf(context),
+                        : AppTheme.border,
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Icon(
                     phase['icon'] as IconData,
-                    color: isActive ? (isCurrent ? Colors.white : phaseColor) : AppTheme.textH(context),
+                    color: isActive ? (isCurrent ? Colors.white : phaseColor) : AppTheme.textHint,
                     size: 18,
                   ),
                 ),
@@ -1586,7 +1432,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w400,
-                    color: isActive ? AppTheme.text1(context) : AppTheme.textH(context),
+                    color: isActive ? AppTheme.textPrimary : AppTheme.textHint,
                   ),
                 ),
               ],
@@ -1595,7 +1441,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
               Container(
                 width: 16,
                 height: 2,
-                color: isActive && !isCurrent ? phaseColor : AppTheme.borderOf(context),
+                color: isActive && !isCurrent ? phaseColor : AppTheme.border,
                 margin: const EdgeInsets.only(bottom: 16),
               ),
           ],
@@ -1629,9 +1475,9 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                     ),
                     Text(
                       '${_generatedDocs.length} document${_generatedDocs.length > 1 ? 's' : ''} ready for review',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 13,
-                        color: AppTheme.text2(context),
+                        color: AppTheme.textSecondary,
                       ),
                     ),
                   ],
@@ -1654,7 +1500,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceOf(context),
+            color: AppTheme.surface,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -1727,7 +1573,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
         statusColor = Colors.orange;
         break;
       default:
-        statusColor = AppTheme.text2(context);
+        statusColor = AppTheme.textSecondary;
     }
 
     return Card(
@@ -1735,7 +1581,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppTheme.borderOf(context)),
+        side: BorderSide(color: AppTheme.border),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1764,10 +1610,10 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                     children: [
                       Text(
                         doc['title'] as String? ?? 'Untitled',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1791,9 +1637,9 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                           const SizedBox(width: 8),
                           Text(
                             '${(confidence * 100).toInt()}% confidence',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
-                              color: AppTheme.textH(context),
+                              color: AppTheme.textHint,
                             ),
                           ),
                         ],
@@ -1844,21 +1690,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                     }
                   },
                   icon: const Icon(Icons.visibility_outlined, size: 18),
-                  label: const Text('View'),
-                ),
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: () {
-                    final docId = doc['id']?.toString();
-                    if (docId != null) {
-                      context.push('/documents/edit/$docId');
-                    }
-                  },
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text('Edit'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.primaryDark,
-                  ),
+                  label: const Text('Preview'),
                 ),
                 const SizedBox(width: 8),
                 if (status != 'finalized')
@@ -1874,7 +1706,7 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Document finalized successfully')),
                           );
-                          _loadGeneratedDocuments();
+                          _loadGeneratedDocuments(); // Refresh the list
                         }
                       } catch (e) {
                         if (mounted) {
@@ -1884,10 +1716,10 @@ class _DocumentGenerationScreenState extends ConsumerState<DocumentGenerationScr
                         }
                       }
                     },
-                    icon: const Icon(Icons.check_circle_outline, size: 18),
+                    icon: const Icon(Icons.download, size: 18),
                     label: const Text('Finalize'),
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.green,
+                      foregroundColor: AppTheme.primaryDark,
                     ),
                   ),
               ],

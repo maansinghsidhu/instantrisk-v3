@@ -148,12 +148,12 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       body: CustomScrollView(
         slivers: [
           // App Bar
           SliverAppBar(
-            backgroundColor: AppTheme.surfaceOf(context),
+            backgroundColor: AppTheme.surface,
             elevation: 0,
             pinned: true,
             expandedHeight: 200,
@@ -232,27 +232,27 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen> {
                 onChanged: (value) => setState(() => _searchQuery = value),
                 decoration: InputDecoration(
                   hintText: 'Search documents, clauses, policies...',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: Icon(Icons.clear),
+                          icon: const Icon(Icons.clear),
                           onPressed: () => setState(() => _searchQuery = ''),
                         )
                       : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppTheme.borderOf(context)),
+                    borderSide: BorderSide(color: AppTheme.border),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppTheme.borderOf(context)),
+                    borderSide: BorderSide(color: AppTheme.border),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Color(0xFF2563EB), width: 2),
+                    borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
                   ),
                   filled: true,
-                  fillColor: AppTheme.surfaceOf(context),
+                  fillColor: AppTheme.surface,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
               ),
@@ -379,9 +379,9 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen> {
           Icon(
             icon,
             size: 16,
-            color: isSelected ? Colors.white : AppTheme.text2(context),
+            color: isSelected ? Colors.white : AppTheme.textSecondary,
           ),
-          SizedBox(width: 6),
+          const SizedBox(width: 6),
           Text(label),
         ],
       ),
@@ -389,14 +389,14 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen> {
       onSelected: (selected) {
         setState(() => _selectedFilter = filter);
       },
-      backgroundColor: AppTheme.surfaceOf(context),
+      backgroundColor: AppTheme.surface,
       selectedColor: const Color(0xFF2563EB),
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : AppTheme.text2(context),
+        color: isSelected ? Colors.white : AppTheme.textSecondary,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
       ),
       side: BorderSide(
-        color: isSelected ? Color(0xFF2563EB) : AppTheme.borderOf(context),
+        color: isSelected ? const Color(0xFF2563EB) : AppTheme.border,
       ),
       showCheckmark: false,
     );
@@ -414,7 +414,7 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppTheme.borderOf(context)),
+        side: BorderSide(color: AppTheme.border),
       ),
       child: InkWell(
         onTap: () => _showCategoryDetails(category),
@@ -446,7 +446,7 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen> {
                     onPressed: () => _toggleFavorite(categoryId),
                     icon: Icon(
                       isFavorite ? Icons.star : Icons.star_border,
-                      color: isFavorite ? Colors.amber : AppTheme.textH(context),
+                      color: isFavorite ? Colors.amber : AppTheme.textHint,
                       size: 22,
                     ),
                     padding: EdgeInsets.zero,
@@ -458,10 +458,10 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen> {
               // Name
               Text(
                 category['name']?.toString() ?? 'Unknown',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.text1(context),
+                  color: AppTheme.textPrimary,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -471,9 +471,9 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen> {
               Expanded(
                 child: Text(
                   category['description']?.toString() ?? '',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                     height: 1.3,
                   ),
                   maxLines: 2,
@@ -502,9 +502,9 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen> {
                   const Spacer(),
                   Text(
                     '${_formatNumber(docCount)} docs',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11,
-                      color: AppTheme.text2(context),
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                 ],
@@ -518,7 +518,7 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen> {
                       borderRadius: BorderRadius.circular(2),
                       child: LinearProgressIndicator(
                         value: (sizeMb / 1000).clamp(0.0, 1.0),
-                        backgroundColor: AppTheme.borderOf(context),
+                        backgroundColor: AppTheme.border,
                         valueColor: AlwaysStoppedAnimation<Color>(color.withOpacity(0.6)),
                         minHeight: 3,
                       ),
@@ -529,9 +529,9 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen> {
                     sizeMb >= 1000
                         ? '${(sizeMb / 1024).toStringAsFixed(1)}GB'
                         : '${sizeMb.toStringAsFixed(0)}MB',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 10,
-                      color: AppTheme.textH(context),
+                      color: AppTheme.textHint,
                     ),
                   ),
                 ],
@@ -569,17 +569,17 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen> {
           Icon(
             _selectedFilter == 'favorites' ? Icons.star_border : Icons.search_off,
             size: 64,
-            color: AppTheme.textH(context),
+            color: AppTheme.textHint,
           ),
           const SizedBox(height: 16),
           Text(
             _selectedFilter == 'favorites'
                 ? 'No favorites yet'
                 : 'No documents found',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: AppTheme.text2(context),
+              color: AppTheme.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
@@ -587,9 +587,9 @@ class _TemplatesScreenState extends ConsumerState<TemplatesScreen> {
             _selectedFilter == 'favorites'
                 ? 'Tap the star icon on any category to add it to favorites'
                 : 'Try adjusting your search or filter',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: AppTheme.textH(context),
+              color: AppTheme.textHint,
             ),
             textAlign: TextAlign.center,
           ),
@@ -692,8 +692,8 @@ class _CategoryDetailSheetState extends State<_CategoryDetailSheet> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
+      decoration: const BoxDecoration(
+        color: AppTheme.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -704,7 +704,7 @@ class _CategoryDetailSheetState extends State<_CategoryDetailSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppTheme.borderOf(context),
+              color: AppTheme.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -730,17 +730,17 @@ class _CategoryDetailSheetState extends State<_CategoryDetailSheet> {
                     children: [
                       Text(
                         widget.category['name']?.toString() ?? 'Category',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       Text(
                         '$_totalDocs documents',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                     ],
@@ -761,9 +761,9 @@ class _CategoryDetailSheetState extends State<_CategoryDetailSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
               widget.category['description']?.toString() ?? '',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
-                color: AppTheme.text2(context),
+                color: AppTheme.textSecondary,
                 height: 1.4,
               ),
             ),
@@ -805,7 +805,7 @@ class _CategoryDetailSheetState extends State<_CategoryDetailSheet> {
                 prefixIcon: const Icon(Icons.search, size: 20),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: AppTheme.borderOf(context)),
+                  borderSide: BorderSide(color: AppTheme.border),
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 isDense: true,
@@ -823,7 +823,7 @@ class _CategoryDetailSheetState extends State<_CategoryDetailSheet> {
                           _searchQuery.isNotEmpty
                               ? 'No documents match your search'
                               : 'No documents in this category',
-                          style: TextStyle(color: AppTheme.text2(context)),
+                          style: const TextStyle(color: AppTheme.textSecondary),
                         ),
                       )
                     : ListView.builder(
@@ -849,19 +849,19 @@ class _CategoryDetailSheetState extends State<_CategoryDetailSheet> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: AppTheme.borderOf(context)),
+        side: BorderSide(color: AppTheme.border),
       ),
       child: ListTile(
         leading: Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: AppTheme.bg(context),
+            color: AppTheme.background,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
             _getFileIcon(extension),
-            color: AppTheme.text2(context),
+            color: AppTheme.textSecondary,
             size: 22,
           ),
         ),
@@ -1006,9 +1006,9 @@ class _DocumentPreviewDialog extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Color(0xFFF8FAFC),
+                  color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.borderOf(context)),
+                  border: Border.all(color: AppTheme.border),
                 ),
                 child: SingleChildScrollView(
                   child: SelectableText(

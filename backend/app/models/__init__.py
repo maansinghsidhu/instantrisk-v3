@@ -138,7 +138,7 @@ __all__ = [
     "AdminAction",
     # Share Link model
     "ShareLink",
- ]
+]
 
 from app.models.chat import ChatMessage, ChatConversation, ChatFeedback
 
@@ -157,3 +157,11 @@ from app.models.user_model import UserModelAdapter
 # Global Event Intelligence (GDELT, USGS, NOAA, NASA FIRMS, CISA)
 from app.models.global_event import GlobalEvent
 
+# Email Integration (OAuth + IMAP ingestion)
+from app.models.email_integration import (
+    EmailConnection,
+    EmailIngestionEvent,
+    EmailProvider,
+    ConnectionStatus,
+    AuthMethod,
+)

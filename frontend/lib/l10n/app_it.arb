@@ -387,20 +387,5 @@
   "onboardingTitle3": "Assistente IA assicurativo 24/7",
   "onboardingDesc3": "Ottieni risposte immediate alle domande assicurative dalla nostra IA addestrata su oltre 20GB di conoscenze Lloyd's",
   "skip": "Salta",
-  "getStartedNow": "Inizia",
-  "analysisCanContinueInBackground": "Puoi chiudere questa finestra. L'analisi continuerà in background.",
-  "clickCalculatePricing": "Clicca su Calcola per generare un premio tecnico per questo rischio.",
-  "discard": "Scarta",
-  "discardChangesMessage": "Hai modifiche non salvate. Vuoi scartarle?",
-  "discardChangesQuestion": "Scartare le modifiche?",
-  "expandLiveResults": "Mostra risultati in tempo reale",
-  "failedToSaveLanguage": "Impossibile salvare la preferenza della lingua. Riprova.",
-  "languageChangedTo": "Lingua cambiata in {languageName}",
-  "minimizeLiveResults": "Riduci",
-  "noAiAnalysisYet": "Nessuna analisi AI disponibile ancora.\nClicca su Analizza per generare informazioni sui rischi.",
-  "pricingNotAvailableDeclined": "Prezzo non disponibile per i rischi rifiutati.",
-  "rtlLabel": "RTL",
-  "saveLanguagePreference": "Salva preferenza lingua",
-  "undo": "Annulla",
-  "unsavedChangesPressSave": "Hai modifiche non salvate. Premi Salva per applicare la nuova lingua."
+  "getStartedNow": "Inizia"
 }

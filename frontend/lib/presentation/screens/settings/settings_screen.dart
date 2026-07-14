@@ -5,13 +5,16 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/documents_prefetch_service.dart';
 import '../../../core/services/language_service.dart';
-import '../../../core/services/theme_service.dart';
-import '../../../core/services/subscription_service.dart';
 import '../../../core/models/language_model.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../widgets/common/screen_header.dart';
 
 /// Settings Screen - App settings and account management
+/// Integrations section title
+const String _integrationsSectionTitle = 'Integrations';
+
+/// Integrations tile subtitle
+const String _integrationsSubtitle = 'Connect Gmail or Outlook for automated intake';
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -23,19 +26,6 @@ class SettingsScreen extends ConsumerWidget {
     return role == 'admin' || role == 'superadmin';
   }
 
-  /// Get current theme mode label
-  String _getThemeModeLabel(WidgetRef ref) {
-    final mode = ref.watch(themeProvider).themeModeString;
-    switch (mode) {
-      case 'light':
-        return 'Light mode';
-      case 'dark':
-        return 'Dark mode';
-      default:
-        return 'System default';
-    }
-  }
-
   /// Get badge text for pending approvals (only shown for admins)
   String? _getPendingApprovalsBadge() {
     // In a real implementation, this would check actual pending count
@@ -45,21 +35,29 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     final languageState = ref.watch(languageProvider);
     final currentLanguageInfo = getLanguageInfo(languageState.languageCode);
 
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              ScreenHeader(
-                title: l10n.settings,
-                subtitle: 'Account & preferences',
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Text(
+                  l10n.settings,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                    fontFamily: 'Inter',
+                  ),
+                ),
               ),
 
               // Profile Card
@@ -68,9 +66,9 @@ class SettingsScreen extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceOf(context),
+                    color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.borderOf(context)),
+                    border: Border.all(color: AppTheme.border),
                   ),
                   child: InkWell(
                     onTap: () => context.go('/settings/profile'),
@@ -94,28 +92,28 @@ class SettingsScreen extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'John Doe',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
-                                  color: AppTheme.text1(context),
+                                  color: AppTheme.textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text(
+                              const Text(
                                 'john.doe@company.com',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: AppTheme.text2(context),
+                                  color: AppTheme.textSecondary,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        Icon(
+                        const Icon(
                           Icons.arrow_forward_ios,
-                          color: AppTheme.textH(context),
+                          color: AppTheme.textHint,
                           size: 18,
                         ),
                       ],
@@ -126,8 +124,8 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // Account Section
-              _buildSectionTitle(context, l10n.account),
-              _buildSettingsGroup(context, [
+              _buildSectionTitle(l10n.account),
+              _buildSettingsGroup([
                 _buildSettingsItem(
                   context,
                   icon: Icons.person_outline,
@@ -154,8 +152,8 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // Team & Admin Section
-              _buildSectionTitle(context, l10n.teamAdmin),
-              _buildSettingsGroup(context, [
+              _buildSectionTitle(l10n.teamAdmin),
+              _buildSettingsGroup([
                 _buildSettingsItem(
                   context,
                   icon: Icons.groups_outlined,
@@ -180,20 +178,13 @@ class SettingsScreen extends ConsumerWidget {
                     badge: _getPendingApprovalsBadge(),
                     onTap: () => context.go('/settings/approvals'),
                   ),
-                  _buildSettingsItem(
-                    context,
-                    icon: Icons.admin_panel_settings,
-                    title: 'Admin Panel',
-                    subtitle: 'Users, billing, audit log',
-                    onTap: () => context.go('/admin'),
-                  ),
-                 ],
-               ]),
+                ],
+              ]),
               const SizedBox(height: 24),
 
               // App Settings Section
-              _buildSectionTitle(context, l10n.appSettings),
-              _buildSettingsGroup(context, [
+              _buildSectionTitle(l10n.appSettings),
+              _buildSettingsGroup([
                 _buildSettingsItem(
                   context,
                   icon: Icons.language_outlined,
@@ -214,23 +205,37 @@ class SettingsScreen extends ConsumerWidget {
                   context,
                   icon: Icons.palette_outlined,
                   title: l10n.appearance,
-                  subtitle: _getThemeModeLabel(ref),
+                  subtitle: l10n.appearanceSubtitle,
                   onTap: () {
-                    context.push('/settings/appearance');
+                    // TODO: Navigate to appearance settings
                   },
+                ),
+              ]),
+              const SizedBox(height: 24),
+              // Integrations Section
+              _buildSectionTitle(_integrationsSectionTitle),
+              _buildSettingsGroup([
+                _buildSettingsItem(
+                  context,
+                  icon: Icons.email_outlined,
+                  title: 'Email & file integrations',
+                  subtitle: _integrationsSubtitle,
+                  onTap: () => context.go('/settings/integrations'),
                 ),
               ]),
               const SizedBox(height: 24),
 
               // Support Section
-              _buildSectionTitle(context, l10n.support),
-              _buildSettingsGroup(context, [
+              _buildSectionTitle(l10n.support),
+              _buildSettingsGroup([
                 _buildSettingsItem(
                   context,
                   icon: Icons.help_outline,
                   title: l10n.helpCenter,
                   subtitle: l10n.helpCenterSubtitle,
-                  onTap: () => context.go('/settings/help'),
+                  onTap: () {
+                    // TODO: Navigate to help center
+                  },
                 ),
                 _buildSettingsItem(
                   context,
@@ -254,20 +259,15 @@ class SettingsScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // About Section
-              _buildSectionTitle(context, l10n.about),
-              _buildSettingsGroup(context, [
+              _buildSectionTitle(l10n.about),
+              _buildSettingsGroup([
                 _buildSettingsItem(
                   context,
                   icon: Icons.info_outline,
                   title: l10n.aboutInstantRisk,
                   subtitle: 'Version 5.0.0 - Enterprise Security',
                   onTap: () {
-                    showAboutDialog(
-                      context: context,
-                      applicationName: 'InstantRisk',
-                      applicationVersion: 'v5.0.0',
-                      applicationLegalese: '\u00a9 2026 InstantRisk. All rights reserved.\nAI-Powered Insurance Underwriting Platform.',
-                    );
+                    // TODO: Show about dialog
                   },
                 ),
                 _buildSettingsItem(
@@ -321,29 +321,29 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSectionTitle(BuildContext context, String title) {
+  Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Text(
         title,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: AppTheme.text2(context),
+          color: AppTheme.textSecondary,
           letterSpacing: 0.5,
         ),
       ),
     );
   }
 
-  Widget _buildSettingsGroup(BuildContext context, List<Widget> children) {
+  Widget _buildSettingsGroup(List<Widget> children) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
       child: Container(
         decoration: BoxDecoration(
-          color: AppTheme.surfaceOf(context),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.borderOf(context)),
+          border: Border.all(color: AppTheme.border),
         ),
         child: Column(
           children: children,
@@ -386,10 +386,10 @@ class SettingsScreen extends ConsumerWidget {
                       children: [
                         Text(
                           title,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
-                            color: AppTheme.text1(context),
+                            color: AppTheme.textPrimary,
                           ),
                         ),
                         if (badge != null) ...[
@@ -416,18 +416,18 @@ class SettingsScreen extends ConsumerWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 13,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                     ],
                   ],
                 ),
               ),
-              Icon(
+              const Icon(
                 Icons.arrow_forward_ios,
-                color: AppTheme.textH(context),
+                color: AppTheme.textHint,
                 size: 16,
               ),
             ],
@@ -451,7 +451,7 @@ class SettingsScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               l10n.cancel,
-              style: TextStyle(color: AppTheme.text2(context)),
+              style: const TextStyle(color: AppTheme.textSecondary),
             ),
           ),
           TextButton(

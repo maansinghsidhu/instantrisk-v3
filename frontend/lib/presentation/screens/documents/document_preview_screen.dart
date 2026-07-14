@@ -62,46 +62,6 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
 
   bool _isExporting = false;
 
-  Future<void> _deleteDocument() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Document'),
-        content: const Text('Are you sure you want to delete this document? This cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-
-    try {
-      final response = await authService.delete('/generated-documents/${widget.documentId}');
-      if (response.statusCode == 204 || response.statusCode == 200) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Document deleted')),
-          );
-          context.pop();
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete: $e')),
-        );
-      }
-    }
-  }
-
   Future<void> _exportDocument(String format) async {
     if (_isExporting) return;
 
@@ -219,7 +179,7 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.bg(context),
+                color: AppTheme.background,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -318,28 +278,28 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        backgroundColor: AppTheme.surfaceOf(context),
+        backgroundColor: AppTheme.surface,
         elevation: 0,
         leading: IconButton(
           onPressed: () => context.pop(),
-          icon: Icon(Icons.arrow_back_ios),
-          color: AppTheme.text1(context),
+          icon: const Icon(Icons.arrow_back_ios),
+          color: AppTheme.textPrimary,
         ),
-        title: Text(
+        title: const Text(
           'Document Ready',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
             fontFamily: 'Inter',
           ),
         ),
         centerTitle: true,
         actions: [
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, color: AppTheme.text1(context)),
+            icon: const Icon(Icons.more_vert, color: AppTheme.textPrimary),
             onSelected: (value) {
               switch (value) {
                 case 'pdf':
@@ -352,9 +312,6 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                   context.push('/documents/edit/${widget.documentId}', extra: {
                     'assessmentId': widget.assessmentId,
                   });
-                  break;
-                case 'delete':
-                  _deleteDocument();
                   break;
               }
             },
@@ -390,17 +347,6 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                   ],
                 ),
               ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                    SizedBox(width: 12),
-                    Text('Delete', style: TextStyle(color: Colors.red)),
-                  ],
-                ),
-              ),
             ],
           ),
         ],
@@ -431,7 +377,7 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
-                color: AppTheme.text2(context),
+                color: AppTheme.textSecondary,
               ),
             ),
             const SizedBox(height: 24),
@@ -456,10 +402,10 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
     if (draftContent != null && draftContent is Map) {
       final sections = draftContent['sections'] as List<dynamic>? ?? [];
       content = sections.map((section) {
-        final heading = section['title'] as String? ?? '';
+        final heading = section['heading'] as String? ?? '';
         final body = section['content'] as String? ?? '';
-        return heading.isNotEmpty ? '=== $heading ===\n\n$body' : body;
-      }).join('\n\n---\n\n');
+        return heading.isNotEmpty ? '$heading\n\n$body' : body;
+      }).join('\n\n');
     } else {
       content = _document?['content'] as String? ?? '';
     }
@@ -477,7 +423,7 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
         statusColor = AppTheme.warning;
         break;
       default:
-        statusColor = AppTheme.text2(context);
+        statusColor = AppTheme.textSecondary;
     }
 
     return Column(
@@ -516,11 +462,11 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Text(
+                        const Text(
                           'AI Quality Score: ',
                           style: TextStyle(
                             fontSize: 13,
-                            color: AppTheme.text2(context),
+                            color: AppTheme.textSecondary,
                           ),
                         ),
                         Text(
@@ -596,9 +542,9 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceOf(context),
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderOf(context)),
+                border: Border.all(color: AppTheme.border),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
@@ -616,10 +562,10 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                       children: [
                         Text(
                           title.toUpperCase(),
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.text1(context),
+                            color: AppTheme.textPrimary,
                             letterSpacing: 1.2,
                           ),
                           textAlign: TextAlign.center,
@@ -655,10 +601,10 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                   if (content.isNotEmpty)
                     Text(
                       content,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 13,
                         height: 1.6,
-                        color: AppTheme.text1(context),
+                        color: AppTheme.textPrimary,
                       ),
                     )
                   else
@@ -668,14 +614,14 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
                           Icon(
                             Icons.article_outlined,
                             size: 48,
-                            color: AppTheme.textH(context).withOpacity(0.5),
+                            color: AppTheme.textHint.withOpacity(0.5),
                           ),
                           const SizedBox(height: 12),
-                          Text(
+                          const Text(
                             'Document content will be displayed here',
                             style: TextStyle(
                               fontSize: 14,
-                              color: AppTheme.text2(context),
+                              color: AppTheme.textSecondary,
                             ),
                           ),
                         ],
@@ -691,7 +637,7 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceOf(context),
+            color: AppTheme.surface,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -777,7 +723,7 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
     required VoidCallback onTap,
   }) {
     return Material(
-      color: AppTheme.bg(context),
+      color: AppTheme.background,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: onTap,
@@ -785,20 +731,20 @@ class _DocumentPreviewScreenState extends State<DocumentPreviewScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            border: Border.all(color: AppTheme.borderOf(context)),
+            border: Border.all(color: AppTheme.border),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 18, color: AppTheme.text2(context)),
+              Icon(icon, size: 18, color: AppTheme.textSecondary),
               const SizedBox(width: 6),
               Text(
                 label,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: AppTheme.text1(context),
+                  color: AppTheme.textPrimary,
                 ),
               ),
             ],

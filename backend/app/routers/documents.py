@@ -98,10 +98,11 @@ async def process_document_ocr(document_id: int):
             document.mark_processing()
             await db.commit()
 
-            # Initialize OCR service and process
+            # `file_path` is stored relative to the configured upload root so
+            # downloads and background OCR resolve the same durable file.
+            full_path = Path(settings.resolved_upload_dir) / document.file_path
             ocr_service = OCRService()
-            ocr_result = await ocr_service.process_document(document.file_path)
-
+            ocr_result = await ocr_service.process_document(str(full_path))
             document.mark_completed(
                 ocr_text=ocr_result["text"], confidence=ocr_result["confidence"]
             )

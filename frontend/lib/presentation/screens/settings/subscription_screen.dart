@@ -47,20 +47,20 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
           onPressed: () => context.go('/settings'),
         ),
         title: Text(
           l10n.subscription,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
             fontFamily: 'Inter',
           ),
         ),
@@ -79,19 +79,19 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceOf(context),
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderOf(context)),
+                border: Border.all(color: AppTheme.border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'This Month\'s Usage',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.text1(context),
+                      color: AppTheme.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -99,7 +99,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   const SizedBox(height: 16),
                   _buildUsageItem('Contract Generations', 28, 50, AppTheme.accent),
                   const SizedBox(height: 16),
-                  _buildUsageItem('Engine Chat Messages', 156, 500, AppTheme.info),
+                  _buildUsageItem('AI Chat Messages', 156, 500, AppTheme.info),
                   const SizedBox(height: 16),
                   _buildUsageItem('Document Storage', 2.4, 10, AppTheme.warning, suffix: 'GB'),
                 ],
@@ -108,12 +108,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             const SizedBox(height: 24),
 
             // Available Plans
-            Text(
+            const Text(
               'Available Plans',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.text1(context),
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 16),
@@ -164,7 +164,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               features: [
                 'Everything in Basic',
                 'Sanctions Screening',
-                'InstantRisk Engine Chat',
+                'ClaimSense AI Chat',
                 'Document Generation',
                 'Deep Analysis Mode',
                 'Unlimited assessments',
@@ -177,27 +177,27 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             const SizedBox(height: 24),
 
             // Billing History
-            Text(
+            const Text(
               'Billing History',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.text1(context),
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
-                color: AppTheme.surfaceOf(context),
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderOf(context)),
+                border: Border.all(color: AppTheme.border),
               ),
               child: Column(
                 children: [
                   _buildBillingItem('Jan 23, 2026', 'Professional Plan', '\u20AC79.00'),
-                  Divider(height: 1, color: AppTheme.borderOf(context)),
+                  const Divider(height: 1, color: AppTheme.border),
                   _buildBillingItem('Dec 23, 2025', 'Professional Plan', '\u20AC79.00'),
-                  Divider(height: 1, color: AppTheme.borderOf(context)),
+                  const Divider(height: 1, color: AppTheme.border),
                   _buildBillingItem('Nov 23, 2025', 'Professional Plan', '\u20AC79.00'),
                 ],
               ),
@@ -208,9 +208,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceOf(context),
+                color: AppTheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderOf(context)),
+                border: Border.all(color: AppTheme.border),
               ),
               child: Row(
                 children: [
@@ -230,13 +230,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      children: const [
                         Text(
                           'Visa ending in 4242',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
-                            color: AppTheme.text1(context),
+                            color: AppTheme.textPrimary,
                           ),
                         ),
                         SizedBox(height: 2),
@@ -244,7 +244,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           'Expires 12/2027',
                           style: TextStyle(
                             fontSize: 13,
-                            color: AppTheme.text2(context),
+                            color: AppTheme.textSecondary,
                           ),
                         ),
                       ],
@@ -282,17 +282,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           children: [
             Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
-                color: AppTheme.text1(context),
+                color: AppTheme.textPrimary,
               ),
             ),
             Text(
               '${used.toStringAsFixed(suffix.isNotEmpty ? 1 : 0)}$suffix / ${total.toStringAsFixed(0)}$suffix',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.text2(context),
+                color: AppTheme.textSecondary,
               ),
             ),
           ],
@@ -302,7 +302,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
             value: percentage,
-            backgroundColor: AppTheme.borderOf(context),
+            backgroundColor: AppTheme.border,
             valueColor: AlwaysStoppedAnimation<Color>(color),
             minHeight: 8,
           ),
@@ -327,10 +327,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppTheme.surfaceOf(context),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppTheme.primaryDark : AppTheme.borderOf(context),
+            color: isSelected ? AppTheme.primaryDark : AppTheme.border,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -344,10 +344,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   children: [
                     Text(
                       name,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.text1(context),
+                        color: AppTheme.textPrimary,
                       ),
                     ),
                     if (isPopular) ...[
@@ -407,17 +407,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               children: [
                 Text(
                   price,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.text1(context),
+                    color: AppTheme.textPrimary,
                   ),
                 ),
                 Text(
                   period,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                   ),
                 ),
               ],
@@ -435,9 +435,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       const SizedBox(width: 8),
                       Text(
                         feature,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                     ],
@@ -480,18 +480,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               children: [
                 Text(
                   description,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: AppTheme.text1(context),
+                    color: AppTheme.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   date,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 13,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                   ),
                 ),
               ],
@@ -499,10 +499,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           ),
           Text(
             amount,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppTheme.text1(context),
+              color: AppTheme.textPrimary,
             ),
           ),
           const SizedBox(width: 8),

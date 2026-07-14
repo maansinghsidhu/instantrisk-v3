@@ -373,20 +373,5 @@
   "onboardingTitle3": "24/7保险AI助手",
   "onboardingDesc3": "从我们基于20GB+ Lloyd's市场知识训练的AI获取保险问题的即时解答",
   "skip": "跳过",
-  "getStartedNow": "开始使用",
-  "analysisCanContinueInBackground": "您可以关闭此窗口。分析将在后台继续。",
-  "clickCalculatePricing": "点击计算为此风险生成技术保费。",
-  "discard": "放弃",
-  "discardChangesMessage": "您有未保存的更改。是否要放弃这些更改？",
-  "discardChangesQuestion": "放弃更改？",
-  "expandLiveResults": "显示实时结果",
-  "failedToSaveLanguage": "保存语言偏好失败，请重试。",
-  "languageChangedTo": "语言已更改为{languageName}",
-  "minimizeLiveResults": "最小化",
-  "noAiAnalysisYet": "暂无AI分析。\n点击分析以生成风险洞察。",
-  "pricingNotAvailableDeclined": "已拒绝风险不提供定价。",
-  "rtlLabel": "RTL",
-  "saveLanguagePreference": "保存语言偏好",
-  "undo": "撤销",
-  "unsavedChangesPressSave": "您有未保存的更改。按保存以应用新语言。"
+  "getStartedNow": "开始使用"
 }

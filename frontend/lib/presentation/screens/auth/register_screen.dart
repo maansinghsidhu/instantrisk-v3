@@ -83,12 +83,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
           onPressed: () => context.go('/welcome'),
         ),
       ),
@@ -103,19 +103,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Header
                 Text(
                   l10n.createAccount,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.text1(context),
+                    color: AppTheme.textPrimary,
                     fontFamily: 'Inter',
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   l10n.startRiskAssessmentJourney,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                     fontFamily: 'Inter',
                   ),
                 ),
@@ -186,7 +186,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: AppTheme.textH(context),
+                        color: AppTheme.textHint,
                       ),
                       onPressed: () {
                         setState(() => _obscurePassword = !_obscurePassword);
@@ -217,7 +217,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: AppTheme.textH(context),
+                        color: AppTheme.textHint,
                       ),
                       onPressed: () {
                         setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
@@ -260,7 +260,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: Text.rich(
                             TextSpan(
                               text: '${l10n.iAgreeToThe} ',
-                              style: TextStyle(color: AppTheme.text2(context)),
+                              style: const TextStyle(color: AppTheme.textSecondary),
                               children: [
                                 TextSpan(
                                   text: l10n.termsOfService,
@@ -326,7 +326,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   children: [
                     Text(
                       '${l10n.alreadyHaveAccount} ',
-                      style: TextStyle(color: AppTheme.text2(context)),
+                      style: const TextStyle(color: AppTheme.textSecondary),
                     ),
                     TextButton(
                       onPressed: () => context.go('/login'),
@@ -352,10 +352,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _buildLabel(String text) {
     return Text(
       text,
-      style: TextStyle(
+      style: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
-        color: AppTheme.text1(context),
+        color: AppTheme.textPrimary,
       ),
     );
   }
@@ -367,17 +367,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }) {
     return InputDecoration(
       hintText: hintText,
-      prefixIcon: Icon(prefixIcon, color: AppTheme.textH(context)),
+      prefixIcon: Icon(prefixIcon, color: AppTheme.textHint),
       suffixIcon: suffixIcon,
       filled: true,
-      fillColor: AppTheme.surfaceOf(context),
+      fillColor: AppTheme.surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppTheme.borderOf(context)),
+        borderSide: const BorderSide(color: AppTheme.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppTheme.borderOf(context)),
+        borderSide: const BorderSide(color: AppTheme.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),

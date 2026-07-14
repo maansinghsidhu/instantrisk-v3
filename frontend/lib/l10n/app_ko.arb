@@ -373,20 +373,5 @@
   "onboardingTitle3": "24/7 보험 AI 어시스턴트",
   "onboardingDesc3": "20GB 이상의 Lloyd's 시장 지식으로 훈련된 AI로부터 보험 질문에 대한 즉각적인 답변을 받으세요",
   "skip": "건너뛰기",
-  "getStartedNow": "시작하기",
-  "analysisCanContinueInBackground": "이 창을 닫을 수 있습니다. 분석은 백그라운드에서 계속됩니다.",
-  "clickCalculatePricing": "이 위험에 대한 기술 보험료를 생성하려면 계산을 클릭하세요.",
-  "discard": "취소",
-  "discardChangesMessage": "저장되지 않은 변경 사항이 있습니다. 취소하시겠습니까?",
-  "discardChangesQuestion": "변경 사항을 취소하시겠습니까?",
-  "expandLiveResults": "실시간 결과 표시",
-  "failedToSaveLanguage": "언어 기본 설정을 저장하지 못했습니다. 다시 시도하세요.",
-  "languageChangedTo": "언어가 {languageName}(으)로 변경되었습니다",
-  "minimizeLiveResults": "최소화",
-  "noAiAnalysisYet": "아직 AI 분석을 사용할 수 없습니다.\n위험 인사이트를 생성하려면 분석을 클릭하세요.",
-  "pricingNotAvailableDeclined": "거부된 위험에 대한 가격 책정을 사용할 수 없습니다.",
-  "rtlLabel": "RTL",
-  "saveLanguagePreference": "언어 기본 설정 저장",
-  "undo": "실행 취소",
-  "unsavedChangesPressSave": "저장되지 않은 변경 사항이 있습니다. 새 언어를 적용하려면 저장을 누르세요."
+  "getStartedNow": "시작하기"
 }

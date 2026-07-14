@@ -373,20 +373,5 @@
   "onboardingTitle3": "Asistente de IA de seguros 24/7",
   "onboardingDesc3": "Obtén respuestas instantáneas a preguntas de seguros de nuestra IA entrenada con más de 20GB de conocimiento Lloyd's",
   "skip": "Omitir",
-  "getStartedNow": "Comenzar",
-  "analysisCanContinueInBackground": "Puede cerrar esta ventana. El análisis continuará en segundo plano.",
-  "clickCalculatePricing": "Haga clic en Calcular para generar una prima técnica para este riesgo.",
-  "discard": "Descartar",
-  "discardChangesMessage": "Tiene cambios sin guardar. ¿Desea descartarlos?",
-  "discardChangesQuestion": "¿Descartar cambios?",
-  "expandLiveResults": "Mostrar resultados en vivo",
-  "failedToSaveLanguage": "Error al guardar la preferencia de idioma. Inténtelo de nuevo.",
-  "languageChangedTo": "Idioma cambiado a {languageName}",
-  "minimizeLiveResults": "Minimizar",
-  "noAiAnalysisYet": "Aún no hay análisis de IA disponible.\nHaga clic en Analizar para generar información sobre riesgos.",
-  "pricingNotAvailableDeclined": "Precio no disponible para riesgos rechazados.",
-  "rtlLabel": "RTL",
-  "saveLanguagePreference": "Guardar preferencia de idioma",
-  "undo": "Deshacer",
-  "unsavedChangesPressSave": "Tiene cambios sin guardar. Presione Guardar para aplicar el nuevo idioma."
+  "getStartedNow": "Comenzar"
 }

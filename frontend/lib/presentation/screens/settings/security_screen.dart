@@ -42,20 +42,20 @@ class _SecurityScreenState extends State<SecurityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        backgroundColor: AppTheme.surfaceOf(context),
+        backgroundColor: AppTheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
           onPressed: () => context.pop(),
         ),
-        title: Text(
+        title: const Text(
           'Security',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
           ),
         ),
         centerTitle: true,
@@ -72,12 +72,12 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   const SizedBox(height: 24),
 
                   // Security Options
-                  Text(
+                  const Text(
                     'SECURITY OPTIONS',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.text2(context),
+                      color: AppTheme.textSecondary,
                       letterSpacing: 1,
                     ),
                   ),
@@ -169,9 +169,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   isSecure
                       ? 'Your account is protected with 2FA'
                       : 'Enable 2FA to secure your account',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 13,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                   ),
                 ),
               ],
@@ -190,7 +190,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
     required VoidCallback onTap,
   }) {
     return Material(
-      color: AppTheme.surfaceOf(context),
+      color: AppTheme.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -199,7 +199,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.borderOf(context)),
+            border: Border.all(color: AppTheme.border),
           ),
           child: Row(
             children: [
@@ -218,18 +218,18 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   children: [
                     Text(
                       title,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
-                        color: AppTheme.text1(context),
+                        color: AppTheme.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 13,
-                        color: AppTheme.text2(context),
+                        color: AppTheme.textSecondary,
                       ),
                     ),
                   ],
@@ -239,9 +239,9 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 trailing,
                 const SizedBox(width: 8),
               ],
-              Icon(
+              const Icon(
                 Icons.arrow_forward_ios,
-                color: AppTheme.textH(context),
+                color: AppTheme.textHint,
                 size: 16,
               ),
             ],
@@ -273,14 +273,14 @@ class _SecurityScreenState extends State<SecurityScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderOf(context)),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
               Icon(Icons.tips_and_updates, color: AppTheme.accent, size: 20),
               SizedBox(width: 8),
@@ -289,7 +289,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.text1(context),
+                  color: AppTheme.textPrimary,
                 ),
               ),
             ],
@@ -313,7 +313,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
           const SizedBox(width: 8),
           Text(
             text,
-            style: TextStyle(fontSize: 13, color: AppTheme.text2(context)),
+            style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
           ),
         ],
       ),

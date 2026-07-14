@@ -7,6 +7,8 @@ for environment variable management and validation.
 
 import os
 import tempfile
+import hashlib
+import base64
 from typing import List, Optional
 from pydantic_settings import BaseSettings
 from functools import lru_cache
@@ -188,6 +190,37 @@ class Settings(BaseSettings):
     # Circuit Breaker Thresholds
     CIRCUIT_BREAKER_HOURLY_AI_LIMIT: int = 500
     CIRCUIT_BREAKER_DAILY_COST_LIMIT_CENTS: int = 10000  # $100
+
+    # Email Integration (OAuth + IMAP ingestion)
+    # OAuth: set GOOGLE_CLIENT_ID/SECRET and/or MICROSOFT_CLIENT_ID/SECRET
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    MICROSOFT_CLIENT_ID: str = ""
+    MICROSOFT_CLIENT_SECRET: str = ""
+    # Override to change OAuth callback base URL (defaults to first CORS_ORIGIN)
+    EMAIL_OAUTH_REDIRECT_BASE: str = ""
+    # Fernet key for encrypting OAuth tokens and IMAP passwords at rest.
+    # If not set, derived from SECRET_KEY[:32] (less secure — set explicitly in prod).
+    EMAIL_TOKEN_ENCRYPTION_KEY: str = ""
+    # Background sync interval in seconds (default 5 minutes)
+    EMAIL_SYNC_INTERVAL_SECONDS: int = 300
+
+    @property
+    def resolved_email_encryption_key(self) -> str:
+        """Return a valid Fernet key without weakening configured entropy."""
+        raw = self.EMAIL_TOKEN_ENCRYPTION_KEY or self.SECRET_KEY
+        if not raw:
+            return ""
+
+        # Preserve an explicitly generated Fernet key. For legacy arbitrary
+        # secrets, derive 32 bytes with SHA-256 and encode them for Fernet.
+        try:
+            decoded = base64.urlsafe_b64decode(raw.encode())
+            if len(decoded) == 32:
+                return raw
+        except (ValueError, TypeError):
+            pass
+        return base64.urlsafe_b64encode(hashlib.sha256(raw.encode()).digest()).decode()
 
     class Config:
         env_file = ".env"

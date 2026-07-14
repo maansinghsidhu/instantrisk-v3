@@ -177,6 +177,9 @@ class User(Base):
         "ReferenceDocument", back_populates="uploaded_by_user"
     )
     subscription = relationship("Subscription", back_populates="user", uselist=False)
+    email_connections = relationship(
+        "EmailConnection", back_populates="user", cascade="all, delete-orphan"
+    )
     approved_by_user = relationship(
         "User", remote_side="User.id", foreign_keys=[approved_by]
     )

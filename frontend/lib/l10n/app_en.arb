@@ -195,7 +195,7 @@
     "description": "Pricing engine title"
   },
 
-  "pricingEngineSubtitle": "InstantRisk Engine pricing models",
+  "pricingEngineSubtitle": "AI-powered pricing models",
   "@pricingEngineSubtitle": {
     "description": "Pricing engine subtitle"
   },
@@ -886,9 +886,9 @@
     "description": "Generate documents screen title"
   },
 
-  "aiRecommendedDocuments": "Recommended Documents",
+  "aiRecommendedDocuments": "AI Recommended Documents",
   "@aiRecommendedDocuments": {
-    "description": "Recommended documents title"
+    "description": "AI recommended documents title"
   },
 
   "selectDocumentsToGenerate": "Select the documents you want to generate",
@@ -916,9 +916,9 @@
     "description": "Generating documents title"
   },
 
-  "aiAgentsWorking": "InstantRisk Engine is generating your documents",
+  "aiAgentsWorking": "AI agents are working on your documents",
   "@aiAgentsWorking": {
-    "description": "Engine working message"
+    "description": "AI agents working message"
   },
 
   "complete": "Complete",
@@ -1041,9 +1041,9 @@
     "description": "New chat title"
   },
 
-  "aiAssistant": "InstantRisk Assistant",
+  "aiAssistant": "AI Assistant",
   "@aiAssistant": {
-    "description": "InstantRisk assistant title"
+    "description": "AI assistant title"
   },
 
   "knowledgeSources": "Knowledge Sources",
@@ -1296,12 +1296,12 @@
     "description": "New assessment title"
   },
 
-  "aiPoweredAnalysis": "InstantRisk Engine Analysis",
+  "aiPoweredAnalysis": "AI-Powered Analysis",
   "@aiPoweredAnalysis": {
-    "description": "InstantRisk Engine analysis label"
+    "description": "AI-powered analysis label"
   },
 
-  "riskTypeAutoDetected": "Risk type will be automatically detected from your documents using the InstantRisk Engine",
+  "riskTypeAutoDetected": "Risk type will be automatically detected from your documents using OCR & AI",
   "@riskTypeAutoDetected": {
     "description": "Risk type auto detection description"
   },
@@ -1541,9 +1541,9 @@
     "description": "Contract generations label"
   },
 
-  "aiChatMessages": "Engine Chat Messages",
+  "aiChatMessages": "AI Chat Messages",
   "@aiChatMessages": {
-    "description": "Engine chat messages label"
+    "description": "AI chat messages label"
   },
 
   "documentStorage": "Document Storage",
@@ -1996,12 +1996,12 @@
     "description": "Please accept terms validation"
   },
 
-  "onboardingTitle1": "InstantRisk Engine Assessment",
+  "onboardingTitle1": "AI-Powered Risk Assessment",
   "@onboardingTitle1": {
     "description": "First onboarding screen title"
   },
 
-  "onboardingDesc1": "Upload insurance documents and get instant risk analysis with GO/NO-GO recommendations powered by the InstantRisk Engine",
+  "onboardingDesc1": "Upload insurance documents and get instant AI-powered risk analysis with GO/NO-GO recommendations",
   "@onboardingDesc1": {
     "description": "First onboarding screen description"
   },
@@ -2016,12 +2016,12 @@
     "description": "Second onboarding screen description"
   },
 
-  "onboardingTitle3": "24/7 InstantRisk Assistant",
+  "onboardingTitle3": "24/7 Insurance AI Assistant",
   "@onboardingTitle3": {
     "description": "Third onboarding screen title"
   },
 
-  "onboardingDesc3": "Get instant answers to insurance questions from the InstantRisk Engine trained on Lloyd's market knowledge",
+  "onboardingDesc3": "Get instant answers to insurance questions from our AI trained on 20GB+ of Lloyd's market knowledge",
   "@onboardingDesc3": {
     "description": "Third onboarding screen description"
   },
@@ -2034,38 +2034,5 @@
   "getStartedNow": "Get Started",
   "@getStartedNow": {
     "description": "Get started button on onboarding"
-  },
-
-  "analyticsSection": "ANALYTICS",
-  "@analyticsSection": { "description": "Sidebar section header for analytics" },
-
-  "documentsSection": "DOCUMENTS",
-  "@documentsSection": { "description": "Sidebar section header for documents" },
-
-  "brokersSection": "BROKERS",
-  "@brokersSection": { "description": "Sidebar section header for brokers" },
-
-  "preferencesSection": "PREFERENCES",
-  "@preferencesSection": { "description": "Sidebar section header for preferences" },
-
-  "trainingNav": "Training",
-  "@trainingNav": { "description": "Navigation label for training" },
-
-  "docsNav": "Docs",
-  "@docsNav": { "description": "Navigation label for documents (short)" },
-
-  "submissionsNav": "Submissions",
-  "@submissionsNav": { "description": "Navigation label for broker submissions" },
-
-  "brokerManagementNav": "Broker Management",
-  "@brokerManagementNav": { "description": "Navigation label for broker management" },
-
-  "premiumFeature": "Premium Feature",
-  "@premiumFeature": { "description": "Dialog title for premium feature" },
-
-  "premiumFeatureMessage": "{feature} is available for Premium users. Upgrade your subscription to access this feature.",
-  "@premiumFeatureMessage": { "description": "Dialog message for premium feature" },
-
-  "upgradeButton": "Upgrade",
-  "@upgradeButton": { "description": "Upgrade button label" }
+  }
 }

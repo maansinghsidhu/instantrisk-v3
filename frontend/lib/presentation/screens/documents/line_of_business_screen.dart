@@ -23,12 +23,12 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
   String? _selectedLob;
 
   // Define lines of business with metadata
-  static final List<Map<String, dynamic>> _linesOfBusiness = [
+  static const List<Map<String, dynamic>> _linesOfBusiness = [
     {
       'id': 'marine',
       'name': 'Marine',
       'icon': Icons.directions_boat,
-      'color': AppTheme.lobColors[1],
+      'color': Color(0xFF1E88E5),
       'subtypes': ['Hull', 'Cargo', 'P&I', 'War'],
       'templates': 23,
     },
@@ -36,7 +36,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
       'id': 'aviation',
       'name': 'Aviation',
       'icon': Icons.flight,
-      'color': AppTheme.lobColors[2],
+      'color': Color(0xFF7C4DFF),
       'subtypes': ['Hull', 'Liability', 'War', 'Space'],
       'templates': 12,
     },
@@ -44,7 +44,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
       'id': 'property',
       'name': 'Property',
       'icon': Icons.business,
-      'color': AppTheme.lobColors[3],
+      'color': Color(0xFFFF7043),
       'subtypes': ['Fire', 'BI', 'CAT', 'Terrorism'],
       'templates': 18,
     },
@@ -52,7 +52,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
       'id': 'casualty',
       'name': 'Casualty',
       'icon': Icons.person_outline,
-      'color': AppTheme.lobColors[4],
+      'color': Color(0xFF26A69A),
       'subtypes': ['GL', 'EL', 'PL', 'Umbrella'],
       'templates': 15,
     },
@@ -60,7 +60,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
       'id': 'financial',
       'name': 'Financial Lines',
       'icon': Icons.account_balance,
-      'color': AppTheme.lobColors[5],
+      'color': Color(0xFF5C6BC0),
       'subtypes': ['D&O', 'E&O', 'Crime', 'PI'],
       'templates': 14,
     },
@@ -68,7 +68,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
       'id': 'cyber',
       'name': 'Cyber',
       'icon': Icons.security,
-      'color': AppTheme.lobColors[0],
+      'color': Color(0xFF00ACC1),
       'subtypes': ['Network', 'Data Breach', 'Ransomware', 'BI'],
       'templates': 15,
     },
@@ -76,7 +76,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
       'id': 'energy',
       'name': 'Energy',
       'icon': Icons.bolt,
-      'color': AppTheme.lobColors[6],
+      'color': Color(0xFFFFA726),
       'subtypes': ['Upstream', 'Downstream', 'Power', 'Renewable'],
       'templates': 11,
     },
@@ -84,7 +84,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
       'id': 'reinsurance',
       'name': 'Reinsurance',
       'icon': Icons.autorenew,
-      'color': AppTheme.lobColors[7],
+      'color': Color(0xFFAB47BC),
       'subtypes': ['Treaty', 'Facultative', 'XoL', 'QS'],
       'templates': 8,
     },
@@ -92,7 +92,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
       'id': 'specialty',
       'name': 'Specialty',
       'icon': Icons.star_outline,
-      'color': AppTheme.lobColors[8],
+      'color': Color(0xFFEC407A),
       'subtypes': ['Political Risk', 'Credit', 'K&R', 'Contingency'],
       'templates': 9,
     },
@@ -101,21 +101,21 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        backgroundColor: AppTheme.surfaceOf(context),
+        backgroundColor: AppTheme.surface,
         elevation: 0,
         leading: IconButton(
           onPressed: () => context.pop(),
-          icon: Icon(Icons.arrow_back_ios),
-          color: AppTheme.text1(context),
+          icon: const Icon(Icons.arrow_back_ios),
+          color: AppTheme.textPrimary,
         ),
         title: Text(
           widget.documentTypeName,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
             fontFamily: 'Inter',
           ),
         ),
@@ -126,17 +126,17 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
           // Header
           Container(
             width: double.infinity,
-            padding: EdgeInsets.all(20),
-            color: AppTheme.surfaceOf(context),
+            padding: const EdgeInsets.all(20),
+            color: AppTheme.surface,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Select Line of Business',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.text1(context),
+                    color: AppTheme.textPrimary,
                     fontFamily: 'Inter',
                   ),
                 ),
@@ -145,7 +145,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
                   'Choose the insurance class for your ${widget.documentTypeName.toLowerCase()}',
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                   ),
                 ),
               ],
@@ -175,7 +175,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceOf(context),
+              color: AppTheme.surface,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.05),
@@ -201,7 +201,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryDark,
-                    disabledBackgroundColor: AppTheme.borderOf(context),
+                    disabledBackgroundColor: AppTheme.border,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -214,7 +214,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: _selectedLob == null ? AppTheme.textH(context) : Colors.white,
+                      color: _selectedLob == null ? AppTheme.textHint : Colors.white,
                     ),
                   ),
                 ),
@@ -240,10 +240,10 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : AppTheme.surfaceOf(context),
+          color: isSelected ? color.withOpacity(0.1) : AppTheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? color : AppTheme.borderOf(context),
+            color: isSelected ? color : AppTheme.border,
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
@@ -283,7 +283,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: isSelected ? color : AppTheme.text1(context),
+                  color: isSelected ? color : AppTheme.textPrimary,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
@@ -296,7 +296,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
                 subtypes.take(2).join(', '),
                 style: TextStyle(
                   fontSize: 10,
-                  color: AppTheme.text2(context),
+                  color: AppTheme.textSecondary,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
@@ -309,7 +309,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isSelected ? color.withOpacity(0.2) : AppTheme.bg(context),
+                  color: isSelected ? color.withOpacity(0.2) : AppTheme.background,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -317,7 +317,7 @@ class _LineOfBusinessScreenState extends State<LineOfBusinessScreen> {
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w500,
-                    color: isSelected ? color : AppTheme.textH(context),
+                    color: isSelected ? color : AppTheme.textHint,
                   ),
                 ),
               ),

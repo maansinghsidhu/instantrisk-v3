@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:async';
-import 'dart:convert';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/documents_prefetch_service.dart';
 import '../../../core/services/subscription_service.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
+/// MainShell - Responsive navigation shell
+/// - Desktop (>1000px): Permanent sidebar on left
+/// - Tablet (600-1000px): Bottom nav with hamburger menu for overlay drawer
+/// - Mobile (<600px): Bottom navigation bar only
 class MainShell extends StatefulWidget {
   final Widget child;
 
-  MainShell({
+  const MainShell({
     super.key,
     required this.child,
   });
@@ -22,75 +24,61 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  Timer? _pollTimer;
-  int _sharedWithMeCount = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _pollSharedWithMe();
-    _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) => _pollSharedWithMe());
-  }
-
-  @override
-  void dispose() {
-    _pollTimer?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _pollSharedWithMe() async {
-    try {
-      final response = await authService.get('/shares/received/count');
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final count = (data['count'] as num?)?.toInt() ?? 0;
-        if (mounted && count != _sharedWithMeCount) {
-          setState(() => _sharedWithMeCount = count);
-        }
-      }
-    } catch (_) {}
-  }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
+    // Desktop: Permanent sidebar (>1000px)
     if (screenWidth > 1000) {
       return Scaffold(
         body: Row(
           children: [
-            _Sidebar(onNavigate: null, sharedWithMeCount: _sharedWithMeCount),
-            Container(width: 0.5, color: AppTheme.borderOf(context).withOpacity(0.3)),
+            _Sidebar(onNavigate: null),
             Expanded(child: widget.child),
           ],
         ),
       );
     }
 
+    // Tablet/Medium: Bottom nav with hamburger menu for drawer (600-1000px)
     if (screenWidth > 600) {
       return Scaffold(
         key: _scaffoldKey,
         appBar: AppBar(
-          backgroundColor: AppTheme.surfaceOf(context),
+          backgroundColor: AppTheme.primaryDark,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.menu_rounded, color: AppTheme.text2(context), size: 22),
+            icon: const Icon(Icons.menu, color: Colors.white),
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
           title: Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset('assets/images/logo-icon.png', width: 28, height: 28, fit: BoxFit.contain),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    'IR',
+                    style: TextStyle(
+                      color: AppTheme.primaryDark,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: 10),
               Text(
                 AppLocalizations.of(context)?.appName ?? 'InstantRisk',
-                style: TextStyle(
-                  color: AppTheme.text1(context),
-                  fontSize: 16,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: -0.3,
                 ),
               ),
             ],
@@ -99,7 +87,6 @@ class _MainShellState extends State<MainShell> {
         drawer: Drawer(
           child: _Sidebar(
             onNavigate: () => Navigator.of(context).pop(),
-            sharedWithMeCount: _sharedWithMeCount,
           ),
         ),
         body: widget.child,
@@ -107,6 +94,7 @@ class _MainShellState extends State<MainShell> {
       );
     }
 
+    // Mobile: Bottom navigation only (<600px)
     return Scaffold(
       body: widget.child,
       bottomNavigationBar: const _BottomNavBar(),
@@ -114,64 +102,77 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
+/// Sidebar for Web/Desktop
 class _Sidebar extends StatelessWidget {
   final VoidCallback? onNavigate;
-  final int sharedWithMeCount;
 
-  const _Sidebar({this.onNavigate, this.sharedWithMeCount = 0});
+  const _Sidebar({this.onNavigate});
 
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/home')) return 0;
-    if (location.startsWith('/reports')) return 1;
-    if (location.startsWith('/chat')) return 2;
+    if (location.startsWith('/reports')) return 1;  // Assessments
+    if (location.startsWith('/chat')) return 2;  // AI Chat
     if (location.startsWith('/training')) return 3;
     if (location.startsWith('/documents')) return 4;
-    if (location.startsWith('/settings')) return 5;
-    if (location.startsWith('/shared')) return 6;
+    // Settings includes Lloyd's Market pages
+    if (location.startsWith('/settings') || location.startsWith('/lloyds')) return 5;
     return 0;
   }
 
   void _onItemTapped(BuildContext context, int index) {
     onNavigate?.call();
     switch (index) {
-      case 0: context.go('/home'); break;
-      case 1: context.go('/reports'); break;
-      case 2: context.go('/chat'); break;
-      case 3: context.go('/training'); break;
-      case 4: context.go('/documents'); break;
-      case 5: context.go('/settings'); break;
-      case 6: context.go('/shared'); break;
+      case 0:
+        context.go('/home');
+        break;
+      case 1:
+        context.go('/reports');  // Assessments
+        break;
+      case 2:
+        context.go('/chat');
+        break;
+      case 3:
+        context.go('/training');
+        break;
+      case 4:
+        context.go('/documents');
+        break;
+      case 5:
+        context.go('/settings');
+        break;
     }
   }
 
   void _showSidebarUpgradeDialog(BuildContext context, String featureName) {
     onNavigate?.call();
-    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.lock_outline_rounded, color: Colors.amber.shade600, size: 20),
-            SizedBox(width: 8),
-            Text(l10n.premiumFeature),
+            Icon(Icons.lock, color: Colors.amber),
+            const SizedBox(width: 8),
+            const Text('Premium Feature'),
           ],
         ),
         content: Text(
-          l10n.premiumFeatureMessage(featureName),
+          '$featureName is available for Premium users. Upgrade your subscription to access this feature.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.go('/settings/subscription');
             },
-            child: Text(l10n.upgradeButton),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryDark,
+            ),
+            child: const Text('Upgrade'),
           ),
         ],
       ),
@@ -182,110 +183,207 @@ class _Sidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final selectedIndex = _calculateSelectedIndex(context);
 
-    final isDark = AppTheme.isDark(context);
-    final sidebarBg = isDark ? AppTheme.darkBg : AppTheme.surfaceVariant;
-    final sidebarText = isDark ? Colors.white : AppTheme.text1(context);
-    final sidebarTextMuted = isDark ? Colors.white.withOpacity(0.7) : AppTheme.text2(context);
-    final sidebarDivider = isDark ? Colors.white.withOpacity(0.08) : AppTheme.borderOf(context);
-
     return Container(
-      width: 260,
-      color: sidebarBg,
+      width: 240,
+      decoration: BoxDecoration(
+        color: AppTheme.primaryDark,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(2, 0),
+          ),
+        ],
+      ),
       child: Column(
         children: [
-          Container(
-            padding: EdgeInsets.fromLTRB(20, onNavigate != null ? 48 : 20, 20, 16),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.asset('assets/images/logo-icon.png', width: 36, height: 36, fit: BoxFit.contain),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    AppLocalizations.of(context).appName,
-                    style: TextStyle(
-                      color: sidebarText,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.3,
+          // Logo Header (only shown when not in drawer)
+          if (onNavigate == null)
+            Container(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'IR',
+                        style: TextStyle(
+                          color: AppTheme.primaryDark,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      AppLocalizations.of(context).appName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
 
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            height: 0.5,
-            color: sidebarDivider,
-          ),
-          const SizedBox(height: 12),
+          // Drawer header
+          if (onNavigate != null)
+            Container(
+              padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'IR',
+                        style: TextStyle(
+                          color: AppTheme.primaryDark,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      AppLocalizations.of(context).appName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
+          const Divider(color: Colors.white24, height: 1),
+          const SizedBox(height: 16),
+
+          // Navigation Items - Simplified (Lloyd's moved to Settings)
           Expanded(
             child: Builder(
               builder: (context) {
                 final l10n = AppLocalizations.of(context)!;
                 return ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   children: [
                     _SidebarItem(
-                      icon: Icons.grid_view_rounded,
+                      icon: Icons.dashboard_outlined,
+                      activeIcon: Icons.dashboard,
                       label: l10n.dashboard,
                       isSelected: selectedIndex == 0,
                       onTap: () => _onItemTapped(context, 0),
                     ),
                     _SidebarItem(
-                      icon: Icons.description_outlined,
+                      icon: Icons.assessment_outlined,
+                      activeIcon: Icons.assessment,
                       label: l10n.reports,
                       isSelected: selectedIndex == 1,
                       onTap: () => _onItemTapped(context, 1),
                     ),
 
-                    _SectionLabel(label: l10n.analyticsSection),
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        l10n.analytics.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
 
                     _SidebarItem(
-                      icon: Icons.auto_awesome_outlined,
+                      icon: Icons.chat_bubble_outline,
+                      activeIcon: Icons.chat_bubble,
                       label: l10n.chat,
                       isSelected: selectedIndex == 2,
-                      onTap: () => _onItemTapped(context, 2),
+                      onTap: subscriptionService.hasFeature('claimsense_chat')
+                          ? () => _onItemTapped(context, 2)
+                          : () => _showSidebarUpgradeDialog(context, 'AI Chat'),
+                      showBadge: true,
+                      isPremium: !subscriptionService.hasFeature('claimsense_chat'),
                     ),
 
-                    _SectionLabel(label: l10n.documentsSection),
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        l10n.documents.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
 
+                    // Training - Upload docs to improve AI
                     _SidebarItem(
-                      icon: Icons.school_outlined,
-                      label: l10n.trainingNav,
+                      icon: Icons.model_training_outlined,
+                      activeIcon: Icons.model_training,
+                      label: 'Training',
                       isSelected: selectedIndex == 3,
                       onTap: subscriptionService.isPremium
                           ? () => _onItemTapped(context, 3)
-                          : () => _showSidebarUpgradeDialog(context, l10n.trainingNav),
+                          : () => _showSidebarUpgradeDialog(context, 'Training'),
                       isPremium: !subscriptionService.isPremium,
                     ),
+                    // Documents - Premium only (show with PRO badge for lower tiers)
                     _SidebarItem(
                       icon: Icons.folder_outlined,
-                      label: l10n.docsNav,
+                      activeIcon: Icons.folder,
+                      label: l10n.documents,
                       isSelected: selectedIndex == 4,
                       onTap: subscriptionService.isPremium
                           ? () => _onItemTapped(context, 4)
-                          : () => _showSidebarUpgradeDialog(context, l10n.documents),
+                          : () => _showSidebarUpgradeDialog(context, 'Documents'),
                       isPremium: !subscriptionService.isPremium,
                     ),
 
-                    _SidebarItem(
-                      icon: Icons.share_outlined,
-                      label: 'Shared With Me',
-                      isSelected: selectedIndex == 6,
-                      onTap: () => _onItemTapped(context, 6),
-                      showBadge: sharedWithMeCount > 0,
+                    const SizedBox(height: 24),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        l10n.settings.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
                     ),
-
-                    _SectionLabel(label: l10n.preferencesSection),
+                    const SizedBox(height: 8),
 
                     _SidebarItem(
-                      icon: Icons.tune_rounded,
+                      icon: Icons.settings_outlined,
+                      activeIcon: Icons.settings,
                       label: l10n.settings,
                       isSelected: selectedIndex == 5,
                       onTap: () => _onItemTapped(context, 5),
@@ -296,6 +394,7 @@ class _Sidebar extends StatelessWidget {
             ),
           ),
 
+          // User Profile at bottom - with popup menu
           _UserProfileMenu(onNavigate: onNavigate),
         ],
       ),
@@ -303,37 +402,18 @@ class _Sidebar extends StatelessWidget {
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  final String label;
-  const _SectionLabel({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 20, 14, 6),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: AppTheme.textH(context),
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.5,
-        ),
-      ),
-    );
-  }
-}
-
-class _SidebarItem extends StatefulWidget {
+class _SidebarItem extends StatelessWidget {
   final IconData icon;
+  final IconData activeIcon;
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
   final bool showBadge;
   final bool isPremium;
 
-  _SidebarItem({
+  const _SidebarItem({
     required this.icon,
+    required this.activeIcon,
     required this.label,
     required this.isSelected,
     required this.onTap,
@@ -342,86 +422,88 @@ class _SidebarItem extends StatefulWidget {
   });
 
   @override
-  State<_SidebarItem> createState() => _SidebarItemState();
-}
-
-class _SidebarItemState extends State<_SidebarItem> {
-  bool _isHovered = false;
-
-  @override
   Widget build(BuildContext context) {
-    final isActive = widget.isSelected;
-    final showHover = _isHovered && !isActive;
-    final isDark = AppTheme.isDark(context);
-    final activeColor = isDark ? Colors.white : AppTheme.text1(context);
-    final inactiveColor = isDark ? Colors.white.withOpacity(0.55) : AppTheme.text2(context);
-    final activeLabelColor = isDark ? Colors.white : AppTheme.text1(context);
-    final inactiveLabelColor = isDark ? Colors.white.withOpacity(0.7) : AppTheme.text2(context);
-    final hoverBg = isDark ? Colors.white.withOpacity(0.06) : AppTheme.borderOf(context).withOpacity(0.5);
-    final activeBg = isDark ? Colors.white.withOpacity(0.12) : AppTheme.primaryDark.withOpacity(0.08);
-
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
-      child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovered = true),
-        onExit: (_) => setState(() => _isHovered = false),
-        child: GestureDetector(
-          onTap: widget.onTap,
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeOut,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isActive
-                  ? activeBg
-                  : showHover
-                      ? hoverBg
-                      : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
+              color: isSelected ? Colors.white.withOpacity(0.15) : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               children: [
-                Icon(
-                  widget.icon,
-                  color: isActive ? activeColor : inactiveColor,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    widget.label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                      color: isActive ? activeLabelColor : inactiveLabelColor,
-                      letterSpacing: -0.1,
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(
+                      isSelected ? activeIcon : icon,
+                      color: isSelected ? Colors.white : Colors.white70,
+                      size: 22,
                     ),
-                  ),
-                ),
-                if (widget.isPremium)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      'PRO',
-                      style: TextStyle(
-                        color: Colors.amber.shade400,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
+                    if (showBadge && !isSelected)
+                      Positioned(
+                        right: -4,
+                        top: -4,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: AppTheme.danger,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
                       ),
-                    ),
+                  ],
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                            color: isSelected ? Colors.white : Colors.white70,
+                          ),
+                        ),
+                      ),
+                      if (isPremium) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.amber,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'PRO',
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                if (widget.showBadge && !isActive)
+                ),
+                if (isSelected)
                   Container(
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(
+                    width: 4,
+                    height: 20,
+                    decoration: BoxDecoration(
                       color: AppTheme.accent,
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
               ],
@@ -433,57 +515,72 @@ class _SidebarItemState extends State<_SidebarItem> {
   }
 }
 
+/// Bottom Navigation Bar for Mobile - 5 tabs with Training
 class _BottomNavBar extends StatelessWidget {
   const _BottomNavBar();
 
   int _calculateSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
+
+    // Dashboard → Assessments → Training → AI Chat → Settings
     if (location.startsWith('/home')) return 0;
     if (location.startsWith('/reports')) return 1;
     if (location.startsWith('/training') || location.startsWith('/documents')) return 2;
     if (location.startsWith('/chat')) return 3;
-    if (location.startsWith('/settings')) return 4;
-    if (location.startsWith('/shared')) return 5;
+    // Settings tab includes Lloyd's Market pages
+    if (location.startsWith('/settings') || location.startsWith('/lloyds')) return 4;
+
     return 0;
   }
 
   void _onItemTapped(BuildContext context, int index) {
     switch (index) {
-      case 0: context.go('/home'); break;
-      case 1: context.go('/reports'); break;
-      case 2: context.go('/documents'); break;
-      case 3: context.go('/chat'); break;
-      case 4: context.go('/settings'); break;
-      case 5: context.go('/shared'); break;
+      case 0:
+        context.go('/home');
+        break;
+      case 1:
+        context.go('/reports');
+        break;
+      case 2:
+        context.go('/documents');
+        break;
+      case 3:
+        context.go('/chat');
+        break;
+      case 4:
+        context.go('/settings');
+        break;
     }
   }
 
   void _showUpgradeDialog(BuildContext context, String featureName) {
-    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.lock_outline_rounded, color: Colors.amber.shade600, size: 20),
+            Icon(Icons.lock, color: Colors.amber),
             const SizedBox(width: 8),
-            Text(l10n?.premiumFeature ?? 'Premium Feature'),
+            const Text('Premium Feature'),
           ],
         ),
         content: Text(
-          l10n?.premiumFeatureMessage(featureName) ?? '$featureName is available for Premium users. Upgrade your subscription to access this feature.',
+          '$featureName is available for Premium users. Upgrade your subscription to access this feature.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n?.cancel ?? 'Cancel'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.go('/settings/subscription');
             },
-            child: Text(l10n?.upgradeButton ?? 'Upgrade'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryDark,
+            ),
+            child: const Text('Upgrade'),
           ),
         ],
       ),
@@ -493,66 +590,73 @@ class _BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = _calculateSelectedIndex(context);
-    final l10n = AppLocalizations.of(context);
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
-        border: Border(
-          top: BorderSide(color: AppTheme.borderOf(context).withOpacity(0.5), width: 0.5),
-        ),
+        color: AppTheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _NavItem(
                 key: const Key('navTab_0'),
-                icon: Icons.grid_view_rounded,
+                icon: Icons.dashboard_outlined,
+                activeIcon: Icons.dashboard,
                 label: AppLocalizations.of(context)?.home ?? 'Home',
                 isSelected: selectedIndex == 0,
                 onTap: () => _onItemTapped(context, 0),
               ),
               _NavItem(
                 key: const Key('navTab_1'),
-                icon: Icons.description_outlined,
+                icon: Icons.assessment_outlined,
+                activeIcon: Icons.assessment,
                 label: AppLocalizations.of(context)?.reports ?? 'Assess',
                 isSelected: selectedIndex == 1,
                 onTap: () => _onItemTapped(context, 1),
               ),
+              // Documents - Premium only (show with lock for lower tiers)
               _NavItem(
                 key: const Key('navTab_2'),
-                icon: Icons.folder_outlined,
+                icon: Icons.description_outlined,
+                activeIcon: Icons.description,
                 label: 'Docs',
                 isSelected: selectedIndex == 2,
                 onTap: subscriptionService.isPremium
                     ? () => _onItemTapped(context, 2)
-                    : () => _showUpgradeDialog(context, l10n?.documents ?? 'Documents'),
+                    : () => _showUpgradeDialog(context, 'Documents'),
                 isPremium: !subscriptionService.isPremium,
               ),
+              // Chat - Premium only
               _NavItem(
                 key: const Key('navTab_3'),
-                icon: Icons.auto_awesome_outlined,
+                icon: Icons.chat_bubble_outline,
+                activeIcon: Icons.chat_bubble,
                 label: AppLocalizations.of(context)?.chat ?? 'Chat',
                 isSelected: selectedIndex == 3,
-                onTap: () => _onItemTapped(context, 3),
+                onTap: subscriptionService.hasFeature('claimsense_chat')
+                    ? () => _onItemTapped(context, 3)
+                    : () => _showUpgradeDialog(context, 'AI Chat'),
+                showBadge: !subscriptionService.hasFeature('claimsense_chat'),
+                isPremium: !subscriptionService.hasFeature('claimsense_chat'),
               ),
               _NavItem(
                 key: const Key('navTab_4'),
-                icon: Icons.tune_rounded,
+                icon: Icons.settings_outlined,
+                activeIcon: Icons.settings,
                 label: AppLocalizations.of(context)?.settings ?? 'Settings',
                 isSelected: selectedIndex == 4,
                 onTap: () => _onItemTapped(context, 4),
-              ),
-              _NavItem(
-                key: const Key('navTab_5'),
-                icon: Icons.share_outlined,
-                label: 'Shared',
-                isSelected: selectedIndex == 5,
-                onTap: () => _onItemTapped(context, 5),
               ),
             ],
           ),
@@ -564,6 +668,7 @@ class _BottomNavBar extends StatelessWidget {
 
 class _NavItem extends StatelessWidget {
   final IconData icon;
+  final IconData activeIcon;
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
@@ -573,6 +678,7 @@ class _NavItem extends StatelessWidget {
   const _NavItem({
     super.key,
     required this.icon,
+    required this.activeIcon,
     required this.label,
     required this.isSelected,
     required this.onTap,
@@ -586,11 +692,11 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryDark.withOpacity(0.08) : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          color: isSelected ? AppTheme.primaryDark.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -599,42 +705,45 @@ class _NavItem extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 Icon(
-                  icon,
-                  color: isSelected ? AppTheme.primaryDark : AppTheme.textH(context),
-                  size: 22,
+                  isSelected ? activeIcon : icon,
+                  color: isSelected ? AppTheme.primaryDark : AppTheme.textHint,
+                  size: 24,
                 ),
                 if (showBadge && !isSelected)
                   Positioned(
-                    right: -3,
-                    top: -3,
+                    right: -4,
+                    top: -4,
                     child: Container(
-                      width: 8,
-                      height: 8,
+                      width: 10,
+                      height: 10,
                       decoration: BoxDecoration(
-                        color: AppTheme.accent,
+                        color: AppTheme.danger,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.surfaceOf(context), width: 1.5),
+                        border: Border.all(color: AppTheme.surface, width: 1.5),
                       ),
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 4),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? AppTheme.primaryDark : AppTheme.textH(context),
-                    letterSpacing: 0.1,
+                    color: isSelected ? AppTheme.primaryDark : AppTheme.textHint,
                   ),
                 ),
                 if (isPremium) ...[
                   const SizedBox(width: 2),
-                  Icon(Icons.lock_outline_rounded, size: 9, color: Colors.amber.shade600),
+                  Icon(
+                    Icons.lock,
+                    size: 10,
+                    color: Colors.amber,
+                  ),
                 ],
               ],
             ),
@@ -645,10 +754,11 @@ class _NavItem extends StatelessWidget {
   }
 }
 
+/// User Profile Menu - Shows popup with Settings/Logout
 class _UserProfileMenu extends StatelessWidget {
   final VoidCallback? onNavigate;
 
-  _UserProfileMenu({this.onNavigate});
+  const _UserProfileMenu({this.onNavigate});
 
   void _showUserMenu(BuildContext context) {
     final RenderBox button = context.findRenderObject() as RenderBox;
@@ -662,23 +772,19 @@ class _UserProfileMenu extends StatelessWidget {
     );
 
     final l10n = AppLocalizations.of(context);
-    final menuBg = AppTheme.isDark(context) ? AppTheme.darkCard : AppTheme.surfaceOf(context);
-    final menuText = AppTheme.isDark(context) ? Colors.white : AppTheme.text1(context);
-    final menuTextMuted = AppTheme.isDark(context) ? Colors.white70 : AppTheme.text2(context);
-
     showMenu<String>(
       context: context,
       position: position,
-      color: menuBg,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      color: AppTheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       items: [
         PopupMenuItem<String>(
           value: 'settings',
           child: Row(
             children: [
-              Icon(Icons.tune_rounded, size: 18, color: menuTextMuted),
-              const SizedBox(width: 10),
-              Text(l10n?.settings ?? 'Settings', style: TextStyle(color: menuText, fontSize: 13)),
+              Icon(Icons.settings_outlined, size: 20, color: AppTheme.textPrimary),
+              const SizedBox(width: 12),
+              Text(l10n.settings),
             ],
           ),
         ),
@@ -686,9 +792,9 @@ class _UserProfileMenu extends StatelessWidget {
           value: 'profile',
           child: Row(
             children: [
-              Icon(Icons.person_outline_rounded, size: 18, color: menuTextMuted),
-              const SizedBox(width: 10),
-              Text(l10n?.profile ?? 'Profile', style: TextStyle(color: menuText, fontSize: 13)),
+              Icon(Icons.person_outline, size: 20, color: AppTheme.textPrimary),
+              const SizedBox(width: 12),
+              Text(l10n.profile),
             ],
           ),
         ),
@@ -697,9 +803,9 @@ class _UserProfileMenu extends StatelessWidget {
           value: 'logout',
           child: Row(
             children: [
-              Icon(Icons.logout_rounded, size: 18, color: AppTheme.danger),
-              const SizedBox(width: 10),
-              Text(l10n?.logOut ?? 'Log out', style: TextStyle(color: AppTheme.danger, fontSize: 13)),
+              Icon(Icons.logout, size: 20, color: AppTheme.danger),
+              const SizedBox(width: 12),
+              Text(l10n.logOut, style: TextStyle(color: AppTheme.danger)),
             ],
           ),
         ),
@@ -707,10 +813,17 @@ class _UserProfileMenu extends StatelessWidget {
     ).then((value) {
       if (value == null) return;
       onNavigate?.call();
+
       switch (value) {
-        case 'settings': context.go('/settings'); break;
-        case 'profile': context.go('/settings/profile'); break;
-        case 'logout': _confirmLogout(context); break;
+        case 'settings':
+          context.go('/settings');
+          break;
+        case 'profile':
+          context.go('/settings/profile');
+          break;
+        case 'logout':
+          _confirmLogout(context);
+          break;
       }
     });
   }
@@ -732,13 +845,17 @@ class _UserProfileMenu extends StatelessWidget {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
+              // Clear cache and logout
               documentsPrefetchService.clearCache();
               await authService.logout();
+              // Navigate to welcome screen using the captured navigator
               if (context.mounted) {
                 navigator.go('/welcome');
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.danger, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.danger,
+            ),
             child: Text(l10n?.logOut ?? 'Log Out'),
           ),
         ],
@@ -748,6 +865,7 @@ class _UserProfileMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get user data from auth service
     final user = authService.user;
     final fullName = user?['full_name'] ?? user?['name'] ?? 'User';
     final email = user?['email'] ?? '';
@@ -760,52 +878,41 @@ class _UserProfileMenu extends StatelessWidget {
       child: InkWell(
         onTap: () => _showUserMenu(context),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
+            border: Border(top: BorderSide(color: Colors.white12)),
           ),
           child: Row(
             children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppTheme.primaryDark, AppTheme.primaryLight],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(
-                    initials,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppTheme.accent,
+                child: Text(
+                  initials,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       fullName,
-                      style: TextStyle(
-                        color: AppTheme.text1(context),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (email.isNotEmpty)
                       Text(
                         email,
-                        style: TextStyle(
-                          color: AppTheme.textH(context),
+                        style: const TextStyle(
+                          color: Colors.white60,
                           fontSize: 11,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -813,7 +920,11 @@ class _UserProfileMenu extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.unfold_more_rounded, color: AppTheme.textH(context), size: 18),
+              Icon(
+                Icons.more_vert,
+                color: Colors.white60,
+                size: 20,
+              ),
             ],
           ),
         ),

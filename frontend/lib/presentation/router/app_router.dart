@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/auth_service.dart';
 
+// Auth Screens
 import '../screens/auth/splash_screen.dart';
 import '../screens/auth/onboarding_screen.dart';
 import '../screens/auth/welcome_screen.dart';
@@ -11,9 +12,8 @@ import '../screens/auth/forgot_password_screen.dart';
 import '../screens/auth/pending_approval_screen.dart';
 import '../screens/auth/two_factor_verify_screen.dart';
 import '../screens/admin/user_approvals_screen.dart';
-import '../screens/admin/admin_dashboard_screen.dart';
-import '../screens/admin/admin_user_detail_screen.dart';
-import '../screens/admin/admin_audit_log_screen.dart';
+
+// Main Screens
 import '../screens/home/dashboard_screen.dart';
 import '../screens/home/document_intake_screen.dart';
 import '../screens/home/processing_screen.dart';
@@ -22,22 +22,23 @@ import '../screens/reports/history_screen.dart';
 import '../screens/reports/results_screen.dart';
 import '../screens/reports/refinement_screen.dart';
 import '../screens/reports/contract_screen.dart';
-import '../screens/reports/share_view_screen.dart';
 
 import '../screens/chat/unified_chat_screen.dart';
+
+import '../screens/analytics/portfolio_screen.dart';
+import '../screens/analytics/performance_screen.dart';
 
 import '../screens/settings/settings_screen.dart';
 import '../screens/settings/profile_screen.dart';
 import '../screens/settings/subscription_screen.dart';
 import '../screens/settings/language_screen.dart';
-import '../screens/settings/appearance_screen.dart';
 import '../screens/settings/repository_screen.dart';
 import '../screens/settings/team_management_screen.dart';
 import '../screens/settings/two_factor_screen.dart';
 import '../screens/settings/security_screen.dart';
 import '../screens/settings/change_password_screen.dart';
 import '../screens/settings/sessions_screen.dart';
-import '../screens/settings/help_screen.dart';
+import '../screens/settings/email_integrations_screen.dart';
 import '../screens/upload/qr_upload_screen.dart';
 import '../screens/training/training_screen.dart';
 import '../screens/documents/reference_documents_screen.dart';
@@ -53,25 +54,36 @@ import '../screens/documents/ai_document_advisor_screen.dart';
 import '../screens/documents/clause_review_screen.dart';
 import '../screens/documents/generation_progress_screen.dart';
 
+// Lloyd's V3 Screens
+import '../screens/lloyds/syndicate_dashboard_screen.dart';
+import '../screens/lloyds/placement_board_screen.dart';
+import '../screens/lloyds/exposure_dashboard_screen.dart';
+import '../screens/lloyds/compliance_center_screen.dart';
+import '../screens/lloyds/pricing_screen.dart';
+import '../screens/lloyds/data_quality_screen.dart';
+import '../screens/lloyds/umr_management_screen.dart';
+import '../screens/lloyds/ai_explainer_screen.dart';
+import '../screens/lloyds/lloyds_admin_dashboard_screen.dart';
+
+// Analysis Screens
 import '../screens/analysis/analysis_mode_screen.dart';
 import '../screens/analysis/analysis_progress_screen.dart';
 
+// Sanctions Screens
 import '../screens/sanctions/sanctions_detail_screen.dart';
 import '../screens/sanctions/sanctions_screening_progress_screen.dart';
 
-import '../screens/entities/entity_graph_screen.dart';
-
-import '../screens/underwriter/share_submission_screen.dart';
-import '../screens/underwriter/shared_with_me_screen.dart';
-
+// Shell for bottom navigation
 import '../widgets/common/main_shell.dart';
 
+/// App Router Configuration
 class AppRouter {
   static final GlobalKey<NavigatorState> _rootNavigatorKey =
       GlobalKey<NavigatorState>(debugLabel: 'root');
   static final GlobalKey<NavigatorState> _shellNavigatorKey =
       GlobalKey<NavigatorState>(debugLabel: 'shell');
 
+  /// Public routes that don't require authentication
   static const List<String> _publicRoutes = [
     '/',
     '/welcome',
@@ -83,16 +95,20 @@ class AppRouter {
     '/2fa-verify',
   ];
 
+  /// Initialize the router and set up auth service callback
   static void init() {
+    // Set up the 401 handler to redirect to login
     AuthService.onUnauthorized = () {
       router.go('/login');
     };
   }
 
+  /// Check if a route is public (no auth required)
   static bool _isPublicRoute(String location) {
+    // Check exact matches
     if (_publicRoutes.contains(location)) return true;
+    // Check if it's a deep link upload route (public for mobile uploads)
     if (location.startsWith('/upload/')) return true;
-    if (location.startsWith('/share/')) return true;
     return false;
   }
 
@@ -101,11 +117,14 @@ class AppRouter {
     initialLocation: '/',
     debugLogDiagnostics: true,
 
+    // Authentication redirect guard
     redirect: (BuildContext context, GoRouterState state) {
       final isLoggedIn = authService.isLoggedIn;
       final location = state.uri.toString();
       final path = state.uri.path;
 
+      // Deep link routes bypass auth entirely (QR upload flow)
+      // Check both location and path to handle different URL formats
       if (location.startsWith('/upload/') ||
           path.startsWith('/upload/') ||
           location.contains('/upload/') ||
@@ -115,24 +134,22 @@ class AppRouter {
 
       final isPublicRoute = _isPublicRoute(location) || _isPublicRoute(path);
 
+      // If not logged in and trying to access protected route, redirect to welcome
       if (!isLoggedIn && !isPublicRoute) {
-        // Preserve the originally requested path so the login screen can
-        // redirect back to it after the user authenticates. Without this,
-        // /admin (and every other protected route) silently drops the user
-        // on /welcome after login instead of returning them to where they
-        // were trying to go. URL-encoded so paths with query strings /
-        // fragments survive the round-trip.
-        return '/welcome?next=${Uri.encodeComponent(path)}';
+        return '/welcome';
       }
 
+      // If logged in and on auth pages (welcome, login, register), redirect to main app
       if (isLoggedIn && (location == '/welcome' || location == '/login' || location == '/register')) {
         return '/home';
       }
 
+      // No redirect needed
       return null;
     },
 
     routes: [
+      // ==================== AUTH ROUTES ====================
       GoRoute(
         path: '/',
         name: 'splash',
@@ -180,6 +197,7 @@ class AppRouter {
         },
       ),
 
+      // ==================== QR UPLOAD (Deep Link) ====================
       GoRoute(
         path: '/upload/:token',
         name: 'qrUpload',
@@ -188,14 +206,7 @@ class AppRouter {
         ),
       ),
 
-      GoRoute(
-        path: '/share/:token',
-        name: 'sharedAssessment',
-        builder: (context, state) => ShareViewScreen(
-          token: state.pathParameters['token']!,
-        ),
-      ),
-
+      // ==================== DOCUMENT EDITOR ====================
       GoRoute(
         path: '/documents/edit/:documentId',
         name: 'documentEditor',
@@ -208,34 +219,16 @@ class AppRouter {
         },
       ),
 
-      GoRoute(
-        path: '/admin',
-        name: 'adminPanel',
-        builder: (context, state) => const AdminDashboardScreen(),
-        routes: [
-          GoRoute(
-            path: 'user/:userId',
-            name: 'adminUserDetail',
-            builder: (context, state) => AdminUserDetailScreen(
-              userId: state.pathParameters['userId']!,
-            ),
-          ),
-          GoRoute(
-            path: 'audit-log',
-            name: 'adminAuditLog',
-            builder: (context, state) => const AdminAuditLogScreen(),
-          ),
-        ],
-      ),
-
-       ShellRoute(
+      // ==================== MAIN APP (with bottom nav) ====================
+      ShellRoute(
         navigatorKey: _shellNavigatorKey,
         builder: (context, state, child) => MainShell(child: child),
         routes: [
+          // HOME TAB
           GoRoute(
             path: '/home',
             name: 'home',
-            pageBuilder: (context, state) => NoTransitionPage(
+            pageBuilder: (context, state) => const NoTransitionPage(
               child: DashboardScreen(),
             ),
             routes: [
@@ -251,20 +244,14 @@ class AppRouter {
                   documentId: state.pathParameters['documentId']!,
                 ),
               ),
-              GoRoute(
-                path: 'share/:assessmentId',
-                name: 'shareSubmission',
-                builder: (context, state) => ShareSubmissionScreen(
-                  assessmentId: state.pathParameters['assessmentId']!,
-                ),
-              ),
             ],
           ),
 
+          // REPORTS TAB
           GoRoute(
             path: '/reports',
             name: 'reports',
-            pageBuilder: (context, state) => NoTransitionPage(
+            pageBuilder: (context, state) => const NoTransitionPage(
               child: HistoryScreen(),
             ),
             routes: [
@@ -314,6 +301,7 @@ class AppRouter {
             ],
           ),
 
+          // ANALYSIS ROUTES (inside ShellRoute for nav bar)
           GoRoute(
             path: '/analysis/mode/:assessmentId',
             name: 'analysisMode',
@@ -349,20 +337,13 @@ class AppRouter {
                 analysisData: extra['analysisData'] as Map<String, dynamic>?,
                 isProcessing: extra['isProcessing'] as bool? ?? false,
                 sessionId: extra['sessionId'] as String?,
-                sessionToken: extra['sessionToken'] as String?,
+                    sessionToken: extra['sessionToken'] as String?,
                 documentCount: extra['documentCount'] as int? ?? 1,
               );
             },
           ),
 
-          GoRoute(
-            path: '/assessments/:assessmentId/entities',
-            name: 'entityGraph',
-            builder: (context, state) => EntityGraphScreen(
-              assessmentId: state.pathParameters['assessmentId']!,
-            ),
-          ),
-
+          // SANCTIONS SCREENING (inside shell for nav bar)
           GoRoute(
             path: '/assessments/:assessmentId/sanctions',
             name: 'sanctionsDetail',
@@ -382,10 +363,11 @@ class AppRouter {
             },
           ),
 
+          // CHAT TAB - Unified AI Chat (Claude/ChatGPT style)
           GoRoute(
             path: '/chat',
             name: 'chat',
-            pageBuilder: (context, state) => NoTransitionPage(
+            pageBuilder: (context, state) => const NoTransitionPage(
               child: UnifiedChatScreen(),
             ),
             routes: [
@@ -399,21 +381,40 @@ class AppRouter {
             ],
           ),
 
+          // ANALYTICS TAB
+          GoRoute(
+            path: '/analytics',
+            name: 'analytics',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: PortfolioScreen(),
+            ),
+            routes: [
+              GoRoute(
+                path: 'performance',
+                name: 'performance',
+                builder: (context, state) => const PerformanceScreen(),
+              ),
+            ],
+          ),
+
+          // TRAINING TAB - Upload documents to improve AI
           GoRoute(
             path: '/training',
             name: 'training',
-            pageBuilder: (context, state) => NoTransitionPage(
+            pageBuilder: (context, state) => const NoTransitionPage(
               child: TrainingScreen(),
             ),
           ),
 
+          // DOCUMENTS TAB (Reference + Assessment Documents)
           GoRoute(
             path: '/documents',
             name: 'documents',
-            pageBuilder: (context, state) => NoTransitionPage(
+            pageBuilder: (context, state) => const NoTransitionPage(
               child: DocumentsHubScreen(),
             ),
             routes: [
+              // V3 Document Generator - Create Flow
               GoRoute(
                 path: 'create',
                 name: 'documentCreate',
@@ -443,6 +444,7 @@ class AppRouter {
                   );
                 },
               ),
+              // Document Preview
               GoRoute(
                 path: 'preview/:documentId',
                 name: 'documentPreview',
@@ -454,11 +456,13 @@ class AppRouter {
                   );
                 },
               ),
+              // Reference Documents
               GoRoute(
                 path: 'reference',
                 name: 'referenceDocuments',
                 builder: (context, state) => const ReferenceDocumentsScreen(),
               ),
+              // AI Document Advisor (replaces static type selection)
               GoRoute(
                 path: 'ai-advisor/:assessmentId',
                 name: 'aiDocumentAdvisor',
@@ -466,6 +470,7 @@ class AppRouter {
                   assessmentId: state.pathParameters['assessmentId']!,
                 ),
               ),
+              // Clause Review
               GoRoute(
                 path: 'clause-review',
                 name: 'clauseReview',
@@ -479,6 +484,7 @@ class AppRouter {
                   );
                 },
               ),
+              // Generation Progress + Preview
               GoRoute(
                 path: 'generation-progress',
                 name: 'generationProgress',
@@ -501,10 +507,11 @@ class AppRouter {
             ],
           ),
 
+          // SETTINGS TAB
           GoRoute(
             path: '/settings',
             name: 'settings',
-            pageBuilder: (context, state) => NoTransitionPage(
+            pageBuilder: (context, state) => const NoTransitionPage(
               child: SettingsScreen(),
             ),
             routes: [
@@ -524,11 +531,6 @@ class AppRouter {
                 builder: (context, state) => const LanguageScreen(),
               ),
               GoRoute(
-                path: 'appearance',
-                name: 'appearance',
-                builder: (context, state) => const AppearanceScreen(),
-              ),
-              GoRoute(
                 path: 'repository',
                 name: 'repository',
                 builder: (context, state) => const RepositoryScreen(),
@@ -542,6 +544,11 @@ class AppRouter {
                 path: 'approvals',
                 name: 'userApprovals',
                 builder: (context, state) => const UserApprovalsScreen(),
+              ),
+              GoRoute(
+                path: 'integrations',
+                name: 'emailIntegrations',
+                builder: (context, state) => const EmailIntegrationsScreen(),
               ),
               GoRoute(
                 path: 'security',
@@ -565,29 +572,88 @@ class AppRouter {
                   ),
                 ],
               ),
-              GoRoute(
-                path: 'help',
-                name: 'help',
-                builder: (context, state) => const HelpScreen(),
-              ),
             ],
           ),
 
+          // ==================== LLOYD'S ADMIN DASHBOARD ====================
           GoRoute(
-            path: '/shared',
-            name: 'sharedWithMe',
-            pageBuilder: (context, state) => NoTransitionPage(
-              child: SharedWithMeScreen(),
+            path: '/lloyds-admin',
+            name: 'lloydsAdmin',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: LloydsAdminDashboardScreen(),
             ),
+          ),
+
+          // ==================== LLOYD'S V3 MARKET SCREENS ====================
+          GoRoute(
+            path: '/lloyds',
+            name: 'lloyds',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: SyndicateDashboardScreen(),
+            ),
+            routes: [
+              // Placement Board
+              GoRoute(
+                path: 'placements',
+                name: 'lloydsPlacementBoard',
+                builder: (context, state) => const PlacementBoardScreen(),
+              ),
+
+              // Exposure Dashboard
+              GoRoute(
+                path: 'exposure',
+                name: 'lloydsExposure',
+                builder: (context, state) => const ExposureDashboardScreen(),
+              ),
+
+              // Compliance Center
+              GoRoute(
+                path: 'compliance',
+                name: 'lloydsCompliance',
+                builder: (context, state) => const ComplianceCenterScreen(),
+              ),
+
+              // Pricing Engine
+              GoRoute(
+                path: 'pricing',
+                name: 'lloydsPricing',
+                builder: (context, state) => const PricingScreen(),
+              ),
+
+              // Data Quality
+              GoRoute(
+                path: 'quality',
+                name: 'lloydsQuality',
+                builder: (context, state) => const DataQualityScreen(),
+              ),
+
+              // UMR Management
+              GoRoute(
+                path: 'umr',
+                name: 'lloydsUMR',
+                builder: (context, state) => const UMRManagementScreen(),
+              ),
+
+              // AI Decision Explainer
+              GoRoute(
+                path: 'explainer',
+                name: 'lloydsExplainer',
+                builder: (context, state) => AIExplainerScreen(
+                  assessmentId: state.uri.queryParameters['assessmentId'],
+                  decisionType: state.uri.queryParameters['decisionType'],
+                ),
+              ),
+            ],
           ),
         ],
       ),
     ],
 
-      errorBuilder: (context, state) => Scaffold(
-        body: Center(
-          child: Text('Page not found: ${state.uri}'),
-        ),
+    // Error handling
+    errorBuilder: (context, state) => Scaffold(
+      body: Center(
+        child: Text('Page not found: ${state.uri}'),
       ),
+    ),
   );
 }

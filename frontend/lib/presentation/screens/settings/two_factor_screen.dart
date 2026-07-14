@@ -151,17 +151,17 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Save these backup codes in a secure place. Each code can only be used once.',
-                style: TextStyle(color: AppTheme.text2(context)),
+                style: TextStyle(color: AppTheme.textSecondary),
               ),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppTheme.bg(context),
+                  color: AppTheme.background,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppTheme.borderOf(context)),
+                  border: Border.all(color: AppTheme.border),
                 ),
                 child: Column(
                   children: _backupCodes!.map((code) => Padding(
@@ -219,20 +219,20 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        backgroundColor: AppTheme.surfaceOf(context),
+        backgroundColor: AppTheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
           onPressed: () => context.pop(),
         ),
-        title: Text(
+        title: const Text(
           'Two-Factor Authentication',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
           ),
         ),
         centerTitle: true,
@@ -265,10 +265,10 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: _is2FAEnabled ? AppTheme.success.withOpacity(0.3) : AppTheme.borderOf(context),
+          color: _is2FAEnabled ? AppTheme.success.withOpacity(0.3) : AppTheme.border,
         ),
       ),
       child: Row(
@@ -297,7 +297,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: _is2FAEnabled ? AppTheme.success : AppTheme.text1(context),
+                    color: _is2FAEnabled ? AppTheme.success : AppTheme.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -305,9 +305,9 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
                   _is2FAEnabled
                       ? 'Your account is protected with two-factor authentication'
                       : 'Add an extra layer of security to your account',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 13,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                   ),
                 ),
               ],
@@ -322,20 +322,20 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'About Two-Factor Authentication',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
           ),
         ),
         const SizedBox(height: 12),
-        Text(
+        const Text(
           '2FA adds an extra layer of security by requiring a code from your authenticator app in addition to your password.',
           style: TextStyle(
             fontSize: 14,
-            color: AppTheme.text2(context),
+            color: AppTheme.textSecondary,
             height: 1.5,
           ),
         ),
@@ -410,13 +410,13 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderOf(context)),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Text(
         name,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 12,
-          color: AppTheme.text2(context),
+          color: AppTheme.textSecondary,
         ),
       ),
     );
@@ -426,18 +426,18 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Step 1: Scan QR Code',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
-        Text(
+        const Text(
           'Open your authenticator app and scan this QR code:',
-          style: TextStyle(fontSize: 14, color: AppTheme.text2(context)),
+          style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
         ),
         const SizedBox(height: 20),
 
@@ -448,7 +448,7 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.borderOf(context)),
+              border: Border.all(color: AppTheme.border),
             ),
             child: Image.memory(
               base64Decode(_qrCodeBase64!),
@@ -460,17 +460,17 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
         const SizedBox(height: 20),
 
         // Manual entry key
-        Text(
+        const Text(
           'Or enter this code manually:',
-          style: TextStyle(fontSize: 14, color: AppTheme.text2(context)),
+          style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
         ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppTheme.bg(context),
+            color: AppTheme.background,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppTheme.borderOf(context)),
+            border: Border.all(color: AppTheme.border),
           ),
           child: Row(
             children: [
@@ -500,18 +500,18 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
         const SizedBox(height: 32),
 
         // Step 2: Verify
-        Text(
+        const Text(
           'Step 2: Enter Verification Code',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
-        Text(
+        const Text(
           'Enter the 6-digit code from your authenticator app:',
-          style: TextStyle(fontSize: 14, color: AppTheme.text2(context)),
+          style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
         ),
         const SizedBox(height: 12),
         TextField(
@@ -601,9 +601,9 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
         ),
         const SizedBox(height: 24),
 
-        Text(
+        const Text(
           'Enter your password:',
-          style: TextStyle(fontSize: 14, color: AppTheme.text2(context)),
+          style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
         ),
         const SizedBox(height: 8),
         TextField(
@@ -618,9 +618,9 @@ class _TwoFactorScreenState extends State<TwoFactorScreen> {
         ),
         const SizedBox(height: 20),
 
-        Text(
+        const Text(
           'Enter your 2FA code:',
-          style: TextStyle(fontSize: 14, color: AppTheme.text2(context)),
+          style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
         ),
         const SizedBox(height: 8),
         TextField(

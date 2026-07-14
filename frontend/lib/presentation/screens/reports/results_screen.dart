@@ -8,11 +8,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/subscription_service.dart';
+import '../../widgets/rapidrate_section.dart';
 import '../../../l10n/generated/app_localizations.dart';
-// God Mode integrations
-import '../../widgets/analysis/similar_risks_panel.dart';
-import '../../widgets/analysis/shap_waterfall_chart.dart';
-import '../../widgets/entities/entity_graph_viz.dart';
 
 /// Results Screen - Displays GO/NO-GO decision with real AI analysis
 /// Also handles live processing progress when navigated from upload
@@ -53,7 +50,6 @@ class _ResultsScreenState extends State<ResultsScreen>
 
   // AI Analysis state
   bool _isRunningAnalysis = false;
-  bool _showDetails = false;
 
   // Upgrade analysis state
   bool _isUpgrading = false;
@@ -91,6 +87,15 @@ class _ResultsScreenState extends State<ResultsScreen>
   bool get _isBasicOrHigher => _subscriptionService.isBasic || _subscriptionService.isPremium;
   bool get _isTrial => _subscriptionService.isTrial;
   bool get _canSeeDecision => _subscriptionService.hasFeature('go_no_go_decision');
+
+  // RapidRate pricing data from assessment (auto-populated during analysis)
+  Map<String, dynamic>? get _rapidRateData {
+    final data = _assessment?['rapidrate_results'] ??
+                 _analysis?['agent_results']?['rapidrate_pricing'];
+    if (data is Map<String, dynamic> && data.isNotEmpty) return data;
+    if (_pricingResult != null) return _pricingResult;
+    return null;
+  }
 
   // Dynamic label for casualty vs property
   String get limitLabel {
@@ -137,26 +142,12 @@ class _ResultsScreenState extends State<ResultsScreen>
     }
   }
 
-  int _stallSeconds = 0;
-  double _lastProgress = 0;
-
   void _startElapsedTimer() {
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_startTime != null && !_processingComplete && !_hasProcessingError) {
         setState(() {
           _elapsedSeconds = DateTime.now().difference(_startTime!).inSeconds;
         });
-        // Safety: if progress stalls at >=90% for 20s, force poll assessment status
-        if (_progressPercent >= 90 && _progressPercent == _lastProgress) {
-          _stallSeconds++;
-          if (_stallSeconds >= 20) {
-            _stallSeconds = 0;
-            _pollAssessmentStatus();
-          }
-        } else {
-          _stallSeconds = 0;
-          _lastProgress = _progressPercent;
-        }
       }
     });
   }
@@ -207,7 +198,7 @@ class _ResultsScreenState extends State<ResultsScreen>
         onDone: () {
           // WebSocket closed
           if (!_processingComplete && !_hasProcessingError) {
-            // Try reconnecting once, then fall back to assessment status polling
+            // Try reconnecting once, then fall back to polling
             if (_wsRetryCount < _maxWsRetries) {
               Future.delayed(const Duration(seconds: 2), () {
                 if (mounted && !_processingComplete && !_hasProcessingError) {
@@ -215,8 +206,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                 }
               });
             } else {
-              // Use assessment status polling as fallback (more reliable)
-              _startPollingAssessment();
+              _startPolling();
             }
           }
         },
@@ -238,8 +228,7 @@ class _ResultsScreenState extends State<ResultsScreen>
           _agentIndex = message['agent_index'] ?? 0;
           _totalAgents = message['total_agents'] ?? _totalAgents;
           _currentDescription = message['description'] ?? 'Processing...';
-          final progressVal = message['progress_percent'];
-          _progressPercent = (progressVal is num) ? progressVal.toDouble() : 0.0;
+          _progressPercent = (message['progress_percent'] is num) ? (message['progress_percent'] as num).toDouble() : 0.0;
           _estimatedRemaining = message['estimated_remaining'] ?? 0;
           _currentDocument = message['current_document'] ?? 0;
           _totalDocuments = message['total_documents'] ?? widget.documentCount;
@@ -354,8 +343,8 @@ class _ResultsScreenState extends State<ResultsScreen>
           setState(() {
             _currentAgent = data['current_agent'] ?? _currentAgent;
             _currentDescription = data['description'] ?? _currentDescription;
-            if (data['progress'] != null && data['progress'] is num) {
-              _progressPercent = (data['progress'] as num).toDouble();
+            if (data['progress'] != null) {
+              _progressPercent = (data['progress'] is num) ? (data['progress'] as num).toDouble() : 0.0;
             }
           });
         }
@@ -543,40 +532,37 @@ class _ResultsScreenState extends State<ResultsScreen>
       return analysisDecision;
     }
     // Fallback based on confidence
-    return confidence > 0.5 ? 'GO' : 'NO_GO';
+    return confidence > 0.5 ? 'GO' : confidence > 0.3 ? 'REFER' : 'NO_GO';
   }
   bool get isApproved => decision == 'GO';
   bool get isReferred => decision == 'REFER';
+  // Safe conversion to double from any type
+  double _toDouble(dynamic value, [double fallback = 0.0]) {
+    if (value == null) return fallback;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? fallback;
+    return fallback;
+  }
+
   // Confidence from underwriter agent or assessment confidence_score
   double get confidence {
-    // Helper to safely convert to double
-    double? toSafeDouble(dynamic value) {
-      if (value == null) return null;
-      if (value is num) return value.toDouble();
-      if (value is String) return double.tryParse(value);
-      return null;
-    }
     // First try underwriter agent confidence (0-1 scale)
-    final underwriterConf = toSafeDouble(_analysis?['agent_results']?['underwriter']?['confidence']);
-    if (underwriterConf != null) {
-      return underwriterConf > 1 ? underwriterConf / 100 : underwriterConf;  // Normalize to 0-1
+    final underwriterConf = _analysis?['agent_results']?['underwriter']?['confidence'];
+    if (underwriterConf != null && underwriterConf is num) {
+      final conf = underwriterConf.toDouble();
+      return conf > 1 ? conf / 100 : conf;  // Normalize to 0-1
     }
     // Then try assessment confidence_score
-    final assessmentConf = toSafeDouble(_assessment?['confidence_score']);
-    if (assessmentConf != null) {
-      return assessmentConf > 1 ? assessmentConf / 100 : assessmentConf;  // Normalize to 0-1
+    final assessmentConf = _assessment?['confidence_score'];
+    if (assessmentConf != null && assessmentConf is num) {
+      final conf = assessmentConf.toDouble();
+      return conf > 1 ? conf / 100 : conf;  // Normalize to 0-1
     }
     return 0.5;  // Default
   }
   int get confidencePercent => (confidence * 100).toInt();
   int get riskScore => _assessment?['risk_score'] ?? 50;
-  double get premiumEstimate {
-    final value = _assessment?['premium'] ?? _analysis?['premium'];
-    if (value == null) return 0.0;
-    if (value is num) return value.toDouble();
-    if (value is String) return double.tryParse(value) ?? 0.0;
-    return 0.0;
-  }
+  double get premiumEstimate => _toDouble(_assessment?['premium'] ?? _analysis?['premium']);
   String get companyName => _assessment?['insured_name'] ?? _analysis?['company_name'] ?? 'Document Analysis';
   String get riskType => _assessment?['risk_category'] ?? _analysis?['risk_type'] ?? _analysis?['document_type'] ?? 'Pending Review';
   String get coverageDetails => _assessment?['description'] ?? _analysis?['coverage_details'] ?? '';
@@ -627,20 +613,8 @@ class _ResultsScreenState extends State<ResultsScreen>
     // Default empty
     return [];
   }
-  double get deductible {
-    final value = _assessment?['deductible'] ?? _analysis?['deductible'];
-    if (value == null) return 0.0;
-    if (value is num) return value.toDouble();
-    if (value is String) return double.tryParse(value) ?? 0.0;
-    return 0.0;
-  }
-  double get sumInsured {
-    final value = _assessment?['sum_insured'] ?? _analysis?['sum_insured'];
-    if (value == null) return 0.0;
-    if (value is num) return value.toDouble();
-    if (value is String) return double.tryParse(value) ?? 0.0;
-    return 0.0;
-  }
+  double get deductible => _toDouble(_assessment?['deductible'] ?? _analysis?['deductible']);
+  double get sumInsured => _toDouble(_assessment?['sum_insured'] ?? _analysis?['sum_insured']);
 
   // Useful metrics for document analysis
   int get documentsAnalyzed {
@@ -932,8 +906,8 @@ class _ResultsScreenState extends State<ResultsScreen>
     if (!canUpgradeAnalysis) return const SizedBox.shrink();
 
     final modeColor = nextMode == 'go_no_go'
-        ? AppTheme.analysisClassifier
-        : AppTheme.analysisPurple;
+        ? const Color(0xFF2563EB)
+        : const Color(0xFF7C3AED);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -993,135 +967,21 @@ class _ResultsScreenState extends State<ResultsScreen>
     );
   }
 
-  Future<void> _shareResults() async {
-    if (!mounted) return;
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Share Assessment',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.text1(context),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.accent.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(Icons.link, color: AppTheme.accent),
-                ),
-                title: const Text('Get public link',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Anyone with the link can view — expires in 24h'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _createAndShowPublicLink();
-                },
-              ),
-              const Divider(),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.person_add_outlined, color: Colors.green),
-                ),
-                title: const Text('Share with colleague',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: const Text('Send directly to another InstantRisk user'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  context.push('/home/share/${widget.assessmentId}');
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  void _shareResults() {
+    final text = '''
+InstantRisk Assessment Results
+${referenceNumber.isNotEmpty ? 'Ref: $referenceNumber\n' : ''}
+Decision: ${isApproved ? 'GO' : 'NO-GO'}
+Company: $companyName
+Risk Type: $riskType
+Confidence: $confidencePercent%
+${documentsAnalyzed > 0 ? 'Documents Analyzed: $documentsAnalyzed' : ''}
+${keyFindingsCount > 0 ? 'Key Findings: $keyFindingsCount' : ''}
+${territory.isNotEmpty ? 'Territory: $territory' : ''}
 
-  Future<void> _createAndShowPublicLink() async {
-    try {
-      final response = await authService.post(
-        '/share/assessments/${widget.assessmentId}',
-        body: {'hours_valid': 24},
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final shareUrl = 'https://d2f065h47nuk0c.cloudfront.net/#/share/${data['token']}';
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Share Assessment'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Anyone with this link can view the results:',
-                    style: TextStyle(fontSize: 14, color: AppTheme.text2(context))),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.bg(context),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: SelectableText(shareUrl,
-                      style: const TextStyle(fontSize: 13)),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Expires in 24 hours',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Close'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Share.share(shareUrl);
-                    Navigator.pop(ctx);
-                  },
-                  icon: const Icon(Icons.share, size: 18),
-                  label: const Text('Share'),
-                ),
-              ],
-            ),
-          );
-        }
-      } else {
-        throw Exception('Failed to create share link');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not create share link: $e'),
-            backgroundColor: AppTheme.danger),
-        );
-      }
-    }
+Generated by InstantRisk
+''';
+    Share.share(text);
   }
 
   // Rename dialog (Premium only)
@@ -1232,7 +1092,7 @@ class _ResultsScreenState extends State<ResultsScreen>
             title: limitLabel,
             value: hasLimitData ? 'GBP ${_formatCurrency(suggestedLimit)}' : 'Insufficient Data',
             icon: Icons.shield_outlined,
-            color: AppTheme.analysisPurple,
+            color: const Color(0xFF7C3AED),
             hasData: hasLimitData,
             fullWidth: true,
           ),
@@ -1253,10 +1113,10 @@ class _ResultsScreenState extends State<ResultsScreen>
       width: fullWidth ? double.infinity : null,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: hasData ? color.withValues(alpha: 0.1) : AppTheme.surfaceOf(context),
+        color: hasData ? color.withValues(alpha: 0.1) : AppTheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: hasData ? color.withValues(alpha: 0.3) : AppTheme.borderOf(context),
+          color: hasData ? color.withValues(alpha: 0.3) : AppTheme.border,
         ),
       ),
       child: Column(
@@ -1264,13 +1124,13 @@ class _ResultsScreenState extends State<ResultsScreen>
         children: [
           Row(
             children: [
-              Icon(icon, color: hasData ? color : AppTheme.textH(context), size: 18),
+              Icon(icon, color: hasData ? color : AppTheme.textHint, size: 18),
               const SizedBox(width: 8),
               Text(
                 title,
                 style: TextStyle(
                   fontSize: 12,
-                  color: hasData ? color : AppTheme.text2(context),
+                  color: hasData ? color : AppTheme.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1282,7 +1142,7 @@ class _ResultsScreenState extends State<ResultsScreen>
             style: TextStyle(
               fontSize: hasData ? 20 : 14,
               fontWeight: hasData ? FontWeight.w700 : FontWeight.w500,
-              color: hasData ? color : AppTheme.textH(context),
+              color: hasData ? color : AppTheme.textHint,
               fontStyle: hasData ? FontStyle.normal : FontStyle.italic,
               fontFamily: 'Inter',
             ),
@@ -1328,7 +1188,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
                 const SizedBox(width: 12),
-                Expanded(
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1337,7 +1197,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                       SizedBox(height: 2),
@@ -1345,7 +1205,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                         'Trial Plan',
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                     ],
@@ -1354,12 +1214,12 @@ class _ResultsScreenState extends State<ResultsScreen>
               ],
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Upgrade to Basic to see:',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.text1(context),
+                color: AppTheme.textPrimary,
               ),
             ),
             const SizedBox(height: 8),
@@ -1404,9 +1264,9 @@ class _ResultsScreenState extends State<ResultsScreen>
           const SizedBox(width: 10),
           Text(
             text,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: AppTheme.text2(context),
+              color: AppTheme.textSecondary,
             ),
           ),
         ],
@@ -1417,7 +1277,7 @@ class _ResultsScreenState extends State<ResultsScreen>
   Widget _buildUpgradePrompt() {
     final message = _isTrial
         ? 'Upgrade to Basic for full risk analysis, underwriting details & pricing'
-        : 'Upgrade to Premium for chat, AI documents & deep analysis';
+        : 'Upgrade to Premium for chat, documents & sanctions screening';
     final targetTier = _isTrial ? 'Basic' : 'Premium';
 
     return Padding(
@@ -1436,9 +1296,9 @@ class _ResultsScreenState extends State<ResultsScreen>
             Expanded(
               child: Text(
                 message,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
-                  color: AppTheme.text2(context),
+                  color: AppTheme.textSecondary,
                 ),
               ),
             ),
@@ -1496,7 +1356,7 @@ class _ResultsScreenState extends State<ResultsScreen>
           ),
           subtitle: Text(
             _getAgentSummary(agentName, data),
-            style: TextStyle(fontSize: 11, color: AppTheme.text2(context)),
+            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -1518,10 +1378,10 @@ class _ResultsScreenState extends State<ResultsScreen>
                   children: [
                     Text(
                       key,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.text2(context),
+                        color: AppTheme.textSecondary,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -1570,15 +1430,15 @@ class _ResultsScreenState extends State<ResultsScreen>
 
   Color _getAgentColor(String name) {
     final colors = {
-      'classifier': AppTheme.analysisClassifier,
-      'extractor': AppTheme.analysisExtractor,
-      'risk_analyst': AppTheme.analysisRisk,
-      'financial_analyst': AppTheme.analysisPurple,
-      'compliance': AppTheme.analysisCyan,
-      'exposure': AppTheme.warningAmber,
-      'underwriter': AppTheme.analysisIndigo,
-      'verification': AppTheme.phaseCompose,
-      'qa': AppTheme.phaseExport,
+      'classifier': const Color(0xFF2563EB),
+      'extractor': const Color(0xFF059669),
+      'risk_analyst': const Color(0xFFDC2626),
+      'financial_analyst': const Color(0xFF7C3AED),
+      'compliance': const Color(0xFF0891B2),
+      'exposure': const Color(0xFFF59E0B),
+      'underwriter': const Color(0xFF4F46E5),
+      'verification': const Color(0xFF10B981),
+      'qa': const Color(0xFF6366F1),
     };
     return colors[name.toLowerCase()] ?? AppTheme.primaryDark;
   }
@@ -1612,7 +1472,7 @@ class _ResultsScreenState extends State<ResultsScreen>
       return Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppTheme.bg(context),
+          color: AppTheme.background,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Column(
@@ -1623,9 +1483,9 @@ class _ResultsScreenState extends State<ResultsScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('${_formatFieldName(e.key.toString())}: ',
-                  style: TextStyle(fontSize: 12, color: AppTheme.text2(context), fontWeight: FontWeight.w500)),
+                  style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.w500)),
                 Expanded(child: Text('${e.value}',
-                  style: TextStyle(fontSize: 12, color: AppTheme.text1(context)))),
+                  style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary))),
               ],
             ),
           )).toList(),
@@ -1635,7 +1495,7 @@ class _ResultsScreenState extends State<ResultsScreen>
       return Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppTheme.bg(context),
+          color: AppTheme.background,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Column(
@@ -1645,8 +1505,8 @@ class _ResultsScreenState extends State<ResultsScreen>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('• ', style: TextStyle(fontSize: 12, color: AppTheme.text2(context))),
-                Expanded(child: Text('$item', style: TextStyle(fontSize: 12, color: AppTheme.text1(context)))),
+                const Text('• ', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                Expanded(child: Text('$item', style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary))),
               ],
             ),
           )).toList(),
@@ -1655,7 +1515,7 @@ class _ResultsScreenState extends State<ResultsScreen>
     } else {
       return Text(
         value.toString(),
-        style: TextStyle(fontSize: 13, color: AppTheme.text1(context), height: 1.4),
+        style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary, height: 1.4),
       );
     }
   }
@@ -1664,12 +1524,12 @@ class _ResultsScreenState extends State<ResultsScreen>
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: AppTheme.bg(context),
+        backgroundColor: AppTheme.background,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+            icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
             onPressed: () => context.go('/reports'),
           ),
         ),
@@ -1679,12 +1539,12 @@ class _ResultsScreenState extends State<ResultsScreen>
 
     if (_error != null) {
       return Scaffold(
-        backgroundColor: AppTheme.bg(context),
+        backgroundColor: AppTheme.background,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+            icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
             onPressed: () => context.go('/reports'),
           ),
         ),
@@ -1693,8 +1553,8 @@ class _ResultsScreenState extends State<ResultsScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.error_outline, size: 64, color: AppTheme.danger),
-              SizedBox(height: 16),
-              Text(_error!, style: TextStyle(color: AppTheme.text2(context))),
+              const SizedBox(height: 16),
+              Text(_error!, style: TextStyle(color: AppTheme.textSecondary)),
               const SizedBox(height: 16),
               ElevatedButton(onPressed: _fetchData, child: const Text('Retry')),
             ],
@@ -1717,12 +1577,12 @@ class _ResultsScreenState extends State<ResultsScreen>
     final hasData = _assessment != null || _analysis != null;
     if (!hasData) {
       return Scaffold(
-        backgroundColor: AppTheme.bg(context),
+        backgroundColor: AppTheme.background,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+            icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
             onPressed: () => context.go('/reports'),
           ),
         ),
@@ -1730,37 +1590,25 @@ class _ResultsScreenState extends State<ResultsScreen>
       );
     }
 
-    final decisionColor = isApproved
-        ? AppTheme.success
-        : isReferred
-            ? AppTheme.warning
-            : AppTheme.danger;
-    final decisionText = isApproved
-        ? 'GO'
-        : isReferred
-            ? 'REFER'
-            : 'NO-GO';
-    final decisionIcon = isApproved
-        ? Icons.check
-        : isReferred
-            ? Icons.help_outline
-            : Icons.close;
+    final decisionColor = isApproved ? AppTheme.success : isReferred ? AppTheme.warning : AppTheme.danger;
+    final decisionText = isApproved ? 'GO' : isReferred ? 'REFER' : 'NO-GO';
+    final decisionIcon = isApproved ? Icons.check : isReferred ? Icons.pending_outlined : Icons.close;
 
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
           onPressed: () => context.go('/reports'),
         ),
         title: Text(
           referenceNumber.isNotEmpty ? referenceNumber : 'Assessment Results',
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: AppTheme.text1(context),
+            color: AppTheme.textPrimary,
             fontFamily: 'Inter',
           ),
         ),
@@ -1768,12 +1616,12 @@ class _ResultsScreenState extends State<ResultsScreen>
         actions: [
           // Rename button (all tiers)
           IconButton(
-            icon: Icon(Icons.edit_outlined, color: AppTheme.text1(context)),
+            icon: const Icon(Icons.edit_outlined, color: AppTheme.textPrimary),
             onPressed: _showRenameDialog,
             tooltip: 'Rename Analysis',
           ),
           IconButton(
-            icon: Icon(Icons.share_outlined, color: AppTheme.text1(context)),
+            icon: const Icon(Icons.share_outlined, color: AppTheme.textPrimary),
             onPressed: _shareResults,
           ),
         ],
@@ -1791,7 +1639,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                     _canSeeDecision
                         ? decisionColor.withValues(alpha: 0.1)
                         : Colors.grey.withValues(alpha: 0.1),
-                    AppTheme.bg(context),
+                    AppTheme.background,
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -1884,10 +1732,10 @@ class _ResultsScreenState extends State<ResultsScreen>
                   // Company & Risk Type
                   Text(
                     companyName,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.text1(context),
+                      color: AppTheme.textPrimary,
                       fontFamily: 'Inter',
                     ),
                     textAlign: TextAlign.center,
@@ -1895,9 +1743,9 @@ class _ResultsScreenState extends State<ResultsScreen>
                   const SizedBox(height: 4),
                   Text(
                     riskType,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
-                      color: AppTheme.text2(context),
+                      color: AppTheme.textSecondary,
                       fontFamily: 'Inter',
                     ),
                   ),
@@ -1905,9 +1753,9 @@ class _ResultsScreenState extends State<ResultsScreen>
                     const SizedBox(height: 4),
                     Text(
                       territory,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
-                        color: AppTheme.textH(context),
+                        color: AppTheme.textHint,
                         fontFamily: 'Inter',
                       ),
                     ),
@@ -1928,8 +1776,8 @@ class _ResultsScreenState extends State<ResultsScreen>
               const SizedBox(height: 24),
             ],
 
-            // Key Metrics Cards - Confidence and Documents
-            if (_isBasicOrHigher)
+            // Key Metrics Cards - Confidence and Documents (Premium only for detailed view)
+            if (_isPremium)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Row(
@@ -1956,11 +1804,11 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ],
                 ),
               ),
-            if (_isBasicOrHigher) const SizedBox(height: 24),
+            if (_isPremium) const SizedBox(height: 24),
 
-            // Upgrade Analysis Card
-            if (_isBasicOrHigher) _buildUpgradeCard(),
-            if (_isBasicOrHigher && canUpgradeAnalysis) const SizedBox(height: 24),
+            // Upgrade Analysis Card (Premium only - they can upgrade to deeper modes)
+            if (_isPremium) _buildUpgradeCard(),
+            if (_isPremium && canUpgradeAnalysis) const SizedBox(height: 24),
 
             // Coverage Details (Basic+ only)
             if (_isBasicOrHigher && coverageDetails.isNotEmpty)
@@ -1970,9 +1818,9 @@ class _ResultsScreenState extends State<ResultsScreen>
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceOf(context),
+                    color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.borderOf(context)),
+                    border: Border.all(color: AppTheme.border),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1992,12 +1840,12 @@ class _ResultsScreenState extends State<ResultsScreen>
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Text(
+                          const Text(
                             'Coverage Details',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.text1(context),
+                              color: AppTheme.textPrimary,
                               fontFamily: 'Inter',
                             ),
                           ),
@@ -2006,9 +1854,9 @@ class _ResultsScreenState extends State<ResultsScreen>
                       const SizedBox(height: 16),
                       Text(
                         coverageDetails,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                           height: 1.5,
                         ),
                       ),
@@ -2018,40 +1866,17 @@ class _ResultsScreenState extends State<ResultsScreen>
               ),
             if (_isBasicOrHigher && coverageDetails.isNotEmpty) const SizedBox(height: 24),
 
-            // "View Full Analysis" toggle button
-            if (_isBasicOrHigher)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => setState(() => _showDetails = !_showDetails),
-                    icon: Icon(_showDetails ? Icons.expand_less : Icons.expand_more, size: 20),
-                    label: Text(_showDetails ? 'Hide Detailed Analysis' : 'View Full Analysis'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.accentBright,
-                      side: BorderSide(color: AppTheme.accentBright.withValues(alpha: 0.3)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-              ),
-            if (_isBasicOrHigher) const SizedBox(height: 24),
-
-            // === DETAIL SECTIONS (hidden by default, shown on toggle) ===
-
             // Risk Factors (from AI analysis) - Basic+ only
-            if (_isBasicOrHigher && _showDetails) ...[
+            if (_isBasicOrHigher) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceOf(context),
+                    color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.borderOf(context)),
+                    border: Border.all(color: AppTheme.border),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -2071,13 +1896,13 @@ class _ResultsScreenState extends State<ResultsScreen>
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Expanded(
+                          const Expanded(
                             child: Text(
                               'AI Risk Analysis',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
-                                color: AppTheme.text1(context),
+                                color: AppTheme.textPrimary,
                                 fontFamily: 'Inter',
                               ),
                             ),
@@ -2100,16 +1925,16 @@ class _ResultsScreenState extends State<ResultsScreen>
                       ),
                       const SizedBox(height: 16),
                       if (_isRunningAnalysis)
-                        Center(
+                        const Center(
                           child: Padding(
-                            padding: const EdgeInsets.all(20),
+                            padding: EdgeInsets.all(20),
                             child: Column(
                               children: [
-                                const CircularProgressIndicator(),
-                                const SizedBox(height: 12),
+                                CircularProgressIndicator(),
+                                SizedBox(height: 12),
                                 Text(
                                   'Running AI analysis...',
-                                  style: TextStyle(color: AppTheme.text2(context)),
+                                  style: TextStyle(color: AppTheme.textSecondary),
                                 ),
                               ],
                             ),
@@ -2119,7 +1944,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppTheme.bg(context),
+                            color: AppTheme.background,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Column(
@@ -2127,15 +1952,15 @@ class _ResultsScreenState extends State<ResultsScreen>
                               Icon(
                                 Icons.analytics_outlined,
                                 size: 40,
-                                color: AppTheme.textH(context),
+                                color: AppTheme.textHint,
                               ),
                               const SizedBox(height: 12),
                               Text(
                                 AppLocalizations.of(context).noAiAnalysisYet,
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 13,
-                                  color: AppTheme.text2(context),
+                                  color: AppTheme.textSecondary,
                                 ),
                               ),
                             ],
@@ -2160,9 +1985,9 @@ class _ResultsScreenState extends State<ResultsScreen>
                               Expanded(
                                 child: Text(
                                   factor.toString(),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 14,
-                                    color: AppTheme.text2(context),
+                                    color: AppTheme.textSecondary,
                                     height: 1.4,
                                   ),
                                 ),
@@ -2177,14 +2002,56 @@ class _ResultsScreenState extends State<ResultsScreen>
               const SizedBox(height: 24),
             ],
 
-            // Pricing Factors Section - Key data for underwriting decisions
-            if (_isBasicOrHigher && pricingFactors.isNotEmpty && _showDetails)
+            // RapidRate AI Pricing Section (auto-populated during analysis)
+            if (_isPremium && _rapidRateData != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: RapidRateSection(
+                  pricingData: _rapidRateData!,
+                  onRecalculate: _calculatePricing,
+                ),
+              ),
+            if (_isPremium && _rapidRateData != null)
+              const SizedBox(height: 24),
+
+            // "Ask AI" Button - Opens unified chat with this assessment as context
+            if (_isPremium)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.go(
+                      '/chat/conversation/new',
+                      extra: {
+                        'assessmentId': _effectiveAssessmentId,
+                        'assessmentTitle': referenceNumber,
+                      },
+                    ),
+                    icon: const Icon(Icons.auto_awesome, size: 18),
+                    label: const Text('Ask AI About This Assessment'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primaryDark,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: AppTheme.primaryDark.withValues(alpha: 0.3)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (_isPremium)
+              const SizedBox(height: 24),
+
+            // Pricing Factors Section - Key data for underwriting decisions (Premium only)
+            if (_isPremium && pricingFactors.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceOf(context),
+                    color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: AppTheme.primaryDark.withValues(alpha: 0.2)),
                   ),
@@ -2206,25 +2073,25 @@ class _ResultsScreenState extends State<ResultsScreen>
                           size: 20,
                         ),
                       ),
-                      title: Text(
+                      title: const Text(
                         'Pricing Factors',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                           fontFamily: 'Inter',
                         ),
                       ),
                       subtitle: Text(
                         '${pricingFactors.length} categories extracted',
-                        style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                       ),
                       children: [
                         Text(
                           'Key data extracted from documents for pricing decisions',
                           style: TextStyle(
                             fontSize: 13,
-                            color: AppTheme.text2(context),
+                            color: AppTheme.textSecondary,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -2268,7 +2135,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                                 ),
                                 subtitle: Text(
                                   '${categoryData.length} fields extracted',
-                                  style: TextStyle(fontSize: 11, color: AppTheme.text2(context)),
+                                  style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
                                 ),
                                 children: [
                                   ...categoryData.entries.map((field) {
@@ -2284,9 +2151,9 @@ class _ResultsScreenState extends State<ResultsScreen>
                                             width: 120,
                                             child: Text(
                                               fieldName,
-                                              style: TextStyle(
+                                              style: const TextStyle(
                                                 fontSize: 12,
-                                                color: AppTheme.text2(context),
+                                                color: AppTheme.textSecondary,
                                                 fontWeight: FontWeight.w500,
                                               ),
                                             ),
@@ -2308,19 +2175,19 @@ class _ResultsScreenState extends State<ResultsScreen>
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppTheme.bg(context),
+                            color: AppTheme.background,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.info_outline, size: 16, color: AppTheme.textH(context)),
+                              Icon(Icons.info_outline, size: 16, color: AppTheme.textHint),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   'Data automatically extracted from uploaded documents by AI analysis',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: AppTheme.text2(context),
+                                    color: AppTheme.textSecondary,
                                     height: 1.4,
                                   ),
                                 ),
@@ -2333,17 +2200,17 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isBasicOrHigher && pricingFactors.isNotEmpty && _showDetails) const SizedBox(height: 24),
+            if (_isPremium && pricingFactors.isNotEmpty) const SizedBox(height: 24),
 
             // Decision Rationale (Extensive GO/NO-GO Summary) - Basic+ only
             // Trial users see only the Go/No-Go decision, not the detailed rationale
-            if (_isBasicOrHigher && decisionRationale.isNotEmpty && _showDetails)
+            if (_isBasicOrHigher && decisionRationale.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceOf(context),
+                    color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: decisionColor.withValues(alpha: 0.3)),
                   ),
@@ -2365,25 +2232,25 @@ class _ResultsScreenState extends State<ResultsScreen>
                           size: 20,
                         ),
                       ),
-                      title: Text(
+                      title: const Text(
                         'Underwriting Decision',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                           fontFamily: 'Inter',
                         ),
                       ),
                       subtitle: Text(
                         'AI rationale for $decisionText decision',
-                        style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
+                        style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                       ),
                       children: [
                         Text(
                           decisionRationale,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
-                            color: AppTheme.text2(context),
+                            color: AppTheme.textSecondary,
                             height: 1.6,
                           ),
                         ),
@@ -2395,15 +2262,15 @@ class _ResultsScreenState extends State<ResultsScreen>
             if (_isBasicOrHigher && decisionRationale.isNotEmpty) const SizedBox(height: 24),
 
             // Agent Reports Section - Expandable details for each AI agent (Premium only)
-            if (_isBasicOrHigher && agentResults.isNotEmpty && _showDetails)
+            if (_isPremium && agentResults.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceOf(context),
+                    color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.borderOf(context)),
+                    border: Border.all(color: AppTheme.border),
                   ),
                   child: Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -2414,29 +2281,29 @@ class _ResultsScreenState extends State<ResultsScreen>
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppTheme.analysisPurple.withValues(alpha: 0.1),
+                          color: const Color(0xFF7C3AED).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.psychology_outlined,
-                          color: AppTheme.analysisPurple,
+                          color: Color(0xFF7C3AED),
                           size: 20,
                         ),
                       ),
-                      title: Text(
+                      title: const Text(
                         'AI Agent Reports',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                           fontFamily: 'Inter',
                         ),
                       ),
                       subtitle: Text(
                         '$agentsUsed agents analyzed this submission',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                       children: [
@@ -2453,18 +2320,18 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isBasicOrHigher && agentResults.isNotEmpty) const SizedBox(height: 24),
+            if (_isPremium && agentResults.isNotEmpty) const SizedBox(height: 24),
 
-            // OCR Extracted Text Section
-            if (_isBasicOrHigher && ocrExtractedText.isNotEmpty && _showDetails)
+            // OCR Extracted Text Section (Premium only)
+            if (_isPremium && ocrExtractedText.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceOf(context),
+                    color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.borderOf(context)),
+                    border: Border.all(color: AppTheme.border),
                   ),
                   child: Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -2484,20 +2351,20 @@ class _ResultsScreenState extends State<ResultsScreen>
                           size: 20,
                         ),
                       ),
-                      title: Text(
+                      title: const Text(
                         'OCR Extracted Text',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                           fontFamily: 'Inter',
                         ),
                       ),
                       subtitle: Text(
                         '${ocrExtractedText.length} characters extracted',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
-                          color: AppTheme.text2(context),
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                       children: [
@@ -2505,17 +2372,17 @@ class _ResultsScreenState extends State<ResultsScreen>
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppTheme.bg(context),
+                            color: AppTheme.background,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppTheme.borderOf(context).withValues(alpha: 0.5)),
+                            border: Border.all(color: AppTheme.border.withValues(alpha: 0.5)),
                           ),
                           constraints: const BoxConstraints(maxHeight: 300),
                           child: SingleChildScrollView(
                             child: SelectableText(
                               ocrExtractedText,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 13,
-                                color: AppTheme.text2(context),
+                                color: AppTheme.textSecondary,
                                 height: 1.5,
                                 fontFamily: 'monospace',
                               ),
@@ -2527,177 +2394,64 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
-            if (_isBasicOrHigher && ocrExtractedText.isNotEmpty && _showDetails) const SizedBox(height: 24),
+            if (_isPremium && ocrExtractedText.isNotEmpty) const SizedBox(height: 24),
 
-            // ─── GOD MODE: AI Decision Explanation ───
-            if (_isBasicOrHigher && _analysis != null && _showDetails)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceOf(context),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.primaryDark.withValues(alpha: 0.2)),
-                  ),
-                  child: Theme(
-                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                    child: ExpansionTile(
-                      initiallyExpanded: false,
-                      tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryDark.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.psychology, color: AppTheme.primaryDark, size: 20),
-                      ),
-                      title: Text(
-                        'AI Decision Explanation',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
-                          fontFamily: 'Inter',
-                        ),
-                      ),
-                      subtitle: Text(
-                        'SHAP analysis of risk factors',
-                        style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
-                      ),
-                      children: [
-                        ShapWaterfallChart(
-                          shapValues: _buildShapValues(),
-                          baseValue: 0.5,
-                          finalPrediction: confidencePercent / 100,
-                          title: 'AI Decision Explanation',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            if (_isBasicOrHigher && _analysis != null && _showDetails) const SizedBox(height: 16),
-
-            // ─── GOD MODE: Similar Precedents ───
-            if (_isBasicOrHigher && _showDetails)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceOf(context),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.primaryDark.withValues(alpha: 0.2)),
-                  ),
-                  child: Theme(
-                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                    child: ExpansionTile(
-                      initiallyExpanded: false,
-                      tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.indigo.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.compare_arrows, color: Colors.indigo, size: 20),
-                      ),
-                      title: Text(
-                        'Similar Precedents',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
-                          fontFamily: 'Inter',
-                        ),
-                      ),
-                      subtitle: Text(
-                        'Historical cases with similar risk profiles',
-                        style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
-                      ),
-                      children: [
-                        SimilarRisksPanel(
-                          assessmentId: widget.assessmentId,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            if (_isBasicOrHigher && _showDetails) const SizedBox(height: 16),
-
-            // ─── GOD MODE: Entity Graph ───
-            if (_isBasicOrHigher && _showDetails)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceOf(context),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.teal.withValues(alpha: 0.2)),
-                  ),
-                  child: Theme(
-                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                    child: ExpansionTile(
-                      initiallyExpanded: false,
-                      tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.teal.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.hub, color: Colors.teal, size: 20),
-                      ),
-                      title: Text(
-                        'Entity Mapping',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.text1(context),
-                          fontFamily: 'Inter',
-                        ),
-                      ),
-                      subtitle: Text(
-                        'Relationship graph & fraud detection',
-                        style: TextStyle(fontSize: 12, color: AppTheme.text2(context)),
-                      ),
-                      children: [
-                        EntityGraphViz(
-                          assessmentId: widget.assessmentId,
-                          height: 260,
-                          onFullScreen: () => context.push(
-                            '/assessments/${widget.assessmentId}/entities',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            if (_isBasicOrHigher && _showDetails) const SizedBox(height: 16),
+            // Upgrade prompt for lower tiers
+            if (!_isPremium) ...[
+              _buildUpgradePrompt(),
+              const SizedBox(height: 24),
+            ],
 
             // Action Buttons
             Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                  // AI Generate Documents Button (Basic+ users)
-                  if (_isBasicOrHigher) ...[
+                  // Sanctions Screening Button (Premium only)
+                  if (_isPremium) ...[
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () => context.go('/documents/ai-advisor/${widget.assessmentId}'),
+                        onPressed: () => context.go('/assessments/${widget.assessmentId}/sanctions'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.shield_outlined, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Sanctions Screening',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // AI Generate Documents Button (Premium only, enabled for GO and REFER)
+                  if (_isPremium) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: (isApproved || isReferred)
+                            ? () => context.go('/documents/ai-advisor/${widget.assessmentId}')
+                            : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primaryDark,
                           foregroundColor: Colors.white,
-                          disabledBackgroundColor: AppTheme.borderOf(context),
+                          disabledBackgroundColor: AppTheme.border,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -2709,7 +2463,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                             Icon(Icons.auto_awesome, size: 20),
                             SizedBox(width: 8),
                             Text(
-                              'InstantRisk Document Generator',
+                              'AI Generate Documents',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -2731,8 +2485,8 @@ class _ResultsScreenState extends State<ResultsScreen>
                           label: const Text('Share'),
                           onPressed: _shareResults,
                           style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 14),
-                            side: BorderSide(color: AppTheme.borderOf(context)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: AppTheme.border),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -2746,8 +2500,8 @@ class _ResultsScreenState extends State<ResultsScreen>
                           label: const Text('Refresh'),
                           onPressed: _fetchData,
                           style: OutlinedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(vertical: 14),
-                            side: BorderSide(color: AppTheme.borderOf(context)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: AppTheme.border),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -2768,18 +2522,18 @@ class _ResultsScreenState extends State<ResultsScreen>
 
   /// Build processing state UI - shows live progress
   Widget _buildProcessingState() {
-    const modeColor = AppTheme.analysisPurple; // Deep analysis purple
+    const modeColor = Color(0xFF7C3AED); // Deep analysis purple
 
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        backgroundColor: AppTheme.surfaceOf(context),
+        backgroundColor: AppTheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.close, color: AppTheme.text1(context)),
+          icon: const Icon(Icons.close, color: AppTheme.textPrimary),
           onPressed: _showCancelConfirmation,
         ),
-        title: Text(
+        title: const Text(
           'Deep Analysis',
           style: TextStyle(
             fontSize: 18,
@@ -2794,8 +2548,8 @@ class _ResultsScreenState extends State<ResultsScreen>
         children: [
           // Progress header
           Container(
-            padding: EdgeInsets.all(24),
-            color: AppTheme.surfaceOf(context),
+            padding: const EdgeInsets.all(24),
+            color: AppTheme.surface,
             child: Column(
               children: [
                 // Animated progress indicator
@@ -2812,7 +2566,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                         child: CircularProgressIndicator(
                           value: 1,
                           strokeWidth: 8,
-                          color: AppTheme.borderOf(context),
+                          color: AppTheme.border,
                         ),
                       ),
                       // Progress circle
@@ -2832,7 +2586,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                         children: [
                           Text(
                             '${_progressPercent.toInt()}%',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.w700,
                               color: modeColor,
@@ -2842,9 +2596,9 @@ class _ResultsScreenState extends State<ResultsScreen>
                           const SizedBox(height: 2),
                           Text(
                             _formatTime(_elapsedSeconds),
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 14,
-                              color: AppTheme.text2(context),
+                              color: AppTheme.textSecondary,
                               fontFamily: 'Courier',
                             ),
                           ),
@@ -2875,7 +2629,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                             color: modeColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.description,
                             size: 24,
                             color: modeColor,
@@ -2888,7 +2642,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                             children: [
                               Text(
                                 'DOCUMENT ${_currentDocument > 0 ? _currentDocument : 1} OF ${_totalDocuments > 0 ? _totalDocuments : widget.documentCount}',
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: modeColor,
@@ -2898,9 +2652,9 @@ class _ResultsScreenState extends State<ResultsScreen>
                               if (_documentName.isNotEmpty)
                                 Text(
                                   _documentName,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 12,
-                                    color: AppTheme.text2(context),
+                                    color: AppTheme.textSecondary,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -2917,7 +2671,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                           ),
                           child: Text(
                             '${(_totalDocuments > 0 ? _totalDocuments : widget.documentCount) - (_currentDocument > 0 ? _currentDocument : 1)} left',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: modeColor,
@@ -2960,7 +2714,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                           const SizedBox(width: 12),
                           Text(
                             _currentAgent.isEmpty ? 'Initializing' : _currentAgent,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: modeColor,
@@ -2976,9 +2730,9 @@ class _ResultsScreenState extends State<ResultsScreen>
 
                 Text(
                   _currentDescription,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -2991,24 +2745,28 @@ class _ResultsScreenState extends State<ResultsScreen>
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
+                // Live findings
+                if (_liveFindings.isNotEmpty)
+                  _buildLiveFindingsPanel(modeColor),
+
                 const SizedBox(height: 16),
 
                 // Analysis summary
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceOf(context),
+                    color: AppTheme.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.borderOf(context)),
+                    border: Border.all(color: AppTheme.border),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.analytics_outlined, size: 18, color: modeColor),
+                          const Icon(Icons.analytics_outlined, size: 18, color: modeColor),
                           const SizedBox(width: 8),
-                          Text(
+                          const Text(
                             'ANALYSIS SUMMARY',
                             style: TextStyle(
                               fontSize: 12,
@@ -3035,22 +2793,22 @@ class _ResultsScreenState extends State<ResultsScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceOf(context),
-              border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
+              color: AppTheme.surface,
+              border: Border(top: BorderSide(color: AppTheme.border)),
             ),
             child: SafeArea(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.timer_outlined, size: 16, color: AppTheme.text2(context)),
+                  const Icon(Icons.timer_outlined, size: 16, color: AppTheme.textSecondary),
                   const SizedBox(width: 6),
                   Text(
                     _estimatedRemaining > 0
                         ? 'Estimated: ${_formatTime(_estimatedRemaining)} remaining'
                         : 'Processing...',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
-                      color: AppTheme.text2(context),
+                      color: AppTheme.textSecondary,
                     ),
                   ),
                 ],
@@ -3070,17 +2828,17 @@ class _ResultsScreenState extends State<ResultsScreen>
         children: [
           Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
-              color: AppTheme.text2(context),
+              color: AppTheme.textSecondary,
             ),
           ),
           Text(
             value,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppTheme.text1(context),
+              color: AppTheme.textPrimary,
             ),
           ),
         ],
@@ -3091,7 +2849,7 @@ class _ResultsScreenState extends State<ResultsScreen>
   Widget _buildLiveFindingsPanel(Color modeColor) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: modeColor.withValues(alpha: 0.3)),
       ),
@@ -3162,15 +2920,15 @@ class _ResultsScreenState extends State<ResultsScreen>
     IconData typeIcon;
     switch (type) {
       case 'success':
-        typeColor = AppTheme.analysisExtractor;
+        typeColor = const Color(0xFF059669);
         typeIcon = Icons.check_circle;
         break;
       case 'warning':
-        typeColor = AppTheme.warningAmber;
+        typeColor = const Color(0xFFF59E0B);
         typeIcon = Icons.warning;
         break;
       case 'error':
-        typeColor = AppTheme.analysisRisk;
+        typeColor = const Color(0xFFDC2626);
         typeIcon = Icons.error;
         break;
       default:
@@ -3196,18 +2954,18 @@ class _ResultsScreenState extends State<ResultsScreen>
               children: [
                 Text(
                   label,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 10,
-                    color: AppTheme.text2(context),
+                    color: AppTheme.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
                   value,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.text1(context),
+                    color: AppTheme.textPrimary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -3253,12 +3011,12 @@ class _ResultsScreenState extends State<ResultsScreen>
     }
 
     return Scaffold(
-      backgroundColor: AppTheme.bg(context),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppTheme.text1(context)),
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.textPrimary),
           onPressed: () => context.go('/home'),
         ),
       ),
@@ -3273,29 +3031,29 @@ class _ResultsScreenState extends State<ResultsScreen>
                 height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppTheme.analysisRisk.withValues(alpha: 0.1),
+                  color: const Color(0xFFDC2626).withValues(alpha: 0.1),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.error_outline,
                   size: 48,
-                  color: AppTheme.analysisRisk,
+                  color: Color(0xFFDC2626),
                 ),
               ),
               const SizedBox(height: 24),
-              Text(
+              const Text(
                 'Analysis Failed',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
-                  color: AppTheme.analysisRisk,
+                  color: Color(0xFFDC2626),
                 ),
               ),
               const SizedBox(height: 12),
               Text(
                 helpText,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 16,
-                  color: AppTheme.text1(context),
+                  color: AppTheme.textPrimary,
                   fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,
@@ -3317,9 +3075,9 @@ class _ResultsScreenState extends State<ResultsScreen>
                     Expanded(
                       child: Text(
                         suggestionText,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
-                          color: AppTheme.text1(context),
+                          color: AppTheme.textPrimary,
                         ),
                       ),
                     ),
@@ -3331,18 +3089,18 @@ class _ResultsScreenState extends State<ResultsScreen>
               if (errorMsg.isNotEmpty && errorMsg != 'An unexpected error occurred') ...[
                 const SizedBox(height: 16),
                 ExpansionTile(
-                  title: Text(
+                  title: const Text(
                     'Technical Details',
-                    style: TextStyle(fontSize: 14, color: AppTheme.text2(context)),
+                    style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
                   ),
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(12),
                       child: Text(
                         errorMsg,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
-                          color: AppTheme.textH(context),
+                          color: AppTheme.textHint,
                           fontFamily: 'Courier',
                         ),
                       ),
@@ -3453,9 +3211,9 @@ class _ResultsScreenState extends State<ResultsScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceOf(context),
+        color: AppTheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderOf(context)),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3473,9 +3231,9 @@ class _ResultsScreenState extends State<ResultsScreen>
               ),
               Text(
                 subtitle,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
-                  color: AppTheme.text2(context),
+                  color: AppTheme.textSecondary,
                 ),
               ),
             ],
@@ -3493,9 +3251,9 @@ class _ResultsScreenState extends State<ResultsScreen>
           const SizedBox(height: 4),
           Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: AppTheme.text2(context),
+              color: AppTheme.textSecondary,
               fontFamily: 'Inter',
             ),
           ),
@@ -3601,58 +3359,15 @@ class _ResultsScreenState extends State<ResultsScreen>
 
   Color _getPricingCategoryColor(String category) {
     final colors = {
-      'insured_profile': AppTheme.analysisClassifier,
-      'financial_metrics': AppTheme.analysisExtractor,
-      'coverage_details': AppTheme.analysisPurple,
-      'claims_history': AppTheme.analysisRisk,
-      'geographic_exposure': AppTheme.analysisCyan,
-      'risk_indicators': AppTheme.warningAmber,
-      'key_personnel': AppTheme.analysisIndigo,
+      'insured_profile': const Color(0xFF2563EB),
+      'financial_metrics': const Color(0xFF059669),
+      'coverage_details': const Color(0xFF7C3AED),
+      'claims_history': const Color(0xFFDC2626),
+      'geographic_exposure': const Color(0xFF0891B2),
+      'risk_indicators': const Color(0xFFF59E0B),
+      'key_personnel': const Color(0xFF4F46E5),
     };
     return colors[category] ?? AppTheme.primaryDark;
-  }
-
-  /// Build SHAP values from analysis data for the waterfall chart
-  List<Map<String, dynamic>> _buildShapValues() {
-    final agentResults = _analysis?['agent_results'] as Map<String, dynamic>? ?? {};
-    final riskAnalyst = agentResults['risk_analyst'] as Map<String, dynamic>? ?? {};
-    final factors = riskAnalyst['risk_factors'] as List? ?? [];
-    final shapRaw = _analysis?['shap_values'] as Map<String, dynamic>? ?? {};
-
-    if (shapRaw.isNotEmpty) {
-      return shapRaw.entries.map((e) => {
-        'feature': e.key,
-        'value': (e.value as num?)?.toDouble() ?? 0.0,
-      }).toList();
-    }
-
-    // Build approximate SHAP-style values from risk factors
-    if (factors.isNotEmpty) {
-      final result = <Map<String, dynamic>>[];
-      for (int i = 0; i < factors.length && i < 8; i++) {
-        final factor = factors[i].toString();
-        // Assign synthetic SHAP value based on factor content
-        final isNegative = factor.toLowerCase().contains('good') ||
-            factor.toLowerCase().contains('low risk') ||
-            factor.toLowerCase().contains('experienced');
-        final magnitude = 0.05 + (0.15 * ((8 - i) / 8));
-        result.add({
-          'feature': factor.length > 40 ? '${factor.substring(0, 38)}...' : factor,
-          'value': isNegative ? -magnitude : magnitude,
-        });
-      }
-      return result;
-    }
-
-    // Default demo values
-    return [
-      {'feature': 'Claims History', 'value': 0.18},
-      {'feature': 'Industry Risk', 'value': 0.14},
-      {'feature': 'Financial Stability', 'value': -0.11},
-      {'feature': 'Coverage Amount', 'value': 0.09},
-      {'feature': 'Years in Business', 'value': -0.07},
-      {'feature': 'Geographic Risk', 'value': 0.06},
-    ];
   }
 
   Widget _buildPricingFactorValue(dynamic value) {
@@ -3663,7 +3378,7 @@ class _ResultsScreenState extends State<ResultsScreen>
           padding: const EdgeInsets.only(bottom: 2),
           child: Text(
             '${_formatFactorName(e.key.toString())}: ${e.value}',
-            style: TextStyle(fontSize: 12, color: AppTheme.text1(context)),
+            style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary),
           ),
         )).toList(),
       );
@@ -3681,7 +3396,7 @@ class _ResultsScreenState extends State<ResultsScreen>
               padding: const EdgeInsets.only(bottom: 2),
               child: Text(
                 role != null && role.toString().isNotEmpty ? '$name ($role)' : name.toString(),
-                style: TextStyle(fontSize: 12, color: AppTheme.text1(context)),
+                style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary),
               ),
             );
           }).toList(),
@@ -3690,29 +3405,29 @@ class _ResultsScreenState extends State<ResultsScreen>
       // Simple list
       return Text(
         value.take(5).join(', '),
-        style: TextStyle(fontSize: 12, color: AppTheme.text1(context)),
+        style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary),
       );
     } else if (value is num) {
       // Format numbers nicely
       if (value >= 1000000) {
         return Text(
           '${(value / 1000000).toStringAsFixed(1)}M',
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.text1(context)),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
         );
       } else if (value >= 1000) {
         return Text(
           '${(value / 1000).toStringAsFixed(1)}k',
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.text1(context)),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
         );
       }
       return Text(
         value.toString(),
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.text1(context)),
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
       );
     }
     return Text(
       value.toString(),
-      style: TextStyle(fontSize: 12, color: AppTheme.text1(context)),
+      style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary),
     );
   }
 }

@@ -150,7 +150,7 @@ class _VoiceCommandButtonState extends State<VoiceCommandButton>
                               spreadRadius: 4,
                             ),
                           ]
-                        : AppTheme.subtleShadow,
+                        : AppTheme.subtleShadow(context),
                   ),
                   child: Icon(
                     _isProcessing
