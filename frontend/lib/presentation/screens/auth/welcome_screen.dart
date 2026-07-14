@@ -86,10 +86,9 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.analytics_outlined,
-                      size: 56,
-                      color: AppTheme.primaryDark,
+                    child: Image.asset(
+                      'assets/images/logo-full.png',
+                      fit: BoxFit.contain,
                     ),
                   ),
                   const SizedBox(height: 40),
